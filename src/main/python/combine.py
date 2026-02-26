@@ -1,4 +1,23 @@
-"""Combined ETL pipeline: UGC VOTable + FSS fixed-width -> unified SQLite database."""
+"""
+Combined ETL pipeline: merges UGC + FSS galaxy catalogs into a unified database.
+
+The Uppsala General Catalogue (UGC, Nilson 1973) covers the northern sky with
+14,176 galaxies (Dec -4.5 deg to +88 deg). The Five Supernova Survey (FSS,
+Hakobyan+ 2009) covers the southern hemisphere with 3,838 galaxies (Dec -82 deg
+to +2 deg). Together they provide near full-sky coverage of ~18,000 galaxies —
+essential for building a 3D visualization of the local universe.
+
+This script parses the FSS fixed-width data format, reuses the UGC VOTable
+extractor from etl.py, and loads both catalogs into a single SQLite database
+with a unified schema. Each row carries a 'catalog' column ('UGC' or 'FSS')
+identifying its source dataset.
+
+Sources:
+    UGC: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/26D
+    FSS: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/other/Ap/52.40
+
+Author: @guinetik
+"""
 
 import os
 import sqlite3
@@ -7,6 +26,34 @@ from etl import extract_votable, _convert_value
 
 SPEED_OF_LIGHT = 299792.458  # km/s
 
+# Unified schema for the combined database.
+# Each tuple is (column_name, sql_type_definition).
+#
+# Shared columns (populated for both UGC and FSS):
+#   catalog          - Source dataset identifier ('UGC' or 'FSS')
+#   name             - Canonical name (e.g. 'UGC 00002' or 'PGC 00012')
+#   ra/dec           - Sky position in decimal degrees (J2000 epoch)
+#   ra_sexagesimal   - Right Ascension in human-readable notation
+#   dec_sexagesimal  - Declination in human-readable notation
+#   redshift         - Cosmological redshift z (dimensionless ratio v/c)
+#   velocity         - Heliocentric radial velocity in km/s
+#
+# UGC-specific columns (NULL for FSS rows):
+#   z_flag           - Redshift quality/source flag
+#   phys_type        - Physical type (G=galaxy, GClstr=cluster, etc.)
+#   em_region        - Electromagnetic observation region
+#   references..spectra - Cross-reference counts in other databases
+#
+# FSS-specific columns (NULL for UGC rows):
+#   pgc              - PGC catalog number (Principal Galaxies Catalogue)
+#   morphology       - Hubble morphological type (Sa, Sb, E0, Irr, etc.)
+#   u/b/r/i/j/h/k_mag - Apparent magnitudes across 7 photometric bands
+#   diameter_arcsec  - Major isophotal diameter in arcseconds
+#   axial_ratio      - Minor-to-major axis ratio (0=edge-on, 1=face-on)
+#   neighbor_count   - Galaxies within 50 kpc projected radius
+#   position_angle   - Orientation of major axis in degrees (0-180)
+#   activity_class   - Active/star-forming classification from NED
+#   fss_notes        - Additional notes (group/cluster membership)
 COMBINED_COLUMNS = [
     ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
     ("catalog", "TEXT NOT NULL"),
@@ -71,7 +118,22 @@ def _parse_int(s):
 
 
 def parse_fss(dat_path):
-    """Parse FSS fixed-width data file and return list of dicts."""
+    """Parse the FSS fixed-width data file into a list of galaxy dicts.
+
+    The FSS catalog uses a fixed-width text format where each field occupies
+    specific byte positions (defined in the FSS_ReadMe.txt). Lines are padded
+    to 204 chars to handle short records (e.g. PGC 143 with no velocity data).
+
+    Sexagesimal coordinates (hours/degrees, minutes, seconds) are converted to
+    decimal degrees. Heliocentric radial velocity (HRV) is converted to
+    cosmological redshift via z = HRV / c.
+
+    Args:
+        dat_path: Path to the fss.dat fixed-width data file.
+
+    Returns:
+        List of dicts, one per galaxy, with keys matching COMBINED_COLUMNS.
+    """
     rows = []
     with open(dat_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -155,7 +217,8 @@ def parse_fss(dat_path):
     return rows
 
 
-# Mapping from UGC VOTable column names to combined schema column names
+# Maps VOTable field names (as they appear in the UGC XML) to the
+# corresponding column names in the combined schema.
 _UGC_FIELD_MAP = {
     "prefname": "name",
     "equ_j2000_lon_s": "ra_sexagesimal",
@@ -181,7 +244,17 @@ _UGC_FIELD_MAP = {
 
 
 def prepare_ugc_rows(table):
-    """Convert astropy Table to list of dicts matching the combined schema."""
+    """Convert a UGC astropy Table to a list of dicts matching the combined schema.
+
+    FSS-specific fields (magnitudes, morphology, etc.) are omitted and will
+    default to NULL when inserted into the database.
+
+    Args:
+        table: An astropy Table extracted from the UGC VOTable XML.
+
+    Returns:
+        List of dicts with 'catalog' set to 'UGC' and fields mapped per _UGC_FIELD_MAP.
+    """
     rows = []
     for row in table:
         d = {"catalog": "UGC"}
@@ -192,7 +265,19 @@ def prepare_ugc_rows(table):
 
 
 def load_combined(ugc_rows, fss_rows, db_path):
-    """Load UGC and FSS rows into a unified SQLite database."""
+    """Create a unified SQLite database from UGC and FSS galaxy rows.
+
+    Builds the 'galaxies' table with the COMBINED_COLUMNS schema, inserts
+    all UGC rows followed by all FSS rows (auto-incrementing IDs), creates
+    indexes for common query patterns (sky position, redshift, catalog,
+    morphology), and builds an FTS5 full-text index on galaxy names for
+    search support.
+
+    Args:
+        ugc_rows: List of dicts from prepare_ugc_rows().
+        fss_rows: List of dicts from parse_fss().
+        db_path:  Output path for the SQLite database file.
+    """
     if os.path.exists(db_path):
         os.remove(db_path)
 
@@ -237,7 +322,12 @@ def load_combined(ugc_rows, fss_rows, db_path):
 
 
 def print_combined_stats(db_path):
-    """Query and display summary statistics from the combined database."""
+    """Print summary statistics from the combined database.
+
+    Displays total counts by catalog, sky coverage (declination range),
+    redshift and velocity distributions, UGC physical type breakdown,
+    FSS morphological type breakdown, and FSS photometric band coverage.
+    """
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 

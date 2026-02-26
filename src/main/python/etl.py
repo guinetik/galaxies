@@ -1,4 +1,18 @@
-"""ETL pipeline: UGC VOTable XML -> SQLite database."""
+"""
+ETL pipeline for the Uppsala General Catalogue (UGC) of Galaxies.
+
+Extracts galaxy data from a VOTable XML file (an XML-based standard used by
+the International Virtual Observatory Alliance for astronomical tabular data),
+transforms it into a normalized schema, and loads it into a SQLite database.
+
+The UGC (Nilson 1973) contains 14,176 galaxies in the northern sky
+(Dec > -2.5 deg), selected by apparent diameter >= 1.0 arcmin on the
+Palomar Observatory Sky Survey (POSS) blue prints.
+
+Source: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/26D
+
+Author: @guinetik
+"""
 
 from astropy.io.votable import parse
 import numpy as np
@@ -7,12 +21,42 @@ import sqlite3
 
 
 def extract_votable(xml_path: str):
-    """Parse a VOTable XML file and return the first table as an astropy Table."""
+    """Parse a VOTable XML file and return the first table as an astropy Table.
+
+    VOTable is an XML standard defined by the International Virtual Observatory
+    Alliance (IVOA) for exchanging tabular astronomical data. It encodes both
+    metadata (column names, units, UCDs) and row data in a single portable file.
+
+    Args:
+        xml_path: Path to the .xml VOTable file.
+
+    Returns:
+        An astropy Table with columns and rows from the first <TABLE> element.
+    """
     votable = parse(xml_path)
     table = votable.get_first_table().to_table()
     return table
 
 
+# Maps VOTable column names -> (SQLite column name, SQL type).
+# Each tuple is (votable_field, sqlite_column, sql_type_definition).
+#
+# Astrometric columns:
+#   ra/dec           - Sky position in decimal degrees (J2000 epoch)
+#   ra_sexagesimal   - Right Ascension in hours:min:sec notation
+#   dec_sexagesimal  - Declination in deg:arcmin:arcsec notation
+#
+# Kinematic columns:
+#   redshift         - Cosmological redshift (z), dimensionless
+#   velocity         - Heliocentric radial velocity in km/s
+#   z_flag           - Quality/source flag for the redshift measurement
+#
+# Classification columns:
+#   phys_type        - Physical type (G=galaxy, GClstr=cluster, GPair=pair, etc.)
+#   em_region        - Electromagnetic region of observation (Radio, IR, etc.)
+#
+# Cross-reference counts (how many entries exist in other databases):
+#   references..spectra - Counts of literature refs, photometry, positions, etc.
 COLUMN_MAP = [
     ("row", "id", "INTEGER PRIMARY KEY"),
     ("prefname", "name", "TEXT NOT NULL"),
@@ -39,7 +83,11 @@ COLUMN_MAP = [
 
 
 def _convert_value(val):
-    """Convert astropy/numpy values to Python-native types for sqlite3."""
+    """Convert astropy/numpy values to Python-native types for sqlite3.
+
+    Astropy tables use numpy scalars and masked values internally.
+    SQLite's Python driver only accepts plain Python types (int, float, str, None).
+    """
     if val is None or val is np.ma.masked:
         return None
     if isinstance(val, (np.integer,)):
@@ -55,7 +103,12 @@ def _convert_value(val):
 
 
 def load_to_sqlite(table, db_path: str):
-    """Transform astropy Table and load into SQLite database."""
+    """Transform an astropy Table and load it into a SQLite database.
+
+    Creates the 'galaxies' table with the schema defined in COLUMN_MAP,
+    inserts all rows, builds spatial/redshift indexes for fast queries,
+    and creates an FTS5 full-text search index on galaxy names.
+    """
     if os.path.exists(db_path):
         os.remove(db_path)
 
