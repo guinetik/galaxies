@@ -6,5 +6,17 @@
   },
   "header": {
     "siteName": "Galaxies"
+  },
+  "catalog": {
+    "ugc": "Uppsala General Catalogue",
+    "fss": "Flat Galaxy Survey"
+  },
+  "morphology": {
+    "elliptical": "Elliptical",
+    "lenticular": "Lenticular",
+    "spiral": "Spiral",
+    "barred": "Barred Spiral",
+    "irregular": "Irregular",
+    "unknown": "Unknown"
   }
 }
