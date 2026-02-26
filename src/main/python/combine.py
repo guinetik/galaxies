@@ -155,14 +155,166 @@ def parse_fss(dat_path):
     return rows
 
 
+# Mapping from UGC VOTable column names to combined schema column names
+_UGC_FIELD_MAP = {
+    "prefname": "name",
+    "equ_j2000_lon_s": "ra_sexagesimal",
+    "equ_j2000_lat_s": "dec_sexagesimal",
+    "ra": "ra",
+    "dec": "dec",
+    "z": "redshift",
+    "velocity": "velocity",
+    "zflag": "z_flag",
+    "ptype": "phys_type",
+    "emtype": "em_region",
+    "n_crosref": "references",
+    "n_notes": "notes",
+    "n_gphot": "photometry",
+    "n_posd": "positions",
+    "n_zdf": "redshifts",
+    "n_ddf": "diameters",
+    "n_dist": "distances",
+    "n_class": "classifications",
+    "n_images": "images",
+    "n_spectra": "spectra",
+}
+
+
+def prepare_ugc_rows(table):
+    """Convert astropy Table to list of dicts matching the combined schema."""
+    rows = []
+    for row in table:
+        d = {"catalog": "UGC"}
+        for vot_col, combined_col in _UGC_FIELD_MAP.items():
+            d[combined_col] = _convert_value(row[vot_col])
+        rows.append(d)
+    return rows
+
+
+def load_combined(ugc_rows, fss_rows, db_path):
+    """Load UGC and FSS rows into a unified SQLite database."""
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    # Create schema (skip 'id' — it's AUTOINCREMENT)
+    col_defs = ", ".join(
+        f'"{col}" {sql_type}' for col, sql_type in COMBINED_COLUMNS
+    )
+    cur.execute(f"CREATE TABLE galaxies ({col_defs})")
+
+    # Prepare insert statement (skip 'id')
+    insert_cols = [col for col, _ in COMBINED_COLUMNS if col != "id"]
+    placeholders = ", ".join("?" for _ in insert_cols)
+    col_names = ", ".join(f'"{c}"' for c in insert_cols)
+    insert_sql = f"INSERT INTO galaxies ({col_names}) VALUES ({placeholders})"
+
+    def rows_to_tuples(rows):
+        return [tuple(row.get(c) for c in insert_cols) for row in rows]
+
+    cur.executemany(insert_sql, rows_to_tuples(ugc_rows))
+    cur.executemany(insert_sql, rows_to_tuples(fss_rows))
+
+    # Create indexes
+    cur.execute("CREATE INDEX idx_catalog ON galaxies (catalog)")
+    cur.execute("CREATE INDEX idx_ra ON galaxies (ra)")
+    cur.execute("CREATE INDEX idx_dec ON galaxies (dec)")
+    cur.execute("CREATE INDEX idx_redshift ON galaxies (redshift)")
+    cur.execute("CREATE INDEX idx_phys_type ON galaxies (phys_type)")
+    cur.execute("CREATE INDEX idx_morphology ON galaxies (morphology)")
+
+    # Create FTS5 virtual table
+    cur.execute(
+        "CREATE VIRTUAL TABLE galaxies_fts USING fts5(name, content=galaxies, content_rowid=id)"
+    )
+    cur.execute("INSERT INTO galaxies_fts(rowid, name) SELECT id, name FROM galaxies")
+
+    conn.commit()
+    conn.close()
+    print(f"Combined database written to {db_path}")
+
+
 if __name__ == "__main__":
     base_dir = os.path.dirname(__file__)
-    fss_path = os.path.join(base_dir, "..", "..", "..", "research", "fss.dat")
+    research_dir = os.path.join(base_dir, "..", "..", "..", "research")
+    fss_path = os.path.join(research_dir, "fss.dat")
+    xml_path = os.path.join(research_dir, "1973UGCC0000N.xml")
+    db_path = os.path.join(base_dir, "galaxies_combined.db")
 
+    # Parse FSS
     fss_rows = parse_fss(fss_path)
     assert len(fss_rows) == 3838, f"Expected 3838 FSS rows, got {len(fss_rows)}"
     assert fss_rows[0]["name"] == "PGC 00012", f"First name: {fss_rows[0]['name']}"
     assert fss_rows[0]["velocity"] == 6546.0, f"First velocity: {fss_rows[0]['velocity']}"
     print(f"FSS: {len(fss_rows)} rows parsed")
-    print(f"  First row: {fss_rows[0]['name']}, RA={fss_rows[0]['ra']:.4f}, Dec={fss_rows[0]['dec']:.4f}")
-    print(f"  Last row: {fss_rows[-1]['name']}")
+
+    # Parse UGC
+    table = extract_votable(xml_path)
+    ugc_rows = prepare_ugc_rows(table)
+    assert len(ugc_rows) == 14176, f"Expected 14176 UGC rows, got {len(ugc_rows)}"
+    print(f"UGC: {len(ugc_rows)} rows parsed")
+
+    # Load combined
+    load_combined(ugc_rows, fss_rows, db_path)
+
+    # Verify
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    total = cur.execute("SELECT COUNT(*) FROM galaxies").fetchone()[0]
+    assert total == 18014, f"Expected 18014 total rows, got {total}"
+
+    ugc_count = cur.execute(
+        "SELECT COUNT(*) FROM galaxies WHERE catalog = 'UGC'"
+    ).fetchone()[0]
+    assert ugc_count == 14176, f"Expected 14176 UGC rows, got {ugc_count}"
+
+    fss_count = cur.execute(
+        "SELECT COUNT(*) FROM galaxies WHERE catalog = 'FSS'"
+    ).fetchone()[0]
+    assert fss_count == 3838, f"Expected 3838 FSS rows, got {fss_count}"
+
+    first_ugc = cur.execute(
+        "SELECT name FROM galaxies WHERE catalog = 'UGC' ORDER BY id LIMIT 1"
+    ).fetchone()[0]
+    assert first_ugc == "UGC 00002", f"First UGC name: {first_ugc}"
+
+    first_fss = cur.execute(
+        "SELECT name FROM galaxies WHERE catalog = 'FSS' ORDER BY id LIMIT 1"
+    ).fetchone()[0]
+    assert first_fss == "PGC 00012", f"First FSS name: {first_fss}"
+
+    # FTS search
+    ugc_fts = cur.execute(
+        "SELECT COUNT(*) FROM galaxies_fts WHERE galaxies_fts MATCH 'UGC'"
+    ).fetchone()[0]
+    assert ugc_fts > 0, "FTS search for 'UGC' returned no results"
+
+    pgc_fts = cur.execute(
+        "SELECT COUNT(*) FROM galaxies_fts WHERE galaxies_fts MATCH 'PGC'"
+    ).fetchone()[0]
+    assert pgc_fts > 0, "FTS search for 'PGC' returned no results"
+
+    # Verify indexes
+    indexes = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='galaxies'"
+    ).fetchall()
+    index_names = {row[0] for row in indexes}
+    for expected in ["idx_catalog", "idx_ra", "idx_dec", "idx_redshift", "idx_phys_type", "idx_morphology"]:
+        assert expected in index_names, f"Missing index: {expected}"
+
+    # FSS rows have b_mag populated; UGC rows have pgc as NULL
+    fss_bmag = cur.execute(
+        "SELECT COUNT(*) FROM galaxies WHERE catalog = 'FSS' AND b_mag IS NOT NULL"
+    ).fetchone()[0]
+    assert fss_bmag > 0, "No FSS rows have b_mag"
+
+    ugc_pgc = cur.execute(
+        "SELECT COUNT(*) FROM galaxies WHERE catalog = 'UGC' AND pgc IS NOT NULL"
+    ).fetchone()[0]
+    assert ugc_pgc == 0, f"UGC rows should have NULL pgc, but {ugc_pgc} have values"
+
+    conn.close()
+    print(f"All assertions passed: {total} total rows ({ugc_count} UGC + {fss_count} FSS)")
