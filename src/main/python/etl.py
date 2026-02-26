@@ -92,6 +92,51 @@ def load_to_sqlite(table, db_path: str):
     print(f"Database written to {db_path}")
 
 
+def print_stats(db_path: str):
+    """Query and display summary statistics from the galaxies database."""
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    total = cur.execute("SELECT COUNT(*) FROM galaxies").fetchone()[0]
+    print(f"\n{'='*50}")
+    print(f"  UGC Galaxy Database Summary")
+    print(f"{'='*50}")
+    print(f"  Total galaxies: {total:,}")
+
+    print(f"\n  --- Physical Type Breakdown ---")
+    for ptype, count in cur.execute(
+        "SELECT phys_type, COUNT(*) FROM galaxies GROUP BY phys_type ORDER BY COUNT(*) DESC"
+    ):
+        print(f"    {ptype or '(none)':12s} {count:>6,}")
+
+    print(f"\n  --- EM Region Breakdown ---")
+    for em, count in cur.execute(
+        "SELECT em_region, COUNT(*) FROM galaxies GROUP BY em_region ORDER BY COUNT(*) DESC"
+    ):
+        print(f"    {em or '(none)':12s} {count:>6,}")
+
+    r = cur.execute(
+        "SELECT MIN(redshift), MAX(redshift), AVG(redshift), COUNT(*) "
+        "FROM galaxies WHERE redshift IS NOT NULL"
+    ).fetchone()
+    print(f"\n  --- Redshift ---")
+    print(f"    Range: {r[0]:.6f} to {r[1]:.6f}")
+    print(f"    Average: {r[2]:.6f}")
+    print(f"    Galaxies with data: {r[3]:,}")
+
+    r = cur.execute(
+        "SELECT MIN(velocity), MAX(velocity), AVG(velocity), COUNT(*) "
+        "FROM galaxies WHERE velocity IS NOT NULL"
+    ).fetchone()
+    print(f"\n  --- Velocity (km/s) ---")
+    print(f"    Range: {r[0]:,.0f} to {r[1]:,.0f}")
+    print(f"    Average: {r[2]:,.0f}")
+    print(f"    Galaxies with data: {r[3]:,}")
+
+    print(f"{'='*50}\n")
+    conn.close()
+
+
 if __name__ == "__main__":
     xml_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "research", "1973UGCC0000N.xml"
@@ -133,3 +178,6 @@ if __name__ == "__main__":
 
     conn.close()
     print(f"Load phase: OK ({row_count} rows, FTS working, indexes verified)")
+
+    # Summary
+    print_stats(db_path)
