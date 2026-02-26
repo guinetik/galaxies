@@ -236,6 +236,84 @@ def load_combined(ugc_rows, fss_rows, db_path):
     print(f"Combined database written to {db_path}")
 
 
+def print_combined_stats(db_path):
+    """Query and display summary statistics from the combined database."""
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    total = cur.execute("SELECT COUNT(*) FROM galaxies").fetchone()[0]
+    print(f"\n{'='*60}")
+    print(f"  Combined Galaxy Database Summary")
+    print(f"{'='*60}")
+    print(f"  Total galaxies: {total:,}")
+
+    for catalog in ("UGC", "FSS"):
+        count = cur.execute(
+            "SELECT COUNT(*) FROM galaxies WHERE catalog = ?", (catalog,)
+        ).fetchone()[0]
+        print(f"    {catalog}: {count:,}")
+
+    # Sky coverage per catalog
+    print(f"\n  --- Sky Coverage (Declination range) ---")
+    for catalog in ("UGC", "FSS"):
+        r = cur.execute(
+            "SELECT MIN(dec), MAX(dec) FROM galaxies WHERE catalog = ? AND dec IS NOT NULL",
+            (catalog,),
+        ).fetchone()
+        if r[0] is not None:
+            print(f"    {catalog}: {r[0]:+.2f} to {r[1]:+.2f} deg")
+
+    # Redshift stats per catalog
+    print(f"\n  --- Redshift (per catalog) ---")
+    for catalog in ("UGC", "FSS"):
+        r = cur.execute(
+            "SELECT MIN(redshift), MAX(redshift), AVG(redshift), COUNT(*) "
+            "FROM galaxies WHERE catalog = ? AND redshift IS NOT NULL",
+            (catalog,),
+        ).fetchone()
+        if r[3] > 0:
+            print(f"    {catalog}: min={r[0]:.6f}, max={r[1]:.6f}, avg={r[2]:.6f} ({r[3]:,} with data)")
+
+    # Velocity stats per catalog
+    print(f"\n  --- Velocity km/s (per catalog) ---")
+    for catalog in ("UGC", "FSS"):
+        r = cur.execute(
+            "SELECT MIN(velocity), MAX(velocity), AVG(velocity), COUNT(*) "
+            "FROM galaxies WHERE catalog = ? AND velocity IS NOT NULL",
+            (catalog,),
+        ).fetchone()
+        if r[3] > 0:
+            print(f"    {catalog}: min={r[0]:,.0f}, max={r[1]:,.0f}, avg={r[2]:,.0f} ({r[3]:,} with data)")
+
+    # Physical type breakdown (UGC)
+    print(f"\n  --- Physical Type Breakdown (UGC) ---")
+    for ptype, count in cur.execute(
+        "SELECT phys_type, COUNT(*) FROM galaxies "
+        "WHERE catalog = 'UGC' GROUP BY phys_type ORDER BY COUNT(*) DESC"
+    ):
+        print(f"    {ptype or '(none)':12s} {count:>6,}")
+
+    # Morphology breakdown (FSS)
+    print(f"\n  --- Morphology Breakdown (FSS) ---")
+    for mtype, count in cur.execute(
+        "SELECT morphology, COUNT(*) FROM galaxies "
+        "WHERE catalog = 'FSS' GROUP BY morphology ORDER BY COUNT(*) DESC"
+    ):
+        print(f"    {mtype or '(none)':12s} {count:>6,}")
+
+    # Magnitude coverage (FSS)
+    print(f"\n  --- Magnitude Coverage (FSS) ---")
+    for band, col in [("U", "u_mag"), ("B", "b_mag"), ("R", "r_mag"), ("I", "i_mag"),
+                       ("J", "j_mag"), ("H", "h_mag"), ("K", "k_mag")]:
+        count = cur.execute(
+            f'SELECT COUNT(*) FROM galaxies WHERE catalog = \'FSS\' AND "{col}" IS NOT NULL'
+        ).fetchone()[0]
+        print(f"    {band}-band: {count:,} galaxies")
+
+    print(f"{'='*60}\n")
+    conn.close()
+
+
 if __name__ == "__main__":
     base_dir = os.path.dirname(__file__)
     research_dir = os.path.join(base_dir, "..", "..", "..", "research")
@@ -318,3 +396,6 @@ if __name__ == "__main__":
 
     conn.close()
     print(f"All assertions passed: {total} total rows ({ugc_count} UGC + {fss_count} FSS)")
+
+    # Summary statistics
+    print_combined_stats(db_path)
