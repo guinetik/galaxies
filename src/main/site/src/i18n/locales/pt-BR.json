@@ -1,0 +1,10 @@
+{
+  "app": {
+    "title": "Galáxias",
+    "loading": "Carregando banco de dados de galáxias...",
+    "loaded": "{count} galáxias carregadas"
+  },
+  "header": {
+    "siteName": "Galáxias"
+  }
+}

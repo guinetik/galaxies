@@ -1,0 +1,10 @@
+{
+  "app": {
+    "title": "Galaxies",
+    "loading": "Loading galaxy database...",
+    "loaded": "{count} galaxies loaded"
+  },
+  "header": {
+    "siteName": "Galaxies"
+  }
+}
