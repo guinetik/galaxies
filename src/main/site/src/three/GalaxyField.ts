@@ -30,12 +30,39 @@ export class GalaxyField {
       positions[i * 3 + 1] = pos.y
       positions[i * 3 + 2] = pos.z
 
-      // Color from morphology
+      // Color from morphology with per-galaxy variation
       const morphClass = classifyMorphology(g.morphology)
-      const color = MORPHOLOGY_COLORS[morphClass]
-      colors[i * 3] = color[0]
-      colors[i * 3 + 1] = color[1]
-      colors[i * 3 + 2] = color[2]
+      let baseColor: [number, number, number]
+
+      if (morphClass === 'unknown') {
+        // Pseudo-random color from a natural galaxy palette for unknowns
+        // Use galaxy ID as seed for deterministic variety
+        const seed = (g.id * 2654435761) >>> 0 // integer hash
+        const t = (seed % 1000) / 1000
+        // Blend between warm (old pop) and cool (young pop) based on hash
+        if (t < 0.35) {
+          // Warm gold/amber — elliptical-like
+          baseColor = [1.0, 0.65 + t, 0.25 + t * 0.3]
+        } else if (t < 0.65) {
+          // White/cream — lenticular-like
+          baseColor = [0.9 + t * 0.1, 0.85 + t * 0.1, 0.7 + t * 0.2]
+        } else if (t < 0.85) {
+          // Blue-white — spiral-like
+          baseColor = [0.35 + t * 0.2, 0.6 + t * 0.2, 0.9 + t * 0.1]
+        } else {
+          // Pale rose/pink — starburst
+          baseColor = [0.95, 0.6 + t * 0.2, 0.7 + t * 0.15]
+        }
+      } else {
+        baseColor = MORPHOLOGY_COLORS[morphClass]
+      }
+
+      // Per-galaxy brightness/hue variation
+      const hueShift = (Math.random() - 0.5) * 0.2
+      const brightShift = 0.8 + Math.random() * 0.4
+      colors[i * 3] = Math.min(1, Math.max(0, baseColor[0] * brightShift + hueShift))
+      colors[i * 3 + 1] = Math.min(1, Math.max(0, baseColor[1] * brightShift + hueShift * 0.3))
+      colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightShift - hueShift * 0.4))
 
       // Size from magnitude (use b_mag as primary, fall back to r_mag)
       const mag = g.b_mag ?? g.r_mag ?? null
@@ -44,8 +71,13 @@ export class GalaxyField {
       // Redshift (default to 0 if null, so always visible at widest FOV)
       redshifts[i] = g.redshift ?? 0
 
-      // Texture atlas index
-      texIndices[i] = morphologyToAtlasIndex(morphClass)
+      // Texture atlas index — randomize for unknowns so they get varied shapes
+      if (morphClass === 'unknown') {
+        const seed = (g.id * 2654435761) >>> 0
+        texIndices[i] = seed % 6
+      } else {
+        texIndices[i] = morphologyToAtlasIndex(morphClass)
+      }
     }
 
     this.geometry = new THREE.BufferGeometry()

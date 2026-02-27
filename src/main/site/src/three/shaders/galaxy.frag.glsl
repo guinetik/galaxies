@@ -17,10 +17,11 @@ void main() {
 
   vec4 texColor = texture2D(uTexture, atlasUV);
 
-  // Apply color tint
-  vec3 finalColor = vColor * texColor.rgb;
+  // Apply color tint with boosted brightness
+  vec3 finalColor = vColor * texColor.rgb * 1.5;
 
-  float alpha = texColor.a * vAlpha;
+  // Soft alpha with transparency
+  float alpha = texColor.a * vAlpha * 0.75;
   if (alpha < 0.01) discard;
 
   gl_FragColor = vec4(finalColor, alpha);

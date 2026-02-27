@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { Galaxy } from '@/types/galaxy'
-import initSqlJs, { type Database } from 'sql.js'
+import initSqlJs from 'sql.js'
+import type { Database } from 'sql.js'
 
 const isLoading = ref(true)
 const galaxyCount = ref(0)
@@ -20,7 +21,7 @@ async function initDatabase(): Promise<void> {
   if (db) return
 
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+    locateFile: () => '/data/sql-wasm.wasm',
   })
 
   const response = await fetch('/data/galaxies_combined.db')
@@ -39,9 +40,14 @@ export function useGalaxyData() {
 
   function getAllGalaxies(): Galaxy[] {
     if (!db) return []
-    const result = db.exec('SELECT * FROM galaxies WHERE ra IS NOT NULL AND dec IS NOT NULL')
-    if (result.length === 0) return []
-    return result[0].values.map((row) => rowToGalaxy(result[0].columns, row as any[]))
+    const stmt = db.prepare('SELECT * FROM galaxies WHERE ra IS NOT NULL AND dec IS NOT NULL')
+    const galaxies: Galaxy[] = []
+    const columns = stmt.getColumnNames()
+    while (stmt.step()) {
+      galaxies.push(rowToGalaxy(columns, stmt.get() as any[]))
+    }
+    stmt.free()
+    return galaxies
   }
 
   function getGalaxiesByRedshiftRange(min: number, max: number): Galaxy[] {
