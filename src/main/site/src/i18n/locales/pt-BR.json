@@ -5,7 +5,8 @@
     "loaded": "{count} galáxias carregadas"
   },
   "header": {
-    "siteName": "Galáxias"
+    "siteName": "Galáxias",
+    "location": "Localização"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",

@@ -34,12 +34,30 @@ export const REDSHIFT_RANGES: [number, number][] = [
   [10, 1.00],
 ]
 
-/** Base colors per morphology class (hue in degrees) */
+/** Observer location on Earth */
+export interface ObserverLocation {
+  latitude: number
+  longitude: number
+}
+
+export const LOCATIONS: Record<string, ObserverLocation> = {
+  'North Pole':       { latitude: 90,     longitude: 0 },
+  'New York':         { latitude: 40.71,  longitude: -74.01 },
+  'London':           { latitude: 51.51,  longitude: -0.13 },
+  'São Paulo':        { latitude: -23.55, longitude: -46.63 },
+  'Cape Town':        { latitude: -33.92, longitude: 18.42 },
+  'Sydney':           { latitude: -33.87, longitude: 151.21 },
+  'South Pole':       { latitude: -90,    longitude: 0 },
+}
+
+export const DEFAULT_LOCATION = 'North Pole'
+
+/** Base colors per morphology class — RGB with strong differentiation */
 export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
-  elliptical: [1.0, 0.85, 0.6],   // warm yellow
-  lenticular: [1.0, 0.9, 0.75],   // warm white
-  spiral:     [0.7, 0.85, 1.0],   // blue-white
-  barred:     [0.8, 0.8, 1.0],    // light blue
-  irregular:  [0.6, 0.8, 1.0],    // blue
-  unknown:    [0.9, 0.9, 0.9],    // neutral white
+  elliptical: [1.0, 0.7, 0.3],    // amber/gold — old stellar populations
+  lenticular: [1.0, 0.85, 0.55],  // warm yellow-white
+  spiral:     [0.4, 0.7, 1.0],    // vivid blue — young stars in arms
+  barred:     [0.55, 0.5, 1.0],   // violet-blue
+  irregular:  [0.3, 0.9, 0.8],    // teal/cyan — active star formation
+  unknown:    [0.85, 0.85, 0.85], // neutral grey-white
 }

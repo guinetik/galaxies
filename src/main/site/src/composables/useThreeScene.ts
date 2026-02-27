@@ -7,18 +7,25 @@ import {
   CAMERA_NEAR,
   CAMERA_FAR,
   CAMERA_POSITION,
+  LOCATIONS,
+  DEFAULT_LOCATION,
 } from '@/three/constants'
 import { fovToMaxRedshift } from '@/three/celestialMath'
 
 export function useThreeScene() {
   const currentFov = ref(CAMERA_FOV_DEFAULT)
   const currentMaxRedshift = ref(fovToMaxRedshift(CAMERA_FOV_DEFAULT))
+  const currentLocation = ref(DEFAULT_LOCATION)
 
   let renderer: THREE.WebGLRenderer | null = null
   let scene: THREE.Scene | null = null
   let camera: THREE.PerspectiveCamera | null = null
   let animationId = 0
   let canvas: HTMLCanvasElement | null = null
+
+  // Pivot group — everything (galaxies, earth, stars) goes in here.
+  // We rotate this group around X to simulate observer latitude.
+  let pivot: THREE.Group | null = null
 
   // Spherical look direction
   let theta = Math.PI // azimuth (looking south)
@@ -29,6 +36,23 @@ export function useThreeScene() {
   let lastX = 0
   let lastY = 0
   const DRAG_SENSITIVITY = 0.003
+
+  // Drag momentum / inertia
+  let velocityTheta = 0
+  let velocityPhi = 0
+  const DRAG_FRICTION = 0.92
+  const VELOCITY_THRESHOLD = 0.00001
+
+  // Smooth zoom — target FOV that we lerp toward each frame
+  let targetFov = CAMERA_FOV_DEFAULT
+  const ZOOM_LERP = 0.08
+
+  // Location animation — smooth scene rotation
+  let currentSceneRotationX = 0
+  let targetSceneRotationX = 0
+  let targetSceneRotationY = 0
+  let currentSceneRotationY = 0
+  const LOCATION_LERP = 0.04
 
   function init(canvasEl: HTMLCanvasElement) {
     canvas = canvasEl
@@ -43,6 +67,8 @@ export function useThreeScene() {
     renderer.setClearColor(0x000000, 1)
 
     scene = new THREE.Scene()
+    pivot = new THREE.Group()
+    scene.add(pivot)
 
     camera = new THREE.PerspectiveCamera(
       CAMERA_FOV_DEFAULT,
@@ -65,9 +91,13 @@ export function useThreeScene() {
     window.addEventListener('resize', onResize)
   }
 
+  /** Returns the pivot group — add all scene objects here instead of scene directly */
+  function getPivot(): THREE.Group {
+    return pivot!
+  }
+
   function updateCameraLookAt() {
     if (!camera) return
-    // Convert spherical to cartesian look direction
     const lookX = Math.sin(phi) * Math.sin(theta)
     const lookY = Math.cos(phi)
     const lookZ = Math.sin(phi) * Math.cos(theta)
@@ -78,6 +108,66 @@ export function useThreeScene() {
       camera.position.z + lookZ * 100
     )
     camera.lookAt(target)
+  }
+
+  /** Called each frame to apply drag momentum when not dragging */
+  function updateDragMomentum() {
+    if (isDragging) return
+    if (Math.abs(velocityTheta) < VELOCITY_THRESHOLD && Math.abs(velocityPhi) < VELOCITY_THRESHOLD) return
+
+    theta += velocityTheta
+    phi += velocityPhi
+    phi = Math.max(0.1, Math.min(Math.PI / 2 + 0.3, phi))
+
+    velocityTheta *= DRAG_FRICTION
+    velocityPhi *= DRAG_FRICTION
+
+    updateCameraLookAt()
+  }
+
+  function setLocation(name: string) {
+    const loc = LOCATIONS[name]
+    if (!loc) return
+    currentLocation.value = name
+
+    // Rotate scene around X based on latitude:
+    // North Pole (90°) → 0 rotation (default view, northern sky overhead)
+    // Equator (0°) → 90° rotation
+    // South Pole (-90°) → 180° rotation (southern sky overhead)
+    targetSceneRotationX = (90 - loc.latitude) / 180 * Math.PI
+
+    // Rotate around Y based on longitude
+    targetSceneRotationY = (-loc.longitude / 180) * Math.PI
+  }
+
+  /** Called each frame to smoothly rotate the scene pivot */
+  function updateSceneRotation() {
+    if (!pivot) return
+
+    const dX = targetSceneRotationX - currentSceneRotationX
+    const dY = targetSceneRotationY - currentSceneRotationY
+
+    if (Math.abs(dX) < 0.0005 && Math.abs(dY) < 0.0005) {
+      currentSceneRotationX = targetSceneRotationX
+      currentSceneRotationY = targetSceneRotationY
+    } else {
+      currentSceneRotationX += dX * LOCATION_LERP
+      currentSceneRotationY += dY * LOCATION_LERP
+    }
+
+    pivot.rotation.x = currentSceneRotationX
+    pivot.rotation.y = currentSceneRotationY
+  }
+
+  /** Called each frame to smoothly interpolate FOV toward target */
+  function updateFov() {
+    if (!camera) return
+    const diff = targetFov - camera.fov
+    if (Math.abs(diff) < 0.01) return
+    camera.fov += diff * ZOOM_LERP
+    camera.updateProjectionMatrix()
+    currentFov.value = camera.fov
+    currentMaxRedshift.value = fovToMaxRedshift(camera.fov)
   }
 
   function onPointerDown(e: PointerEvent) {
@@ -94,10 +184,11 @@ export function useThreeScene() {
     lastX = e.clientX
     lastY = e.clientY
 
-    theta -= dx * DRAG_SENSITIVITY
-    phi -= dy * DRAG_SENSITIVITY
+    velocityTheta = -dx * DRAG_SENSITIVITY
+    velocityPhi = -dy * DRAG_SENSITIVITY
 
-    // Clamp phi: 0.1 (near zenith) to PI/2 + 0.3 (below horizon)
+    theta += velocityTheta
+    phi += velocityPhi
     phi = Math.max(0.1, Math.min(Math.PI / 2 + 0.3, phi))
 
     updateCameraLookAt()
@@ -106,20 +197,14 @@ export function useThreeScene() {
   function onPointerUp() {
     isDragging = false
     if (canvas) canvas.style.cursor = 'grab'
+    // velocityTheta/Phi carry over for momentum
   }
 
   function onWheel(e: WheelEvent) {
     e.preventDefault()
-    if (!camera) return
-
-    // Scroll up = zoom in = decrease FOV
+    // Set target FOV — actual FOV lerps toward it each frame
     const delta = e.deltaY * 0.05
-    const newFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, camera.fov + delta))
-    camera.fov = newFov
-    camera.updateProjectionMatrix()
-
-    currentFov.value = newFov
-    currentMaxRedshift.value = fovToMaxRedshift(newFov)
+    targetFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, targetFov + delta))
   }
 
   // Pinch zoom state
@@ -135,20 +220,14 @@ export function useThreeScene() {
   }
 
   function onTouchMove(e: TouchEvent) {
-    if (e.touches.length === 2 && camera) {
+    if (e.touches.length === 2) {
       e.preventDefault()
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
       const dist = Math.sqrt(dx * dx + dy * dy)
       const delta = (lastPinchDist - dist) * 0.1
       lastPinchDist = dist
-
-      const newFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, camera.fov + delta))
-      camera.fov = newFov
-      camera.updateProjectionMatrix()
-
-      currentFov.value = newFov
-      currentMaxRedshift.value = fovToMaxRedshift(newFov)
+      targetFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, targetFov + delta))
     }
   }
 
@@ -172,6 +251,9 @@ export function useThreeScene() {
     function animate() {
       animationId = requestAnimationFrame(animate)
       const elapsed = clock.getElapsedTime()
+      updateDragMomentum()
+      updateSceneRotation()
+      updateFov()
       callback(elapsed)
       renderer!.render(scene!, camera!)
     }
@@ -197,9 +279,12 @@ export function useThreeScene() {
   return {
     currentFov,
     currentMaxRedshift,
+    currentLocation,
     init,
     getScene,
+    getPivot,
     startLoop,
+    setLocation,
     dispose,
   }
 }

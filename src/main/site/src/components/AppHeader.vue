@@ -10,6 +10,16 @@
       </span>
 
       <select
+        :value="currentLocation"
+        class="bg-white/10 text-white/80 text-xs rounded px-2 py-1 border border-white/20 cursor-pointer"
+        @change="$emit('update:location', ($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="name in locationNames" :key="name" :value="name" class="bg-gray-900">
+          {{ name }}
+        </option>
+      </select>
+
+      <select
         :value="locale"
         class="bg-white/10 text-white/80 text-xs rounded px-2 py-1 border border-white/20 cursor-pointer"
         @change="changeLocale(($event.target as HTMLSelectElement).value)"
@@ -23,12 +33,19 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { LOCATIONS } from '@/three/constants'
 
 defineProps<{
   galaxyCount: number
+  currentLocation: string
+}>()
+
+defineEmits<{
+  'update:location': [name: string]
 }>()
 
 const { t, locale } = useI18n()
+const locationNames = Object.keys(LOCATIONS)
 
 function changeLocale(newLocale: string) {
   locale.value = newLocale

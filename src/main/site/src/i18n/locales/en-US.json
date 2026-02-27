@@ -5,7 +5,8 @@
     "loaded": "{count} galaxies loaded"
   },
   "header": {
-    "siteName": "Galaxies"
+    "siteName": "Galaxies",
+    "location": "Location"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
