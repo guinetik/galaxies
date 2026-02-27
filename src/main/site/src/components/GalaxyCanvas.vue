@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { useThreeScene } from '@/composables/useThreeScene'
 import { useGalaxyData } from '@/composables/useGalaxyData'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   hover: [payload: HoverEvent | null]
 }>()
 
+const router = useRouter()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const { currentFov, currentMaxRedshift, currentLocation, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
 const { ready, getAllGalaxies } = useGalaxyData()
@@ -71,6 +73,27 @@ function onPointerMoveHover(e: PointerEvent) {
   }
 }
 
+function onPointerLeave() {
+  emit('hover', null)
+}
+
+function onPointerClickGalaxy(e: PointerEvent) {
+  if (getIsDragging()) return
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+
+  if (!galaxyField) return
+  const camera = getCamera()
+  raycaster.setFromCamera(mouse, camera)
+  const intersects = raycaster.intersectObject(galaxyField.points)
+
+  if (intersects.length > 0 && intersects[0].index != null) {
+    const galaxy = galaxyField.galaxies[intersects[0].index]
+    router.push(`/g/${encodeURIComponent(galaxy.name)}`)
+  }
+}
+
 onMounted(async () => {
   if (!canvasRef.value) return
 
@@ -102,13 +125,16 @@ onMounted(async () => {
   })
 
   canvasRef.value.addEventListener('pointermove', onPointerMoveHover)
-  canvasRef.value.addEventListener('pointerleave', () => emit('hover', null))
+  canvasRef.value.addEventListener('pointerleave', onPointerLeave)
+  canvasRef.value.addEventListener('click', onPointerClickGalaxy)
 
   emit('ready')
 })
 
 onUnmounted(() => {
   canvasRef.value?.removeEventListener('pointermove', onPointerMoveHover)
+  canvasRef.value?.removeEventListener('pointerleave', onPointerLeave)
+  canvasRef.value?.removeEventListener('click', onPointerClickGalaxy)
   galaxyField?.dispose()
   earthHorizon?.dispose()
   backgroundStars?.dispose()

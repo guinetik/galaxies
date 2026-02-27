@@ -8,5 +8,10 @@ export const router = createRouter({
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
     },
+    {
+      path: '/g/:name',
+      name: 'galaxy',
+      component: () => import('@/views/GalaxyView.vue'),
+    },
   ],
 })
