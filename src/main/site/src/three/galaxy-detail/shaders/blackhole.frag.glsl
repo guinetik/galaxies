@@ -8,13 +8,13 @@ uniform float uRotY;
 uniform float uDiskOuterLimit;
 
 #define PI 3.14159265359
-#define MAX_STEPS 420
-#define STEP_SIZE 0.02
+#define MAX_STEPS 512
+#define STEP_SIZE 0.015
 
 // Black hole and disk profile.
 #define BH_RADIUS 0.2
 #define DISK_INNER 0.25
-#define DISK_HALF_THICKNESS 0.022
+#define DISK_HALF_THICKNESS 0.035
 #define GRAVITY_STRENGTH 0.12
 
 // -----------------------------------------------------------------------------
@@ -70,7 +70,6 @@ vec3 accretionColor(float dist, float diskOuter, float angle, vec3 rayDir) {
 // -----------------------------------------------------------------------------
 void main() {
     vec2 uv = vUV * 2.0 - 1.0;
-    uv.x *= uResolution.x / max(uResolution.y, 1.0);
 
     float diskOuter = clamp(uDiskOuterLimit, 0.285, 0.53);
     float camDist = 4.8;
@@ -150,11 +149,9 @@ void main() {
     col += vec3(0.52, 0.4, 0.28) * halo * 0.05;
     alpha += halo * 0.03;
 
-    // Shadow core.
+    // Shadow core — always opaque so stars behind the quad are blocked.
     float shadowMask = smoothstep(BH_RADIUS * 2.0, BH_RADIUS * 0.95, impact);
-    if (hitHorizon) {
-        alpha = max(alpha, shadowMask);
-    }
+    alpha = max(alpha, shadowMask);
     col *= (1.0 - shadowMask);
 
     // Thick warm rim just outside the shadow for a stronger orange outline.

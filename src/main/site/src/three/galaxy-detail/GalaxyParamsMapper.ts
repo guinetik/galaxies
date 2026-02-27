@@ -179,16 +179,16 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
   const distanceMpc = Math.max(Math.abs(velocity) / H0, 0.1)
   const diameterArcsec = galaxy.diameter_arcsec ?? 60
   const physicalKpc = distanceMpc * diameterArcsec / 206.265
-  const galaxyRadius = clamp(physicalKpc * 8, 80, 600)
+  const galaxyRadius = clamp(physicalKpc * 12, 120, 1500)
 
   // --- Star count from luminosity ---
-  let starCount = 20000
+  let starCount = 60000
   if (galaxy.b_mag != null) {
     const absMag = galaxy.b_mag - 5 * Math.log10(distanceMpc * 1e6) + 5
     // Luminosity relative to sun: 10^((4.83 - absMag) / 2.5)
     const luminosity = Math.pow(10, (4.83 - absMag) / 2.5)
-    // Rough star count — cap for rendering performance
-    starCount = clamp(Math.round(luminosity / 1e6), 5000, 100000)
+    // Rough star count — higher cap for detail-page rendering
+    starCount = clamp(Math.round(luminosity / 3e5), 20000, 500000)
   }
 
   // --- Per-type mapping ---
@@ -200,11 +200,11 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
         numArms: morph.hubbleStage <= 2 ? 2 : morph.hubbleStage <= 5 ? Math.round(lerp(2, 4, rand())) : Math.round(lerp(2, 6, rand())),
         starCount,
         galaxyRadius,
-        armWidth: lerp(15, 120, t),
+        armWidth: galaxyRadius * lerp(0.06, 0.18, t),
         spiralTightness: lerp(0.08, 0.50, t),
         spiralStart: lerp(0.3, 0.1, t),
         fieldStarFraction: lerp(0.05, 0.40, t),
-        bulgeRadius: lerp(140, 0, t),
+        bulgeRadius: galaxyRadius * lerp(0.35, 0.05, t),
         irregularity: lerp(0.0, 0.3, t),
       }
     }
@@ -218,11 +218,11 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
         numArms: morph.hubbleStage <= 2 ? 2 : Math.round(lerp(2, 4, rand())),
         starCount,
         galaxyRadius,
-        armWidth: lerp(15, 120, t),
+        armWidth: galaxyRadius * lerp(0.06, 0.18, t),
         spiralTightness: lerp(0.08, 0.50, t),
         spiralStart: lerp(0.3, 0.1, t),
         fieldStarFraction: lerp(0.05, 0.40, t),
-        bulgeRadius: lerp(140, 0, t),
+        bulgeRadius: galaxyRadius * lerp(0.35, 0.05, t),
         barLength: galaxyRadius * (strong ? lerp(0.30, 0.60, barR) : lerp(0.15, 0.30, barR)),
         barWidth: galaxyRadius * lerp(0.05, 0.12, rand()),
         irregularity: lerp(0.0, 0.3, t),

@@ -55,10 +55,17 @@ export class GalaxyBlackHole {
     this.mesh.renderOrder = 10
   }
 
-  update(time: number, cameraTiltX: number, cameraRotY: number, camera?: THREE.Camera): void {
+  update(time: number, cameraTiltX: number, cameraRotY: number, camera?: THREE.Camera, renderer?: THREE.WebGLRenderer): void {
     this.material.uniforms.uTime.value = time
     this.material.uniforms.uTiltX.value = cameraTiltX
     this.material.uniforms.uRotY.value = cameraRotY
+
+    // Match resolution to actual render target for crisp output
+    if (renderer) {
+      const size = renderer.getSize(new THREE.Vector2())
+      const dpr = renderer.getPixelRatio()
+      this.material.uniforms.uResolution.value.set(size.x * dpr, size.y * dpr)
+    }
 
     // Billboard: always face the camera.
     if (camera) {

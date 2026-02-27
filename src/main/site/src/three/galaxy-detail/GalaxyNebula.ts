@@ -8,8 +8,8 @@ export class GalaxyNebula {
   private densityTexture: THREE.DataTexture
 
   constructor(stars: Array<{ radius: number; angle: number }>, galaxyRadius: number, seed: number) {
-    // 1. Build density map from star positions (64x64 grid)
-    const size = 64
+    // 1. Build density map from star positions (256x256 grid)
+    const size = 256
     const grid = new Float32Array(size * size)
     const extent = galaxyRadius * 1.3 // match shader's UV mapping
 

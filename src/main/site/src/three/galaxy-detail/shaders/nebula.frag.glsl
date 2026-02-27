@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 varying vec2 vUV;
 
@@ -215,11 +215,15 @@ void main() {
   // Angle in galaxy plane (using stretched coords)
   float angle = atan(galaxyZ, worldX) - uGalaxyRotation;
 
+  // Per-galaxy seed fractional values for variety
+  float seedA = fract(uSeed * 0.61803398875);  // golden ratio
+  float seedB = fract(uSeed * 0.41421356237);  // sqrt(2)-1
+
   // 3D noise sample position
   vec3 samplePos = vec3(
     cos(angle) * rNorm * 3.0,
     sin(angle) * rNorm * 3.0,
-    uSeed * 10.0 + uTime * 0.008
+    seedA * 100.0
   );
 
   // Star density from CPU-generated texture
@@ -231,22 +235,23 @@ void main() {
   vec2 densityUV = restPos / 1.3 * 0.5 + 0.5;
   float starDensity = texture2D(uDensityMap, densityUV).r;
 
-  // Nebula density — strongly driven by star density so it follows arm structure
-  float noiseDensity = nebulaDensity(samplePos, fract(uSeed));
+  // Nebula density — covers entire galaxy, intensified in dense regions
+  float noiseDensity = nebulaDensity(samplePos, seedA);
   noiseDensity = max(noiseDensity, 0.0);
 
-  // Blend: star density gates the nebula, noise adds texture within the arms
-  float density = mix(noiseDensity * 0.3, noiseDensity, pow(starDensity, 0.5)) * radialMask;
-  density *= smoothstep(0.02, 0.25, starDensity);  // hard cutoff where no stars
-  density = smoothstep(0.08, 0.7, density);
+  // Base nebula everywhere, boosted by star density in arms/core
+  // Low-density areas get dark patches via noise, not hard cutoff
+  float densityBoost = mix(0.35, 1.0, pow(starDensity, 0.4));
+  float density = noiseDensity * densityBoost * radialMask;
+  density = smoothstep(0.05, 0.65, density);
 
-  // Emission line color
-  float colorNoise = fbm3D(samplePos * 1.2 + uSeed * 50.0, 2) * 0.5 + 0.5;
-  float hue = fract(uSeed + colorNoise * 0.35 + rNorm * 0.1);
+  // Emission line color — seedB gives each galaxy a distinct base hue
+  float colorNoise = fbm3D(samplePos * 1.2 + seedB * 100.0, 2) * 0.5 + 0.5;
+  float hue = fract(seedB + colorNoise * 0.35 + rNorm * 0.1);
   vec3 color = nebulaEmissionColor(hue, colorNoise);
 
   // Brightness variation
-  float brightness = 0.5 + 0.5 * fbm3D(samplePos * 2.0 + uSeed * 30.0, 2);
+  float brightness = 0.5 + 0.5 * fbm3D(samplePos * 2.0 + seedA * 80.0, 2);
   color *= max(brightness, 0.0);
 
   // Final alpha

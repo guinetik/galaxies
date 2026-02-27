@@ -48,7 +48,7 @@ const CONFIG = {
     exclusionRadius: 25,
   },
   visual: {
-    diskThickness: 8,
+    diskThicknessRatio: 0.06,
     dustFraction: 0.65,
     brightFraction: 0.03,
     hiiHueRange: [320, 340] as [number, number],
@@ -148,9 +148,10 @@ function computeRotationSpeed(r: number): number {
 
 // ─── Central clear zone ──────────────────────────────────────────────────────
 
-function getCentralClearRadius(_params: GeneratorParams): number {
-  // Just the black hole core — stars crowd close to the center
-  return CONFIG.blackHole.exclusionRadius
+function getCentralClearRadius(params: GeneratorParams): number {
+  // Scale exclusion with black hole quad (20% of galaxy radius),
+  // so stars crowd right up to the visible accretion disk edge.
+  return params.galaxyRadius * 0.06
 }
 
 function applyCentralClearZone(stars: Star[], params: GeneratorParams): Star[] {
@@ -163,7 +164,7 @@ function applyCentralClearZone(stars: Star[], params: GeneratorParams): Star[] {
 function generateFieldStar(galaxyRadius: number): Star {
   const angle = Math.random() * TAU
   const radius = Math.sqrt(Math.random()) * galaxyRadius
-  const y = (Math.random() - 0.5) * 15
+  const y = (Math.random() - 0.5) * galaxyRadius * 0.08
   const layer = assignLayer(Math.random())
   const props = layerProperties(layer)
 
@@ -222,7 +223,7 @@ function generateSpiral(p: SpiralParams): Star[] {
       const x = Math.cos(baseAngle) * (r + alongScatter + irr) + Math.cos(scatterAngle) * scatter
       const z = Math.sin(baseAngle) * (r + alongScatter + irr) + Math.sin(scatterAngle) * scatter
 
-      const thickness = CONFIG.visual.diskThickness * (1 - t * 0.7)
+      const thickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - t * 0.7)
       const y = (Math.random() - 0.5) * thickness
 
       const actualRadius = Math.sqrt(x * x + z * z)
@@ -252,15 +253,19 @@ function generateSpiral(p: SpiralParams): Star[] {
     }
   }
 
-  // Bulge stars (concentrated central population)
+  // Bulge stars — dense, bright central spheroid (dominates galaxy center)
   const bulgeRadius = p.bulgeRadius || 0
   if (bulgeRadius > 0) {
-    const bulgeCount = Math.floor(totalStars * 0.15)
+    const bulgeCount = Math.floor(totalStars * 0.35)
     for (let i = 0; i < bulgeCount; i++) {
-      const r = Math.pow(Math.random(), 0.3) * bulgeRadius
+      // Steeper concentration: most stars packed in the inner core
+      const r = Math.pow(Math.random(), 0.6) * bulgeRadius
       const theta = Math.random() * TAU
-      const y = (Math.random() - 0.5) * bulgeRadius * 0.4
+      const y = (Math.random() - 0.5) * bulgeRadius * 0.5
 
+      // Bulge stars are mostly old, warm population — brighter toward center
+      const distFactor = r / bulgeRadius
+      const coreBrightBoost = 1.0 + (1.0 - distFactor) * 0.5
       const layer = assignLayer(Math.random())
       const props = layerProperties(layer)
 
@@ -270,9 +275,9 @@ function generateSpiral(p: SpiralParams): Star[] {
         y,
         rotationSpeed: computeRotationSpeed(r) * 0.5,
         hue: pickHue(layer, 0.1, false),
-        brightness: props.brightness,
-        size: props.size,
-        alpha: props.alpha,
+        brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
+        size: props.size * (1.0 + (1.0 - distFactor) * 0.3),
+        alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
         layer,
         twinklePhase: Math.random() * TAU,
       })
@@ -321,7 +326,7 @@ function generateBarredSpiral(p: BarredParams): Star[] {
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
-      y: (Math.random() - 0.5) * 6,
+      y: (Math.random() - 0.5) * galaxyRadius * 0.04,
       rotationSpeed: computeRotationSpeed(actualRadius),
       hue,
       brightness: props.brightness,
@@ -370,7 +375,7 @@ function generateBarredSpiral(p: BarredParams): Star[] {
       stars.push({
         radius: actualRadius,
         angle: actualAngle,
-        y: (Math.random() - 0.5) * 8 * (1 - t * 0.7),
+        y: (Math.random() - 0.5) * galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - t * 0.7),
         rotationSpeed: computeRotationSpeed(actualRadius),
         hue,
         brightness: props.brightness,
@@ -382,15 +387,17 @@ function generateBarredSpiral(p: BarredParams): Star[] {
     }
   }
 
-  // Bulge stars (concentrated spheroid beyond bar region)
+  // Bulge stars — dense, bright central spheroid
   const bulgeRadius = p.bulgeRadius || 0
   if (bulgeRadius > 0) {
-    const bulgeCount = Math.floor(totalStars * 0.1)
+    const bulgeCount = Math.floor(totalStars * 0.3)
     for (let i = 0; i < bulgeCount; i++) {
-      const r = Math.pow(Math.random(), 0.3) * bulgeRadius
+      const r = Math.pow(Math.random(), 0.6) * bulgeRadius
       const theta = Math.random() * TAU
-      const y = (Math.random() - 0.5) * bulgeRadius * 0.4
+      const y = (Math.random() - 0.5) * bulgeRadius * 0.5
 
+      const distFactor = r / bulgeRadius
+      const coreBrightBoost = 1.0 + (1.0 - distFactor) * 0.5
       const layer = assignLayer(Math.random())
       const props = layerProperties(layer)
 
@@ -400,9 +407,9 @@ function generateBarredSpiral(p: BarredParams): Star[] {
         y,
         rotationSpeed: computeRotationSpeed(r) * 0.5,
         hue: pickHue(layer, 0.1, false),
-        brightness: props.brightness,
-        size: props.size,
-        alpha: props.alpha,
+        brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
+        size: props.size * (1.0 + (1.0 - distFactor) * 0.3),
+        alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
         layer,
         twinklePhase: Math.random() * TAU,
       })
@@ -425,16 +432,18 @@ function generateLenticular(p: LenticularParams): Star[] {
   const galaxyRadius = p.galaxyRadius || 300
   const bulgeRadius = p.bulgeRadius || 80
   const bulgeFraction = p.bulgeFraction || 0.4
-  const diskThickness = p.diskThickness || 4
+  const diskThickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * 0.5
   const totalStars = p.starCount || 28000
 
   // Bulge stars — de Vaucouleurs-like concentrated spheroid, warm old population
   const bulgeCount = Math.floor(totalStars * bulgeFraction)
   for (let i = 0; i < bulgeCount; i++) {
-    const r = Math.pow(Math.random(), 0.3) * bulgeRadius
+    const r = Math.pow(Math.random(), 0.6) * bulgeRadius
     const theta = Math.random() * TAU
     const y = (Math.random() - 0.5) * bulgeRadius * 0.6
 
+    const distFactor = r / bulgeRadius
+    const coreBrightBoost = 1.0 + (1.0 - distFactor) * 0.5
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
 
@@ -444,9 +453,9 @@ function generateLenticular(p: LenticularParams): Star[] {
       y,
       rotationSpeed: computeRotationSpeed(r) * 0.5,
       hue: pickHue(layer, 0.1, false),
-      brightness: props.brightness,
-      size: props.size,
-      alpha: props.alpha,
+      brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
+      size: props.size * (1.0 + (1.0 - distFactor) * 0.3),
+      alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
       layer,
       twinklePhase: Math.random() * TAU,
     })
@@ -512,7 +521,7 @@ function generateElliptical(p: EllipticalParams): Star[] {
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
-      y: (Math.random() - 0.5) * 20 * (1 - distFactor * 0.5),
+      y: (Math.random() - 0.5) * galaxyRadius * 0.1 * (1 - distFactor * 0.5),
       rotationSpeed: computeRotationSpeed(actualRadius) * 0.3,
       hue,
       brightness: props.brightness,
@@ -586,7 +595,7 @@ function generateIrregular(p: IrregularParams): Star[] {
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
-      y: (Math.random() - 0.5) * 25,
+      y: (Math.random() - 0.5) * galaxyRadius * 0.12,
       rotationSpeed: computeRotationSpeed(actualRadius) * (0.5 + Math.random() * 0.5),
       hue,
       brightness: props.brightness,

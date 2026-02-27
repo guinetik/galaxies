@@ -48,7 +48,7 @@ export class GalaxyParticles {
   private angleOffsets: Float32Array
   private baseAlphas: Float32Array
 
-  constructor(stars: Star[]) {
+  constructor(stars: Star[], baseDistance = 600) {
     this.stars = stars
     const count = stars.length
 
@@ -98,6 +98,7 @@ export class GalaxyParticles {
       fragmentShader,
       uniforms: {
         uPixelRatio: { value: window.devicePixelRatio },
+        uBaseDistance: { value: baseDistance },
       },
       transparent: true,
       depthWrite: false,

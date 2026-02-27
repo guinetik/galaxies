@@ -8,6 +8,11 @@ import { GalaxyHaze } from './GalaxyHaze'
 import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
 
+// ─── Reusable math objects (avoid per-frame allocations) ─────────────────────
+
+const _yAxis = new THREE.Vector3(0, 1, 0)
+const _qDrag = new THREE.Quaternion()
+
 // ─── GalaxyScene ────────────────────────────────────────────────────────────
 
 export class GalaxyScene {
@@ -23,11 +28,10 @@ export class GalaxyScene {
   private galaxyRotation = 0
   private params: GeneratorParams
 
-  // Camera orbit state (unclamped — full spherical orbit)
-  private tiltX = 0.6
-  private rotY = 0
-  private zoom = 1
-  private targetZoom = 1
+  // Quaternion-based orbit camera (no gimbal lock)
+  private orbitQuat = new THREE.Quaternion()
+  private zoom = 4
+  private targetZoom = 4
   private isDragging = false
   private lastX = 0
   private lastY = 0
@@ -48,7 +52,7 @@ export class GalaxyScene {
     // ─── Renderer ──────────────────────────────────────────────────────
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
 
     // ─── Scene ─────────────────────────────────────────────────────────
@@ -64,16 +68,13 @@ export class GalaxyScene {
 
     // ─── Camera ────────────────────────────────────────────────────────
 
-    // Match gcanvas ratio: camera ~1.7× galaxy radius for full view
     this.baseDistance = R * 1.7
     const aspect = canvas.clientWidth / canvas.clientHeight
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, this.baseDistance * 20)
-    this.camera.position.set(0, this.baseDistance * 0.5, this.baseDistance * 0.75)
-    this.camera.lookAt(0, 0, 0)
 
     // ─── Visual layers ─────────────────────────────────────────────────
 
-    this.particles = new GalaxyParticles(stars)
+    this.particles = new GalaxyParticles(stars, this.baseDistance)
     this.scene.add(this.particles.points)
 
     this.haze = new GalaxyHaze(R)
@@ -82,13 +83,18 @@ export class GalaxyScene {
     this.nebula = new GalaxyNebula(stars, R, galaxy.id)
     this.scene.add(this.nebula.mesh)
 
-    // Black hole quad scaled to ~20% of galaxy radius (accretion disk proportion)
     this.blackHole = new GalaxyBlackHole(galaxy.activity_class, R * 0.2)
     this.scene.add(this.blackHole.mesh)
 
-    // ─── Initial rotation from position angle ──────────────────────────
+    // ─── Initial orbit from position angle ───────────────────────────
 
-    this.rotY = (galaxy.position_angle ?? 0) * Math.PI / 180
+    const initRotY = (galaxy.position_angle ?? 0) * Math.PI / 180
+    const initTiltX = -0.45
+
+    // Build initial quaternion: tilt around X then rotate around Y
+    const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
+    const qRot = new THREE.Quaternion().setFromAxisAngle(_yAxis, initRotY)
+    this.orbitQuat.multiplyQuaternions(qTilt, qRot)
 
     // ─── Input bindings ────────────────────────────────────────────────
 
@@ -104,10 +110,9 @@ export class GalaxyScene {
       if (!this.isDragging) return
       const dx = e.clientX - this.lastX
       const dy = e.clientY - this.lastY
-      this.rotY += dx * 0.005
-      this.tiltX += dy * 0.005
       this.velocityX = dx * 0.005
       this.velocityY = dy * 0.005
+      this.applyOrbitDelta(this.velocityX, this.velocityY)
       this.lastX = e.clientX
       this.lastY = e.clientY
     }
@@ -141,6 +146,21 @@ export class GalaxyScene {
     this.resizeObserver.observe(canvas)
   }
 
+  // ─── Quaternion orbit helpers ────────────────────────────────────────────────
+
+  private applyOrbitDelta(dx: number, dy: number): void {
+    // Horizontal drag: rotate around world Y axis
+    _qDrag.setFromAxisAngle(_yAxis, -dx)
+    this.orbitQuat.premultiply(_qDrag)
+
+    // Vertical drag: rotate around camera-local X axis
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.orbitQuat)
+    _qDrag.setFromAxisAngle(right, -dy)
+    this.orbitQuat.premultiply(_qDrag)
+
+    this.orbitQuat.normalize()
+  }
+
   // ─── Animation loop ─────────────────────────────────────────────────────────
 
   start(): void {
@@ -155,24 +175,27 @@ export class GalaxyScene {
       // ─── Inertia / friction ────────────────────────────────────────
 
       if (!this.isDragging) {
-        this.rotY += this.velocityX
-        this.tiltX += this.velocityY
-        this.velocityX *= 0.92
-        this.velocityY *= 0.92
+        if (Math.abs(this.velocityX) > 0.0001 || Math.abs(this.velocityY) > 0.0001) {
+          this.applyOrbitDelta(this.velocityX, this.velocityY)
+          this.velocityX *= 0.92
+          this.velocityY *= 0.92
+        }
       }
 
       // ─── Zoom lerp ────────────────────────────────────────────────
 
       this.zoom += (this.targetZoom - this.zoom) * 0.08
 
-      // ─── Camera orbit position ────────────────────────────────────
+      // ─── Camera orbit position (quaternion-based) ─────────────────
 
       const distance = this.baseDistance / this.zoom
-      const camX = distance * Math.sin(this.rotY) * Math.cos(this.tiltX)
-      const camY = distance * Math.sin(this.tiltX)
-      const camZ = distance * Math.cos(this.rotY) * Math.cos(this.tiltX)
-      this.camera.position.set(camX, camY, camZ)
+      // Start from (0, 0, distance) and rotate by orbit quaternion
+      const camPos = new THREE.Vector3(0, 0, distance).applyQuaternion(this.orbitQuat)
+      this.camera.position.copy(camPos)
       this.camera.lookAt(0, 0, 0)
+
+      // Force matrix update so nebula's inverse VP is current-frame, not stale
+      this.camera.updateMatrixWorld(true)
 
       // ─── Galaxy rotation ──────────────────────────────────────────
 
@@ -192,7 +215,12 @@ export class GalaxyScene {
         axisRatio,
       )
 
-      this.blackHole.update(time, this.tiltX, this.rotY, this.camera)
+      // Derive tiltX / rotY from camera position for black hole shader
+      const cp = this.camera.position
+      const hDist = Math.sqrt(cp.x * cp.x + cp.z * cp.z)
+      const tiltX = Math.atan2(cp.y, hDist)
+      const rotY = Math.atan2(cp.x, cp.z)
+      this.blackHole.update(time, tiltX, rotY, this.camera, this.renderer)
 
       // ─── Render ───────────────────────────────────────────────────
 
