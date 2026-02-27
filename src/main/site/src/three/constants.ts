@@ -52,12 +52,12 @@ export const LOCATIONS: Record<string, ObserverLocation> = {
 
 export const DEFAULT_LOCATION = 'North Pole'
 
-/** Base colors per morphology class — RGB with strong differentiation */
+/** Base colors per morphology class — neon palette for visibility against white stars */
 export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
-  elliptical: [1.0, 0.7, 0.3],    // amber/gold — old stellar populations
-  lenticular: [1.0, 0.85, 0.55],  // warm yellow-white
-  spiral:     [0.4, 0.7, 1.0],    // vivid blue — young stars in arms
-  barred:     [0.55, 0.5, 1.0],   // violet-blue
-  irregular:  [0.3, 0.9, 0.8],    // teal/cyan — active star formation
-  unknown:    [0.85, 0.85, 0.85], // neutral grey-white
+  elliptical: [1.0, 0.2, 0.3],    // neon red-pink
+  lenticular: [1.0, 0.5, 0.0],    // neon orange
+  spiral:     [0.2, 0.6, 1.0],    // electric blue
+  barred:     [0.7, 0.2, 1.0],    // neon purple
+  irregular:  [0.0, 1.0, 0.6],    // neon green
+  unknown:    [0.3, 0.8, 1.0],    // cyan
 }

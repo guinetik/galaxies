@@ -22,11 +22,10 @@ export function raDecToPosition(raDeg: number, decDeg: number, radius: number): 
  * Map apparent magnitude to point size (inverse linear).
  * Brighter (lower mag) → larger size.
  */
-export function magnitudeToSize(mag: number | null, min = 1.0, max = 6.0): number {
-  if (mag === null || mag === undefined) return 4.0
+export function magnitudeToSize(mag: number | null, min = 0.5, max = 2.0): number {
+  if (mag === null || mag === undefined) return 1.0
   const t = Math.max(0, Math.min(1, (mag - 8) / 10))
   return max - t * (max - min)
-
 }
 
 /**

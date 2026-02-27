@@ -184,8 +184,11 @@ export function useThreeScene() {
     lastX = e.clientX
     lastY = e.clientY
 
-    velocityTheta = -dx * DRAG_SENSITIVITY
-    velocityPhi = -dy * DRAG_SENSITIVITY
+    // Scale sensitivity with FOV — zoomed in = slower panning
+    const fovScale = (camera?.fov ?? CAMERA_FOV_DEFAULT) / CAMERA_FOV_DEFAULT
+    const sensitivity = DRAG_SENSITIVITY * fovScale
+    velocityTheta = -dx * sensitivity
+    velocityPhi = -dy * sensitivity
 
     theta += velocityTheta
     phi += velocityPhi
@@ -246,6 +249,14 @@ export function useThreeScene() {
     return scene!
   }
 
+  function getCamera(): THREE.PerspectiveCamera {
+    return camera!
+  }
+
+  function getIsDragging(): boolean {
+    return isDragging
+  }
+
   function startLoop(callback: (elapsed: number) => void) {
     const clock = new THREE.Clock()
     function animate() {
@@ -282,6 +293,8 @@ export function useThreeScene() {
     currentLocation,
     init,
     getScene,
+    getCamera,
+    getIsDragging,
     getPivot,
     startLoop,
     setLocation,

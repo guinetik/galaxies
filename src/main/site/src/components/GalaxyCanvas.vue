@@ -4,20 +4,28 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import * as THREE from 'three'
 import { useThreeScene } from '@/composables/useThreeScene'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { GalaxyField } from '@/three/GalaxyField'
 import { EarthHorizon } from '@/three/EarthHorizon'
-import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
 import { BackgroundStars } from '@/three/BackgroundStars'
 import { LOCATIONS } from '@/three/constants'
+import type { Galaxy } from '@/types/galaxy'
+
+export interface HoverEvent {
+  galaxy: Galaxy
+  screenX: number
+  screenY: number
+}
 
 const emit = defineEmits<{
   ready: []
+  hover: [payload: HoverEvent | null]
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const { currentFov, currentMaxRedshift, currentLocation, init, getScene, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
+const { currentFov, currentMaxRedshift, currentLocation, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
 const { ready, getAllGalaxies } = useGalaxyData()
 
 function setLocation(name: string) {
@@ -34,6 +42,35 @@ let galaxyField: GalaxyField | null = null
 let earthHorizon: EarthHorizon | null = null
 let backgroundStars: BackgroundStars | null = null
 
+// Raycaster for hover detection
+const raycaster = new THREE.Raycaster()
+raycaster.params.Points.threshold = 0.6
+const mouse = new THREE.Vector2()
+
+function onPointerMoveHover(e: PointerEvent) {
+  if (getIsDragging()) {
+    emit('hover', null)
+    return
+  }
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+
+  if (!galaxyField) return
+  const camera = getCamera()
+  raycaster.setFromCamera(mouse, camera)
+  const intersects = raycaster.intersectObject(galaxyField.points)
+
+  if (intersects.length > 0 && intersects[0].index != null) {
+    const galaxy = galaxyField.galaxies[intersects[0].index]
+    canvasRef.value!.style.cursor = 'pointer'
+    emit('hover', { galaxy, screenX: e.clientX, screenY: e.clientY })
+  } else {
+    canvasRef.value!.style.cursor = 'grab'
+    emit('hover', null)
+  }
+}
+
 onMounted(async () => {
   if (!canvasRef.value) return
 
@@ -45,12 +82,9 @@ onMounted(async () => {
   // 2. Load galaxy data
   await ready
 
-  // 3. Generate textures
-  const atlasTexture = generateGalaxyTextureAtlas()
-
-  // 4. Create objects
+  // 3. Create objects
   const galaxies = getAllGalaxies()
-  galaxyField = new GalaxyField(galaxies, atlasTexture)
+  galaxyField = new GalaxyField(galaxies)
   earthHorizon = new EarthHorizon()
   backgroundStars = new BackgroundStars()
 
@@ -62,15 +96,19 @@ onMounted(async () => {
 
   // 5. Start animation loop
   startLoop((elapsed) => {
-    galaxyField?.update(elapsed, currentMaxRedshift.value)
+    galaxyField?.update(elapsed, currentMaxRedshift.value, currentFov.value)
     backgroundStars?.update(elapsed)
     earthHorizon?.update()
   })
+
+  canvasRef.value.addEventListener('pointermove', onPointerMoveHover)
+  canvasRef.value.addEventListener('pointerleave', () => emit('hover', null))
 
   emit('ready')
 })
 
 onUnmounted(() => {
+  canvasRef.value?.removeEventListener('pointermove', onPointerMoveHover)
   galaxyField?.dispose()
   earthHorizon?.dispose()
   backgroundStars?.dispose()

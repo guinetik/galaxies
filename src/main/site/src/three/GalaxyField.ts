@@ -3,23 +3,23 @@ import type { Galaxy } from '@/types/galaxy'
 import { classifyMorphology } from '@/types/galaxy'
 import { raDecToPosition, magnitudeToSize } from './celestialMath'
 import { SPHERE_RADIUS, MORPHOLOGY_COLORS } from './constants'
-import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
 import fragmentShader from './shaders/galaxy.frag.glsl?raw'
 
 export class GalaxyField {
   readonly points: THREE.Points
+  readonly galaxies: Galaxy[]
   private material: THREE.ShaderMaterial
   private geometry: THREE.BufferGeometry
 
-  constructor(galaxies: Galaxy[], atlasTexture: THREE.Texture) {
+  constructor(galaxies: Galaxy[]) {
+    this.galaxies = galaxies
     const count = galaxies.length
 
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const redshifts = new Float32Array(count)
-    const texIndices = new Float32Array(count)
 
     for (let i = 0; i < count; i++) {
       const g = galaxies[i]
@@ -35,23 +35,17 @@ export class GalaxyField {
       let baseColor: [number, number, number]
 
       if (morphClass === 'unknown') {
-        // Pseudo-random color from a natural galaxy palette for unknowns
-        // Use galaxy ID as seed for deterministic variety
-        const seed = (g.id * 2654435761) >>> 0 // integer hash
+        // Pick a random neon hue for unknowns
+        const seed = (g.id * 2654435761) >>> 0
         const t = (seed % 1000) / 1000
-        // Blend between warm (old pop) and cool (young pop) based on hash
-        if (t < 0.35) {
-          // Warm gold/amber — elliptical-like
-          baseColor = [1.0, 0.65 + t, 0.25 + t * 0.3]
-        } else if (t < 0.65) {
-          // White/cream — lenticular-like
-          baseColor = [0.9 + t * 0.1, 0.85 + t * 0.1, 0.7 + t * 0.2]
-        } else if (t < 0.85) {
-          // Blue-white — spiral-like
-          baseColor = [0.35 + t * 0.2, 0.6 + t * 0.2, 0.9 + t * 0.1]
+        if (t < 0.25) {
+          baseColor = [1.0, 0.2, 0.4]       // pink
+        } else if (t < 0.5) {
+          baseColor = [0.2, 0.7, 1.0]       // blue
+        } else if (t < 0.75) {
+          baseColor = [0.0, 1.0, 0.7]       // green
         } else {
-          // Pale rose/pink — starburst
-          baseColor = [0.95, 0.6 + t * 0.2, 0.7 + t * 0.15]
+          baseColor = [0.8, 0.3, 1.0]       // purple
         }
       } else {
         baseColor = MORPHOLOGY_COLORS[morphClass]
@@ -70,14 +64,6 @@ export class GalaxyField {
 
       // Redshift (default to 0 if null, so always visible at widest FOV)
       redshifts[i] = g.redshift ?? 0
-
-      // Texture atlas index — randomize for unknowns so they get varied shapes
-      if (morphClass === 'unknown') {
-        const seed = (g.id * 2654435761) >>> 0
-        texIndices[i] = seed % 6
-      } else {
-        texIndices[i] = morphologyToAtlasIndex(morphClass)
-      }
     }
 
     this.geometry = new THREE.BufferGeometry()
@@ -85,7 +71,6 @@ export class GalaxyField {
     this.geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3))
     this.geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
     this.geometry.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
-    this.geometry.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
@@ -94,7 +79,7 @@ export class GalaxyField {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uMaxRedshift: { value: 0.01 },
-        uTexture: { value: atlasTexture },
+        uFov: { value: 60.0 },
       },
       transparent: true,
       depthWrite: false,
@@ -105,9 +90,10 @@ export class GalaxyField {
     this.points.frustumCulled = false
   }
 
-  update(elapsed: number, maxRedshift: number): void {
+  update(elapsed: number, maxRedshift: number, fov: number): void {
     this.material.uniforms.uTime.value = elapsed
     this.material.uniforms.uMaxRedshift.value = maxRedshift
+    this.material.uniforms.uFov.value = fov
   }
 
   dispose(): void {

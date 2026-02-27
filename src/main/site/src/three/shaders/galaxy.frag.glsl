@@ -1,28 +1,18 @@
-uniform sampler2D uTexture;
-
 varying vec3 vColor;
 varying float vAlpha;
-varying float vTexIndex;
 
 void main() {
   if (vAlpha < 0.01) discard;
 
-  // Calculate UV within the texture atlas (2 columns x 3 rows)
-  float col = mod(vTexIndex, 2.0);
-  float row = floor(vTexIndex / 2.0);
-  vec2 atlasUV = vec2(
-    (col + gl_PointCoord.x) / 2.0,
-    (row + gl_PointCoord.y) / 3.0
-  );
-
-  vec4 texColor = texture2D(uTexture, atlasUV);
-
-  // Apply color tint with boosted brightness
-  vec3 finalColor = vColor * texColor.rgb * 1.5;
-
-  // Soft alpha with transparency
-  float alpha = texColor.a * vAlpha * 0.75;
+  // Soft circular dot with bright core and gentle falloff
+  vec2 center = gl_PointCoord - 0.5;
+  float dist = length(center);
+  float alpha = vAlpha * smoothstep(0.5, 0.15, dist);
   if (alpha < 0.01) discard;
+
+  // Bright core glow
+  float core = exp(-dist * dist * 20.0);
+  vec3 finalColor = vColor * (1.0 + core * 0.5);
 
   gl_FragColor = vec4(finalColor, alpha);
 }
