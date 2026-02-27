@@ -33,6 +33,7 @@ export class GalaxyScene {
   private lastY = 0
   private velocityX = 0
   private velocityY = 0
+  private readonly _origin = new THREE.Vector3()
 
   // Bound event handlers (stored for removal)
   private onPointerDown: (e: PointerEvent) => void
@@ -177,12 +178,12 @@ export class GalaxyScene {
       this.particles.update(dt, time)
 
       // Nebula needs screen-space projection of galaxy center
-      const origin = new THREE.Vector3(0, 0, 0)
-      origin.project(this.camera)
+      this._origin.set(0, 0, 0)
+      this._origin.project(this.camera)
       const width = this.renderer.domElement.clientWidth
       const height = this.renderer.domElement.clientHeight
-      const centerX = (origin.x * 0.5 + 0.5) * width
-      const centerY = (1 - (origin.y * 0.5 + 0.5)) * height
+      const centerX = (this._origin.x * 0.5 + 0.5) * width
+      const centerY = (1 - (this._origin.y * 0.5 + 0.5)) * height
 
       const axisRatio = this.params.type === 'elliptical' ? this.params.axisRatio : 1.0
 

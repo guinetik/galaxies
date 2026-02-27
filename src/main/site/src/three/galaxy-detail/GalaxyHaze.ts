@@ -40,8 +40,9 @@ export class GalaxyHaze {
       side: THREE.DoubleSide,
     })
 
-    // 5. Create mesh at origin in the galaxy plane
+    // 5. Create mesh at origin in the galaxy plane (rotate to XZ plane)
     this.mesh = new THREE.Mesh(geometry, this.material)
+    this.mesh.rotation.x = -Math.PI / 2
     this.mesh.position.set(0, 0, 0)
   }
 

@@ -73,6 +73,10 @@ function onPointerMoveHover(e: PointerEvent) {
   }
 }
 
+function onPointerLeave() {
+  emit('hover', null)
+}
+
 function onPointerClickGalaxy(e: PointerEvent) {
   if (getIsDragging()) return
 
@@ -121,7 +125,7 @@ onMounted(async () => {
   })
 
   canvasRef.value.addEventListener('pointermove', onPointerMoveHover)
-  canvasRef.value.addEventListener('pointerleave', () => emit('hover', null))
+  canvasRef.value.addEventListener('pointerleave', onPointerLeave)
   canvasRef.value.addEventListener('click', onPointerClickGalaxy)
 
   emit('ready')
@@ -129,6 +133,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   canvasRef.value?.removeEventListener('pointermove', onPointerMoveHover)
+  canvasRef.value?.removeEventListener('pointerleave', onPointerLeave)
   canvasRef.value?.removeEventListener('click', onPointerClickGalaxy)
   galaxyField?.dispose()
   earthHorizon?.dispose()
