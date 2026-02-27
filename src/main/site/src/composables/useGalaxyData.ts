@@ -97,6 +97,20 @@ export function useGalaxyData() {
     return null
   }
 
+  function getGalaxyByName(name: string): Galaxy | null {
+    if (!db) return null
+    const stmt = db.prepare('SELECT * FROM galaxies WHERE name = ?')
+    stmt.bind([name])
+    if (stmt.step()) {
+      const values = stmt.get()
+      const columns = stmt.getColumnNames()
+      stmt.free()
+      return rowToGalaxy(columns, values as any[])
+    }
+    stmt.free()
+    return null
+  }
+
   return {
     isLoading,
     galaxyCount,
@@ -105,5 +119,6 @@ export function useGalaxyData() {
     getGalaxiesByRedshiftRange,
     searchGalaxies,
     getGalaxyById,
+    getGalaxyByName,
   }
 }
