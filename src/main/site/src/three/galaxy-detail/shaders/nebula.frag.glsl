@@ -2,16 +2,9 @@ precision mediump float;
 
 varying vec2 vUV;
 
-uniform vec2 uResolution;
+uniform mat4 uInvViewProj;     // inverse(projectionMatrix * viewMatrix)
 uniform float uTime;
-uniform vec2 uCenter;          // galaxy center on screen (pixels, canvas coords with Y-down)
-uniform float uPerspective;    // Camera3D perspective distance
-uniform float uSinTilt;        // sin(camera.rotationX)
-uniform float uCosTilt;        // cos(camera.rotationX)
-uniform float uSinRotY;        // sin(camera.rotationY)
-uniform float uCosRotY;        // cos(camera.rotationY)
 uniform float uGalaxyRadius;   // world-space galaxy radius
-uniform float uZoom;           // zoom factor
 uniform float uSeed;
 uniform float uNebulaIntensity;
 uniform float uGalaxyRotation;
@@ -174,51 +167,34 @@ vec3 nebulaEmissionColor(float hue, float variation) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 void main() {
-  // Pixel position in canvas coords (Y-down to match Canvas 2D)
-  // WebGL UV has Y=0 at bottom, so flip to match canvas Y-down
-  vec2 pixel = vec2(vUV.x, 1.0 - vUV.y) * uResolution;
+  // Convert UV to NDC [-1, 1]
+  vec2 ndc = vUV * 2.0 - 1.0;
 
-  // Screen offset from galaxy center (in canvas coords)
-  // Camera3D returns screenX, screenY which are added to (cx, cy)
-  // So: pixel = center + projectedXY * zoom
-  // Invert: projectedXY = (pixel - center) / zoom
-  vec2 projected = (pixel - uCenter) / uZoom;
+  // Unproject two points on the ray using inverse view-projection matrix
+  vec4 nearClip = uInvViewProj * vec4(ndc, -1.0, 1.0);
+  vec4 farClip  = uInvViewProj * vec4(ndc,  1.0, 1.0);
+  vec3 nearWorld = nearClip.xyz / nearClip.w;
+  vec3 farWorld  = farClip.xyz / farClip.w;
 
-  // Inverse Camera3D projection:
-  // Camera3D forward (for galaxy-plane point (wx, 0, wz)):
-  //   Step 1 - Y rotation: x1 = wx*cosY - wz*sinY,  z1 = wx*sinY + wz*cosY
-  //   Step 2 - X rotation: y1 = -z1*sinX,  z2 = z1*cosX
-  //   Step 3 - Perspective: scale = P/(P+z2),  sX = x1*scale,  sY = y1*scale
-  //
-  // Inverse Step 3+2: from (sX, sY) recover (x1, z1)
-  //   sY = -z1*sinX * P / (P + z1*cosX)
-  //   => z1 = -sY*P / (sinX*P + sY*cosX)
-  //   scale = P / (P + z1*cosX)
-  //   x1 = sX / scale
-  //
-  // Inverse Step 1: from (x1, z1) recover (wx, wz)
-  //   wx =  x1*cosY + z1*sinY
-  //   wz = -x1*sinY + z1*cosY
+  // Ray direction
+  vec3 rayDir = normalize(farWorld - nearWorld);
 
-  float sY = projected.y;
-  float sX = projected.x;
-
-  float denom = uSinTilt * uPerspective + sY * uCosTilt;
-
-  // Avoid division by zero (near edge-on with sinTilt ≈ 0)
-  if (abs(denom) < 0.001) {
+  // Intersect ray with galaxy plane (y = 0)
+  // nearWorld.y + t * rayDir.y = 0
+  if (abs(rayDir.y) < 0.0001) {
     gl_FragColor = vec4(0.0);
     return;
   }
 
-  // Recover post-Y-rotation coords (x1, z1)
-  float z1 = -sY * uPerspective / denom;
-  float scale = uPerspective / (uPerspective + z1 * uCosTilt);
-  float x1 = sX / scale;
+  float t = -nearWorld.y / rayDir.y;
+  if (t < 0.0) {
+    gl_FragColor = vec4(0.0);
+    return;
+  }
 
-  // Undo Y rotation to get world-space galaxy-plane coords
-  float worldX =  x1 * uCosRotY + z1 * uSinRotY;
-  float worldZ = -x1 * uSinRotY + z1 * uCosRotY;
+  vec3 hitPoint = nearWorld + t * rayDir;
+  float worldX = hitPoint.x;
+  float worldZ = hitPoint.z;
 
   // Apply axis ratio (elliptical galaxies are elongated along X)
   float galaxyZ = worldZ / uAxisRatio;

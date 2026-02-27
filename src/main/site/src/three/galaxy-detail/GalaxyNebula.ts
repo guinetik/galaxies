@@ -90,16 +90,9 @@ export class GalaxyNebula {
       vertexShader,
       fragmentShader,
       uniforms: {
-        uResolution: { value: new THREE.Vector2(1, 1) },
+        uInvViewProj: { value: new THREE.Matrix4() },
         uTime: { value: 0 },
-        uCenter: { value: new THREE.Vector2(0, 0) },
-        uPerspective: { value: 600 },
-        uSinTilt: { value: 0 },
-        uCosTilt: { value: 1 },
-        uSinRotY: { value: 0 },
-        uCosRotY: { value: 1 },
         uGalaxyRadius: { value: galaxyRadius },
-        uZoom: { value: 1 },
         uSeed: { value: seed },
         uNebulaIntensity: { value: 0.4 },
         uGalaxyRotation: { value: 0 },
@@ -120,29 +113,21 @@ export class GalaxyNebula {
 
   update(
     time: number,
-    tiltX: number,
-    rotY: number,
+    camera: THREE.PerspectiveCamera,
     galaxyRotation: number,
-    zoom: number,
     galaxyRadius: number,
     axisRatio: number,
-    centerX: number,
-    centerY: number,
-    viewportWidth: number,
-    viewportHeight: number,
   ): void {
     const u = this.material.uniforms
     u.uTime.value = time
-    u.uSinTilt.value = Math.sin(tiltX)
-    u.uCosTilt.value = Math.cos(tiltX)
-    u.uSinRotY.value = Math.sin(rotY)
-    u.uCosRotY.value = Math.cos(rotY)
     u.uGalaxyRotation.value = galaxyRotation
-    u.uZoom.value = zoom
     u.uGalaxyRadius.value = galaxyRadius
     u.uAxisRatio.value = axisRatio
-    u.uCenter.value.set(centerX, centerY)
-    u.uResolution.value.set(viewportWidth, viewportHeight)
+
+    // Compute inverse view-projection matrix for ray-plane intersection in shader
+    const vpMatrix = new THREE.Matrix4()
+    vpMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    u.uInvViewProj.value.copy(vpMatrix).invert()
   }
 
   dispose(): void {

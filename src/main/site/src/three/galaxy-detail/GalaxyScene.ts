@@ -26,14 +26,13 @@ export class GalaxyScene {
   // Camera orbit state
   private tiltX = 0.6
   private rotY = 0
-  private zoom = 1
-  private targetZoom = 1
+  private zoom = 2.5
+  private targetZoom = 2.5
   private isDragging = false
   private lastX = 0
   private lastY = 0
   private velocityX = 0
   private velocityY = 0
-  private readonly _origin = new THREE.Vector3()
 
   // Bound event handlers (stored for removal)
   private onPointerDown: (e: PointerEvent) => void
@@ -113,8 +112,9 @@ export class GalaxyScene {
 
     this.onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      this.targetZoom += e.deltaY > 0 ? -0.1 : 0.1
-      this.targetZoom = Math.max(0.3, Math.min(5, this.targetZoom))
+      const zoomDelta = this.targetZoom * 0.12
+      this.targetZoom += e.deltaY > 0 ? -zoomDelta : zoomDelta
+      this.targetZoom = Math.max(0.15, Math.min(15, this.targetZoom))
     }
 
     canvas.addEventListener('pointerdown', this.onPointerDown)
@@ -177,28 +177,14 @@ export class GalaxyScene {
 
       this.particles.update(dt, time)
 
-      // Nebula needs screen-space projection of galaxy center
-      this._origin.set(0, 0, 0)
-      this._origin.project(this.camera)
-      const width = this.renderer.domElement.clientWidth
-      const height = this.renderer.domElement.clientHeight
-      const centerX = (this._origin.x * 0.5 + 0.5) * width
-      const centerY = (1 - (this._origin.y * 0.5 + 0.5)) * height
-
       const axisRatio = this.params.type === 'elliptical' ? this.params.axisRatio : 1.0
 
       this.nebula.update(
         time,
-        this.tiltX,
-        this.rotY,
+        this.camera,
         this.galaxyRotation,
-        this.zoom,
         this.params.galaxyRadius,
         axisRatio,
-        centerX,
-        centerY,
-        width,
-        height,
       )
 
       this.blackHole.update(time, this.tiltX, this.rotY, this.camera)
