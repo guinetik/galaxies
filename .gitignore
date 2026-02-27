@@ -143,6 +143,7 @@ vite.config.ts.timestamp-*
 
 # Generated databases
 *.db
+!src/main/site/public/data/*.db
 
 # Python
 __pycache__/

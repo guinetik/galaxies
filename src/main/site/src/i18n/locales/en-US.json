@@ -1,0 +1,23 @@
+{
+  "app": {
+    "title": "Galaxies",
+    "loading": "Loading galaxy database...",
+    "loaded": "{count} galaxies loaded"
+  },
+  "header": {
+    "siteName": "Galaxies",
+    "location": "Location"
+  },
+  "catalog": {
+    "ugc": "Uppsala General Catalogue",
+    "fss": "Flat Galaxy Survey"
+  },
+  "morphology": {
+    "elliptical": "Elliptical",
+    "lenticular": "Lenticular",
+    "spiral": "Spiral",
+    "barred": "Barred Spiral",
+    "irregular": "Irregular",
+    "unknown": "Unknown"
+  }
+}

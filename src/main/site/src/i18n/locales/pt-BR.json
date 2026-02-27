@@ -1,0 +1,23 @@
+{
+  "app": {
+    "title": "Galáxias",
+    "loading": "Carregando banco de dados de galáxias...",
+    "loaded": "{count} galáxias carregadas"
+  },
+  "header": {
+    "siteName": "Galáxias",
+    "location": "Localização"
+  },
+  "catalog": {
+    "ugc": "Catálogo Geral de Uppsala",
+    "fss": "Pesquisa de Galáxias Planas"
+  },
+  "morphology": {
+    "elliptical": "Elíptica",
+    "lenticular": "Lenticular",
+    "spiral": "Espiral",
+    "barred": "Espiral Barrada",
+    "irregular": "Irregular",
+    "unknown": "Desconhecida"
+  }
+}
