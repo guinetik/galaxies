@@ -15,19 +15,20 @@ export class GalaxyBlackHole {
 
   constructor(activityClass: string | null, quadSize = 60) {
     // Determine disk outer limit from AGN activity class.
+    // Wider disks = more prominent accretion rings.
     let diskOuterLimit: number
     switch (activityClass) {
       case 'Sy1':
-        diskOuterLimit = 0.45
+        diskOuterLimit = 0.50
         break
       case 'Sy2':
-        diskOuterLimit = 0.38
+        diskOuterLimit = 0.45
         break
       case 'LINER':
-        diskOuterLimit = 0.32
+        diskOuterLimit = 0.40
         break
       default:
-        diskOuterLimit = 0.30
+        diskOuterLimit = 0.38
         break
     }
 

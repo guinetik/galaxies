@@ -14,7 +14,7 @@ uniform float uDiskOuterLimit;
 // Black hole and disk profile.
 #define BH_RADIUS 0.2
 #define DISK_INNER 0.25
-#define DISK_HALF_THICKNESS 0.013
+#define DISK_HALF_THICKNESS 0.022
 #define GRAVITY_STRENGTH 0.12
 
 // -----------------------------------------------------------------------------

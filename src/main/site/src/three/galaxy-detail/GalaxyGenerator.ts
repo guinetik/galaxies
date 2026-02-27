@@ -148,14 +148,9 @@ function computeRotationSpeed(r: number): number {
 
 // ─── Central clear zone ──────────────────────────────────────────────────────
 
-function getCentralClearRadius(params: GeneratorParams): number {
-  const base = (CONFIG.blackHole.exclusionRadius || 25) * 0.82
-  const bulgeRadius = 'bulgeRadius' in params ? params.bulgeRadius : 0
-  const spiralStart = 'spiralStart' in params ? params.spiralStart : 0
-  const barWidth = 'barWidth' in params ? params.barWidth : 0
-
-  const coreDrivenBoost = Math.max(bulgeRadius * 0.12, spiralStart * 0.075, barWidth * 0.26, 0)
-  return base + coreDrivenBoost
+function getCentralClearRadius(_params: GeneratorParams): number {
+  // Just the black hole core — stars crowd close to the center
+  return CONFIG.blackHole.exclusionRadius
 }
 
 function applyCentralClearZone(stars: Star[], params: GeneratorParams): Star[] {
