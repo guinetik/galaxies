@@ -7,12 +7,13 @@ import fragmentShader from './shaders/blackhole.frag.glsl?raw'
  * disk, Doppler beaming, photon ring, and warm shadow rim.
  *
  * Rendered on a billboard PlaneGeometry quad positioned at the galaxy center.
+ * The quad size scales proportionally to galaxy radius (~20% = accretion disk extent).
  */
 export class GalaxyBlackHole {
   readonly mesh: THREE.Mesh
   private material: THREE.ShaderMaterial
 
-  constructor(activityClass: string | null) {
+  constructor(activityClass: string | null, quadSize = 60) {
     // Determine disk outer limit from AGN activity class.
     let diskOuterLimit: number
     switch (activityClass) {
@@ -49,7 +50,7 @@ export class GalaxyBlackHole {
     })
 
     this.mesh = new THREE.Mesh(geometry, this.material)
-    this.mesh.scale.set(60, 60, 1)
+    this.mesh.scale.set(quadSize, quadSize, 1)
     this.mesh.renderOrder = 10
   }
 

@@ -229,12 +229,16 @@ void main() {
   float rawAngle = atan(worldZ, worldX) - uGalaxyRotation;
   vec2 restPos = vec2(cos(rawAngle), sin(rawAngle)) * rawRNorm;
   vec2 densityUV = restPos / 1.3 * 0.5 + 0.5;
-  float starDensity = pow(texture2D(uDensityMap, densityUV).r, 0.35);
+  float starDensity = texture2D(uDensityMap, densityUV).r;
 
-  // Nebula density modulated by star density
-  float density = nebulaDensity(samplePos, fract(uSeed));
-  density = max(density, 0.0) * radialMask * starDensity;
-  density = smoothstep(0.15, 0.9, density);
+  // Nebula density — strongly driven by star density so it follows arm structure
+  float noiseDensity = nebulaDensity(samplePos, fract(uSeed));
+  noiseDensity = max(noiseDensity, 0.0);
+
+  // Blend: star density gates the nebula, noise adds texture within the arms
+  float density = mix(noiseDensity * 0.3, noiseDensity, pow(starDensity, 0.5)) * radialMask;
+  density *= smoothstep(0.02, 0.25, starDensity);  // hard cutoff where no stars
+  density = smoothstep(0.08, 0.7, density);
 
   // Emission line color
   float colorNoise = fbm3D(samplePos * 1.2 + uSeed * 50.0, 2) * 0.5 + 0.5;
