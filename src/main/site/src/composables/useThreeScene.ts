@@ -41,7 +41,11 @@ export function useThreeScene() {
   let velocityTheta = 0
   let velocityPhi = 0
   const DRAG_FRICTION = 0.92
+  const DRAG_FRICTION_ZOOMED = 0.76
   const VELOCITY_THRESHOLD = 0.00001
+  const DRAG_SENSITIVITY_MIN_SCALE = 0.08
+  const DRAG_SENSITIVITY_POWER = 0.85
+  const DRAG_VELOCITY_CAP = 0.03
 
   // Smooth zoom — target FOV that we lerp toward each frame
   let targetFov = CAMERA_FOV_DEFAULT
@@ -110,17 +114,39 @@ export function useThreeScene() {
     camera.lookAt(target)
   }
 
+  /**
+   * Compute drag scaling for the current FOV.
+   * Uses tangent-space scaling so narrow FOV pans much less per pixel.
+   */
+  function getPanSensitivityScale(fov: number): number {
+    const fovRad = fov * Math.PI / 180
+    const defaultRad = CAMERA_FOV_DEFAULT * Math.PI / 180
+    const tanRatio = Math.tan(fovRad * 0.5) / Math.tan(defaultRad * 0.5)
+    const scaled = Math.pow(Math.max(0, tanRatio), DRAG_SENSITIVITY_POWER)
+    return Math.max(DRAG_SENSITIVITY_MIN_SCALE, scaled)
+  }
+
+  /**
+   * Increase damping when zoomed in to avoid "slippery telescope" momentum.
+   */
+  function getDragFriction(fov: number): number {
+    const t = Math.max(0, Math.min(1, (fov - CAMERA_FOV_MIN) / (CAMERA_FOV_DEFAULT - CAMERA_FOV_MIN)))
+    return DRAG_FRICTION_ZOOMED + (DRAG_FRICTION - DRAG_FRICTION_ZOOMED) * t
+  }
+
   /** Called each frame to apply drag momentum when not dragging */
   function updateDragMomentum() {
     if (isDragging) return
     if (Math.abs(velocityTheta) < VELOCITY_THRESHOLD && Math.abs(velocityPhi) < VELOCITY_THRESHOLD) return
+    const currentFovValue = camera?.fov ?? CAMERA_FOV_DEFAULT
+    const friction = getDragFriction(currentFovValue)
 
     theta += velocityTheta
     phi += velocityPhi
     phi = Math.max(0.1, Math.min(Math.PI / 2 + 0.3, phi))
 
-    velocityTheta *= DRAG_FRICTION
-    velocityPhi *= DRAG_FRICTION
+    velocityTheta *= friction
+    velocityPhi *= friction
 
     updateCameraLookAt()
   }
@@ -174,6 +200,9 @@ export function useThreeScene() {
     isDragging = true
     lastX = e.clientX
     lastY = e.clientY
+    // Prevent old momentum from fighting a new drag gesture.
+    velocityTheta = 0
+    velocityPhi = 0
     canvas!.style.cursor = 'grabbing'
   }
 
@@ -184,11 +213,15 @@ export function useThreeScene() {
     lastX = e.clientX
     lastY = e.clientY
 
-    // Scale sensitivity with FOV — zoomed in = slower panning
-    const fovScale = (camera?.fov ?? CAMERA_FOV_DEFAULT) / CAMERA_FOV_DEFAULT
-    const sensitivity = DRAG_SENSITIVITY * fovScale
-    velocityTheta = -dx * sensitivity
-    velocityPhi = -dy * sensitivity
+    // Narrow FOV needs nonlinear damping for precise telescope-like panning.
+    const currentFovValue = camera?.fov ?? CAMERA_FOV_DEFAULT
+    const sensitivity = DRAG_SENSITIVITY * getPanSensitivityScale(currentFovValue)
+    const nextTheta = Math.max(-DRAG_VELOCITY_CAP, Math.min(DRAG_VELOCITY_CAP, -dx * sensitivity))
+    const nextPhi = Math.max(-DRAG_VELOCITY_CAP, Math.min(DRAG_VELOCITY_CAP, -dy * sensitivity))
+
+    // Light smoothing prevents micro-jitter from pointer noise.
+    velocityTheta = velocityTheta * 0.3 + nextTheta * 0.7
+    velocityPhi = velocityPhi * 0.3 + nextPhi * 0.7
 
     theta += velocityTheta
     phi += velocityPhi

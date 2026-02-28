@@ -10,7 +10,7 @@ export const EARTH_RADIUS = 580
 export const EARTH_Y_OFFSET = -600
 
 /** Camera field-of-view limits (degrees) */
-export const CAMERA_FOV_MIN = 10
+export const CAMERA_FOV_MIN = 3
 export const CAMERA_FOV_MAX = 75
 export const CAMERA_FOV_DEFAULT = 60
 

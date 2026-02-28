@@ -1,12 +1,12 @@
 import * as THREE from 'three'
 
-const STAR_COUNT = 3000
+const STAR_COUNT = 6000
 const SPHERE_RADIUS = 800
 const POINT_SIZE = 1.2
 
 /**
  * Decorative background stars — tiny white dots on a larger sphere
- * behind the galaxy field, giving the night sky depth.
+ * behind the galaxy field, giving the night sky depth at every location.
  */
 export class BackgroundStars {
   readonly points: THREE.Points
@@ -17,16 +17,12 @@ export class BackgroundStars {
     const opacities = new Float32Array(STAR_COUNT)
 
     for (let i = 0; i < STAR_COUNT; i++) {
-      // Uniform distribution on sphere
+      // Uniform distribution on full celestial sphere
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
-
-      // Only upper hemisphere (above horizon)
-      const adjustedPhi = phi * 0.5 // compress to upper half
-
-      positions[i * 3] = SPHERE_RADIUS * Math.sin(adjustedPhi) * Math.cos(theta)
-      positions[i * 3 + 1] = SPHERE_RADIUS * Math.cos(adjustedPhi)
-      positions[i * 3 + 2] = SPHERE_RADIUS * Math.sin(adjustedPhi) * Math.sin(theta)
+      positions[i * 3] = SPHERE_RADIUS * Math.sin(phi) * Math.cos(theta)
+      positions[i * 3 + 1] = SPHERE_RADIUS * Math.cos(phi)
+      positions[i * 3 + 2] = SPHERE_RADIUS * Math.sin(phi) * Math.sin(theta)
 
       // Vary sizes slightly
       sizes[i] = POINT_SIZE * (0.3 + Math.random() * 0.7)
@@ -60,6 +56,8 @@ export class BackgroundStars {
         }
       `,
       fragmentShader: /* glsl */ `
+        precision mediump float;
+
         varying float vOpacity;
 
         void main() {

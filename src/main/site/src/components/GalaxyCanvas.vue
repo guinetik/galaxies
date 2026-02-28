@@ -5,12 +5,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import * as THREE from 'three'
 import { useThreeScene } from '@/composables/useThreeScene'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { GalaxyField } from '@/three/GalaxyField'
 import { EarthHorizon } from '@/three/EarthHorizon'
 import { BackgroundStars } from '@/three/BackgroundStars'
+import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
 import { LOCATIONS } from '@/three/constants'
 import type { Galaxy } from '@/types/galaxy'
 
@@ -43,28 +43,52 @@ defineExpose({ currentFov, currentMaxRedshift, currentLocation, setLocation })
 let galaxyField: GalaxyField | null = null
 let earthHorizon: EarthHorizon | null = null
 let backgroundStars: BackgroundStars | null = null
+const CLICK_CANCEL_DISTANCE_PX = 5
+let pointerIsDown = false
+let pointerDownX = 0
+let pointerDownY = 0
+let pointerMovedDuringGesture = false
+let suppressNextClick = false
 
-// Raycaster for hover detection
-const raycaster = new THREE.Raycaster()
-raycaster.params.Points.threshold = 0.6
-const mouse = new THREE.Vector2()
+/**
+ * Perform pointer hit detection against square galaxy sprite bounds.
+ * Coordinates are converted from viewport space into canvas-local space.
+ */
+function pickGalaxyFromPointer(e: PointerEvent): Galaxy | null {
+  if (!galaxyField || !canvasRef.value) return null
+
+  const rect = canvasRef.value.getBoundingClientRect()
+  const localX = e.clientX - rect.left
+  const localY = e.clientY - rect.top
+  if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return null
+
+  return galaxyField.pickGalaxyAtScreen(
+    localX,
+    localY,
+    getCamera(),
+    rect.width,
+    rect.height,
+    currentMaxRedshift.value,
+    currentFov.value
+  )
+}
 
 function onPointerMoveHover(e: PointerEvent) {
+  if (pointerIsDown) {
+    const dx = e.clientX - pointerDownX
+    const dy = e.clientY - pointerDownY
+    if (dx * dx + dy * dy > CLICK_CANCEL_DISTANCE_PX * CLICK_CANCEL_DISTANCE_PX) {
+      pointerMovedDuringGesture = true
+    }
+  }
+
   if (getIsDragging()) {
     emit('hover', null)
     return
   }
 
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
-
-  if (!galaxyField) return
-  const camera = getCamera()
-  raycaster.setFromCamera(mouse, camera)
-  const intersects = raycaster.intersectObject(galaxyField.points)
-
-  if (intersects.length > 0 && intersects[0].index != null) {
-    const galaxy = galaxyField.galaxies[intersects[0].index]
+  const galaxy = pickGalaxyFromPointer(e)
+  if (galaxy) {
     canvasRef.value!.style.cursor = 'pointer'
     emit('hover', { galaxy, screenX: e.clientX, screenY: e.clientY })
   } else {
@@ -74,22 +98,38 @@ function onPointerMoveHover(e: PointerEvent) {
 }
 
 function onPointerLeave() {
+  pointerIsDown = false
+  pointerMovedDuringGesture = false
   emit('hover', null)
 }
 
+/**
+ * Track pointer gesture lifecycle to suppress click navigation after drags.
+ */
+function onPointerDownCapture(e: PointerEvent) {
+  pointerIsDown = true
+  pointerDownX = e.clientX
+  pointerDownY = e.clientY
+  pointerMovedDuringGesture = false
+}
+
+function onPointerUpCapture() {
+  if (pointerMovedDuringGesture) {
+    suppressNextClick = true
+  }
+  pointerIsDown = false
+  pointerMovedDuringGesture = false
+}
+
 function onPointerClickGalaxy(e: PointerEvent) {
+  if (suppressNextClick) {
+    suppressNextClick = false
+    return
+  }
   if (getIsDragging()) return
 
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
-
-  if (!galaxyField) return
-  const camera = getCamera()
-  raycaster.setFromCamera(mouse, camera)
-  const intersects = raycaster.intersectObject(galaxyField.points)
-
-  if (intersects.length > 0 && intersects[0].index != null) {
-    const galaxy = galaxyField.galaxies[intersects[0].index]
+  const galaxy = pickGalaxyFromPointer(e)
+  if (galaxy) {
     router.push(`/g/${encodeURIComponent(galaxy.name)}`)
   }
 }
@@ -107,7 +147,8 @@ onMounted(async () => {
 
   // 3. Create objects
   const galaxies = getAllGalaxies()
-  galaxyField = new GalaxyField(galaxies)
+  const atlasTexture = generateGalaxyTextureAtlas()
+  galaxyField = new GalaxyField(galaxies, atlasTexture)
   earthHorizon = new EarthHorizon()
   backgroundStars = new BackgroundStars()
 
@@ -125,6 +166,9 @@ onMounted(async () => {
   })
 
   canvasRef.value.addEventListener('pointermove', onPointerMoveHover)
+  canvasRef.value.addEventListener('pointerdown', onPointerDownCapture)
+  canvasRef.value.addEventListener('pointerup', onPointerUpCapture)
+  canvasRef.value.addEventListener('pointercancel', onPointerUpCapture)
   canvasRef.value.addEventListener('pointerleave', onPointerLeave)
   canvasRef.value.addEventListener('click', onPointerClickGalaxy)
 
@@ -133,6 +177,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   canvasRef.value?.removeEventListener('pointermove', onPointerMoveHover)
+  canvasRef.value?.removeEventListener('pointerdown', onPointerDownCapture)
+  canvasRef.value?.removeEventListener('pointerup', onPointerUpCapture)
+  canvasRef.value?.removeEventListener('pointercancel', onPointerUpCapture)
   canvasRef.value?.removeEventListener('pointerleave', onPointerLeave)
   canvasRef.value?.removeEventListener('click', onPointerClickGalaxy)
   galaxyField?.dispose()
