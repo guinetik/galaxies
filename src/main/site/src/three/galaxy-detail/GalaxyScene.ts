@@ -89,10 +89,10 @@ export class GalaxyScene {
     this.haze = new GalaxyHaze(R)
     this.scene.add(this.haze.mesh)
 
-    this.nebula = new GalaxyNebula(stars, R, galaxy.id)
+    this.nebula = new GalaxyNebula(stars, R, galaxy.pgc)
     this.scene.add(this.nebula.mesh)
 
-    this.blackHole = new GalaxyBlackHole(galaxy.activity_class, R * 0.08)
+    this.blackHole = new GalaxyBlackHole(null, R * 0.08)
     this.scene.add(this.blackHole.depthMesh)
     this.scene.add(this.blackHole.mesh)
 
@@ -138,7 +138,8 @@ export class GalaxyScene {
 
     // ─── Initial orbit from position angle ───────────────────────────
 
-    const initRotY = (galaxy.position_angle ?? 0) * Math.PI / 180
+    // PGC-seeded random angle (no position_angle in CF4)
+    const initRotY = ((galaxy.pgc * 2654435761 >>> 0) / 4294967296) * Math.PI * 2
     const initTiltX = -0.45
 
     // Build initial quaternion: tilt around X then rotate around Y

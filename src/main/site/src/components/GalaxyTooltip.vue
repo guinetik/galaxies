@@ -4,19 +4,12 @@
     class="galaxy-tooltip"
     :style="{ left: x + 'px', top: y + 'px' }"
   >
-    <div class="tooltip-name">{{ galaxy.name }}</div>
-    <div class="tooltip-row"><span class="tooltip-label">Catalog</span> {{ galaxy.catalog }}</div>
-    <div v-if="galaxy.morphology" class="tooltip-row">
-      <span class="tooltip-label">Type</span> {{ galaxy.morphology }}
+    <div class="tooltip-name">PGC {{ galaxy.pgc }}</div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Distance</span> {{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly
     </div>
-    <div v-if="galaxy.redshift != null" class="tooltip-row">
-      <span class="tooltip-label">Redshift</span> {{ galaxy.redshift.toFixed(6) }}
-    </div>
-    <div v-if="galaxy.velocity != null" class="tooltip-row">
-      <span class="tooltip-label">Velocity</span> {{ galaxy.velocity.toLocaleString() }} km/s
-    </div>
-    <div v-if="galaxy.velocity != null && galaxy.velocity > 0" class="tooltip-row">
-      <span class="tooltip-label">Distance</span> ~{{ getDistanceInLightYears(galaxy.velocity) }} ly
+    <div v-if="galaxy.vcmb != null" class="tooltip-row">
+      <span class="tooltip-label">Velocity</span> {{ galaxy.vcmb.toLocaleString() }} km/s
     </div>
   </div>
 </template>
@@ -29,16 +22,6 @@ defineProps<{
   x: number
   y: number
 }>()
-
-const HUBBLE_CONSTANT = 70 // km/s/Mpc
-const MPC_TO_LY = 3_261_564 // Light years per Mpc
-
-function getDistanceInLightYears(velocity: number): string {
-  const mpc = velocity / HUBBLE_CONSTANT
-  const ly = mpc * MPC_TO_LY
-  // Format with commas and no decimals for readability
-  return Math.round(ly).toLocaleString()
-}
 </script>
 
 <style scoped>

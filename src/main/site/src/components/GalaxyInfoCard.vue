@@ -1,33 +1,42 @@
 <template>
   <div class="galaxy-info-card">
-    <div class="info-name">{{ galaxy.name }}</div>
+    <div class="info-name">PGC {{ galaxy.pgc }}</div>
     <div class="info-row">
-      <span class="info-label">Catalog</span> {{ galaxy.catalog }}
+      <span class="info-label">Distance</span> {{ galaxy.distance_mpc.toFixed(1) }} Mpc ({{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly)
     </div>
-    <div v-if="galaxy.morphology" class="info-row">
-      <span class="info-label">Type</span> {{ galaxy.morphology }}
+    <div v-if="galaxy.vcmb != null" class="info-row">
+      <span class="info-label">CMB Velocity</span> {{ galaxy.vcmb.toLocaleString() }} km/s
     </div>
-    <div v-if="galaxy.redshift != null" class="info-row">
-      <span class="info-label">Redshift</span> {{ galaxy.redshift.toFixed(6) }}
+    <div class="info-row">
+      <span class="info-label">DM</span> {{ galaxy.dm.toFixed(2) }}<span v-if="galaxy.e_dm != null"> &plusmn; {{ galaxy.e_dm.toFixed(2) }}</span>
     </div>
-    <div v-if="galaxy.velocity != null" class="info-row">
-      <span class="info-label">Velocity</span> {{ galaxy.velocity.toLocaleString() }} km/s
-    </div>
-    <div v-if="galaxy.b_mag != null" class="info-row">
-      <span class="info-label">B mag</span> {{ galaxy.b_mag.toFixed(2) }}
-    </div>
-    <div v-if="galaxy.r_mag != null" class="info-row">
-      <span class="info-label">R mag</span> {{ galaxy.r_mag.toFixed(2) }}
+    <div v-if="methods.length > 0" class="info-row">
+      <span class="info-label">Methods</span> {{ methods.join(', ') }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Galaxy } from '@/types/galaxy'
 
-defineProps<{
+const props = defineProps<{
   galaxy: Galaxy
 }>()
+
+const methods = computed(() => {
+  const g = props.galaxy
+  const list: string[] = []
+  if (g.dm_snia != null) list.push('SNIa')
+  if (g.dm_tf != null) list.push('TF')
+  if (g.dm_fp != null) list.push('FP')
+  if (g.dm_sbf != null) list.push('SBF')
+  if (g.dm_snii != null) list.push('SNII')
+  if (g.dm_trgb != null) list.push('TRGB')
+  if (g.dm_ceph != null) list.push('Ceph')
+  if (g.dm_mas != null) list.push('Mas')
+  return list
+})
 </script>
 
 <style scoped>

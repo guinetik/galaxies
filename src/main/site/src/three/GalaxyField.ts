@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Galaxy } from '@/types/galaxy'
-import { classifyMorphology } from '@/types/galaxy'
-import { raDecToPosition, magnitudeToSize } from './celestialMath'
+import { assignMorphology } from '@/types/galaxy'
+import { raDecToPosition } from './celestialMath'
 import { SPHERE_RADIUS, MORPHOLOGY_COLORS } from './constants'
 import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
@@ -34,28 +34,15 @@ export class GalaxyField {
       const g = galaxies[i]
 
       // Position on celestial sphere
-      const pos = raDecToPosition(g.ra!, g.dec!, SPHERE_RADIUS)
+      const pos = raDecToPosition(g.ra, g.dec, SPHERE_RADIUS)
       positions[i * 3] = pos.x
       positions[i * 3 + 1] = pos.y
       positions[i * 3 + 2] = pos.z
 
-      // Color from morphology with per-galaxy variation
-      const morphClass = classifyMorphology(g.morphology)
-      let baseColor: [number, number, number]
-      const seed = (g.id * 2654435761) >>> 0
-
-      if (morphClass === 'unknown') {
-        const t = (seed % 1000) / 1000
-        if (t < 0.33) {
-          baseColor = [0.84, 0.84, 0.90]
-        } else if (t < 0.66) {
-          baseColor = [0.90, 0.86, 0.80]
-        } else {
-          baseColor = [0.74, 0.84, 0.94]
-        }
-      } else {
-        baseColor = MORPHOLOGY_COLORS[morphClass]
-      }
+      // Color from assigned morphology with per-galaxy variation
+      const morphClass = assignMorphology(g.pgc)
+      const baseColor: [number, number, number] = MORPHOLOGY_COLORS[morphClass]
+      const seed = (g.pgc * 2654435761) >>> 0
 
       // Per-galaxy variation stays subtle to keep a realistic palette.
       const t1 = ((seed >>> 8) % 1024) / 1023
@@ -66,20 +53,15 @@ export class GalaxyField {
       colors[i * 3 + 1] = Math.min(1, Math.max(0, baseColor[1] * brightnessScale))
       colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightnessScale - coolWarmTilt * 0.6))
 
-      // Size from magnitude (use b_mag as primary, fall back to r_mag)
-      const mag = g.b_mag ?? g.r_mag ?? null
-      sizes[i] = magnitudeToSize(mag)
+      // Size from distance — closer galaxies appear larger
+      const K = 8.0
+      sizes[i] = Math.max(1.5, Math.min(12.0, K / g.distance_mpc))
 
-      // Redshift (default to 0 if null, so always visible at widest FOV)
-      redshifts[i] = g.redshift ?? 0
+      // Redshift derived from CMB velocity
+      redshifts[i] = (g.vcmb ?? 0) / 299792.458
 
-      // Texture atlas index — randomize unknowns for visual variety.
-      if (morphClass === 'unknown') {
-        const seed = (g.id * 2654435761) >>> 0
-        texIndices[i] = seed % 6
-      } else {
-        texIndices[i] = morphologyToAtlasIndex(morphClass)
-      }
+      // Texture atlas index from morphology
+      texIndices[i] = morphologyToAtlasIndex(morphClass)
     }
     this.positions = positions
     this.sizes = sizes

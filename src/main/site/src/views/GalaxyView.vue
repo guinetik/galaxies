@@ -16,13 +16,12 @@ import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { Galaxy } from '@/types/galaxy'
 
 const route = useRoute()
-const { ready, isLoading, getGalaxyByName } = useGalaxyData()
+const { ready, isLoading, getGalaxyByPgc } = useGalaxyData()
 const galaxy = ref<Galaxy | null>(null)
 
 onMounted(async () => {
   await ready
-  const name = decodeURIComponent(route.params.name as string)
-  galaxy.value = getGalaxyByName(name)
+  galaxy.value = getGalaxyByPgc(Number(route.params.pgc))
 })
 </script>
 

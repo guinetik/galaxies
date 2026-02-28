@@ -1,43 +1,25 @@
 export interface Galaxy {
-  id: number
-  catalog: string
-  name: string
-  ra_sexagesimal: string | null
-  dec_sexagesimal: string | null
-  ra: number | null
-  dec: number | null
-  redshift: number | null
-  velocity: number | null
-  // UGC-only
-  z_flag: string | null
-  phys_type: string | null
-  em_region: string | null
-  references: number | null
-  notes: number | null
-  photometry: number | null
-  positions: number | null
-  redshifts: number | null
-  diameters: number | null
-  distances: number | null
-  classifications: number | null
-  images: number | null
-  spectra: number | null
-  // FSS-only
-  pgc: number | null
-  morphology: string | null
-  u_mag: number | null
-  b_mag: number | null
-  r_mag: number | null
-  i_mag: number | null
-  j_mag: number | null
-  h_mag: number | null
-  k_mag: number | null
-  diameter_arcsec: number | null
-  axial_ratio: number | null
-  neighbor_count: number | null
-  position_angle: number | null
-  activity_class: string | null
-  fss_notes: string | null
+  pgc: number
+  group_pgc: number | null
+  vcmb: number | null
+  dm: number
+  e_dm: number | null
+  ra: number
+  dec: number
+  glon: number | null
+  glat: number | null
+  sgl: number | null
+  sgb: number | null
+  distance_mpc: number
+  distance_mly: number
+  dm_snia: number | null
+  dm_tf: number | null
+  dm_fp: number | null
+  dm_sbf: number | null
+  dm_snii: number | null
+  dm_trgb: number | null
+  dm_ceph: number | null
+  dm_mas: number | null
 }
 
 export type MorphologyClass =
@@ -48,24 +30,25 @@ export type MorphologyClass =
   | 'irregular'
   | 'unknown'
 
-export function classifyMorphology(morph: string | null): MorphologyClass {
-  if (!morph) return 'unknown'
-  const m = morph.trim().toUpperCase()
+/** Mulberry32 seeded PRNG — returns [0,1) */
+function seededRandom(seed: number): number {
+  let s = seed | 0
+  s = (s + 0x6d2b79f5) | 0
+  let t = Math.imul(s ^ (s >>> 15), 1 | s)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
 
-  // Barred spirals: SBa, SBb, SBc, SBd, SB0, SB(s), etc.
-  if (/^SB/.test(m)) return 'barred'
-
-  // Normal spirals: Sa, Sb, Sc, Sd, S(r), etc. (but not S0)
-  if (/^S[A-D]/.test(m) || /^S\(/.test(m)) return 'spiral'
-
-  // Lenticular: S0, E-S0, S0/a, etc.
-  if (/S0/.test(m) || /^E[-/]S/.test(m)) return 'lenticular'
-
-  // Elliptical: E, E0-E7, cE, dE, etc.
-  if (/^[CD]?E\d?/.test(m) || m === 'E') return 'elliptical'
-
-  // Irregular: Irr, I, Im, IB(m), etc.
-  if (/^I(?:RR|M|B|$)/.test(m)) return 'irregular'
-
-  return 'unknown'
+/**
+ * Assign a morphology class to a galaxy based on its PGC number.
+ * Uses seeded random weighted by cosmic proportions:
+ *   ~35% spiral, ~35% barred, ~15% elliptical, ~10% lenticular, ~5% irregular
+ */
+export function assignMorphology(pgc: number): MorphologyClass {
+  const r = seededRandom(pgc)
+  if (r < 0.35) return 'spiral'
+  if (r < 0.70) return 'barred'
+  if (r < 0.85) return 'elliptical'
+  if (r < 0.95) return 'lenticular'
+  return 'irregular'
 }

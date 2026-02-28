@@ -24,14 +24,29 @@ export const CAMERA_POSITION: [number, number, number] = [0, 50, 0]
 /**
  * Maps FOV brackets to maximum visible redshift.
  * Wider FOV = nearby only; narrower FOV = deeper field.
- * Interpolated smoothly in fovToMaxRedshift().
+ * Interpolated smoothly (exponential) in fovToMaxRedshift().
+ *
+ * Tuned for CF4 dataset (55,877 galaxies, max z ≈ 0.11):
+ *   75° →   ~560 galaxies (local neighborhood)
+ *   65° → ~2,500 galaxies
+ *   55° → ~5,600 galaxies
+ *   45° → ~11,200 galaxies
+ *   35° → ~22,000 galaxies
+ *   25° → ~33,500 galaxies
+ *   15° → ~44,700 galaxies
+ *    8° → ~55,300 galaxies
+ *    3° →  55,877 galaxies (full deep field)
  */
 export const REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.005],
-  [60, 0.01],
-  [40, 0.03],
-  [20, 0.10],
-  [10, 1.00],
+  [75, 0.003],
+  [65, 0.007],
+  [55, 0.015],
+  [45, 0.025],
+  [35, 0.040],
+  [25, 0.060],
+  [15, 0.080],
+  [8,  0.100],
+  [3,  0.110],
 ]
 
 /** Observer location on Earth */

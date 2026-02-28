@@ -1,4 +1,5 @@
 import type { Galaxy } from '@/types/galaxy'
+import { assignMorphology } from '@/types/galaxy'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -167,29 +168,43 @@ export function parseMorphology(morph: string | null): ParsedMorphology {
   return fallback
 }
 
+// ─── morphClassToParsed ─────────────────────────────────────────────────────
+
+function morphClassToParsed(morphClass: string, rand: () => number): ParsedMorphology {
+  switch (morphClass) {
+    case 'elliptical':
+      return { type: 'elliptical', hubbleStage: 0, eNumber: Math.round(rand() * 7), barStrength: null, ringType: null }
+    case 'lenticular':
+      return { type: 'lenticular', hubbleStage: 0, eNumber: null, barStrength: null, ringType: null }
+    case 'barred': {
+      const stage = Math.round(1 + rand() * 8)
+      return { type: 'barred', hubbleStage: stage, eNumber: null, barStrength: rand() > 0.5 ? 'strong' : 'weak', ringType: null }
+    }
+    case 'irregular':
+      return { type: 'irregular', hubbleStage: 0, eNumber: null, barStrength: null, ringType: null }
+    default: { // spiral
+      const stage = Math.round(1 + rand() * 8)
+      return { type: 'spiral', hubbleStage: stage, eNumber: null, barStrength: null, ringType: null }
+    }
+  }
+}
+
 // ─── galaxyToGeneratorParams ────────────────────────────────────────────────
 
 export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
-  const rand = mulberry32(galaxy.id)
-  const morph = parseMorphology(galaxy.morphology)
+  const rand = mulberry32(galaxy.pgc)
+  const morphClass = assignMorphology(galaxy.pgc)
 
   // --- Physical size estimation ---
-  const H0 = 70 // km/s/Mpc
-  const velocity = galaxy.velocity ?? 1000
-  const distanceMpc = Math.max(Math.abs(velocity) / H0, 0.1)
-  const diameterArcsec = galaxy.diameter_arcsec ?? 60
-  const physicalKpc = distanceMpc * diameterArcsec / 206.265
-  const galaxyRadius = clamp(physicalKpc * 12, 120, 1500)
+  // Typical galaxy ~25 kpc; apply ±50% PGC-seeded variation
+  const sizeVariation = 0.5 + rand() * 1.0 // 0.5 to 1.5
+  const galaxyRadius = clamp(300 * sizeVariation, 150, 450)
 
-  // --- Star count from luminosity ---
-  let starCount = 60000
-  if (galaxy.b_mag != null) {
-    const absMag = galaxy.b_mag - 5 * Math.log10(distanceMpc * 1e6) + 5
-    // Luminosity relative to sun: 10^((4.83 - absMag) / 2.5)
-    const luminosity = Math.pow(10, (4.83 - absMag) / 2.5)
-    // Rough star count — higher cap for detail-page rendering
-    starCount = clamp(Math.round(luminosity / 3e5), 20000, 500000)
-  }
+  // --- Star count: default 60,000 with ±30% variation ---
+  const starCount = clamp(Math.round(60000 * (0.7 + rand() * 0.6)), 42000, 78000)
+
+  // --- Map morphClass to ParsedMorphology for per-type params ---
+  const morph = morphClassToParsed(morphClass, rand)
 
   // --- Per-type mapping ---
   switch (morph.type) {

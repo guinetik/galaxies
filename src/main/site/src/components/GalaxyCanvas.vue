@@ -130,7 +130,7 @@ function onPointerClickGalaxy(e: PointerEvent) {
 
   const galaxy = pickGalaxyFromPointer(e)
   if (galaxy) {
-    router.push(`/g/${encodeURIComponent(galaxy.name)}`)
+    router.push(`/g/${galaxy.pgc}`)
   }
 }
 

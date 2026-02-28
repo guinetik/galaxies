@@ -24,7 +24,7 @@ async function initDatabase(): Promise<void> {
     locateFile: () => '/data/sql-wasm.wasm',
   })
 
-  const response = await fetch('/data/galaxies_combined.db')
+  const response = await fetch('/data/cosmicflows4.db')
   const buffer = await response.arrayBuffer()
   db = new SQL.Database(new Uint8Array(buffer))
 
@@ -52,15 +52,15 @@ export function useGalaxyData() {
 
   function getGalaxiesByRedshiftRange(min: number, max: number): Galaxy[] {
     if (!db) return []
+    const c = 299792.458
     const stmt = db.prepare(
-      'SELECT * FROM galaxies WHERE ra IS NOT NULL AND dec IS NOT NULL AND redshift >= ? AND redshift <= ?'
+      'SELECT * FROM galaxies WHERE ra IS NOT NULL AND dec IS NOT NULL AND vcmb >= ? AND vcmb <= ?'
     )
-    stmt.bind([min, max])
+    stmt.bind([min * c, max * c])
     const galaxies: Galaxy[] = []
+    const columns = stmt.getColumnNames()
     while (stmt.step()) {
-      const values = stmt.get()
-      const columns = stmt.getColumnNames()
-      galaxies.push(rowToGalaxy(columns, values as any[]))
+      galaxies.push(rowToGalaxy(columns, stmt.get() as any[]))
     }
     stmt.free()
     return galaxies
@@ -69,38 +69,23 @@ export function useGalaxyData() {
   function searchGalaxies(query: string): Galaxy[] {
     if (!db) return []
     const stmt = db.prepare(
-      "SELECT * FROM galaxies WHERE name LIKE ? OR morphology LIKE ? LIMIT 100"
+      "SELECT * FROM galaxies WHERE CAST(pgc AS TEXT) LIKE ? LIMIT 100"
     )
     const pattern = `%${query}%`
-    stmt.bind([pattern, pattern])
+    stmt.bind([pattern])
     const galaxies: Galaxy[] = []
+    const columns = stmt.getColumnNames()
     while (stmt.step()) {
-      const values = stmt.get()
-      const columns = stmt.getColumnNames()
-      galaxies.push(rowToGalaxy(columns, values as any[]))
+      galaxies.push(rowToGalaxy(columns, stmt.get() as any[]))
     }
     stmt.free()
     return galaxies
   }
 
-  function getGalaxyById(id: number): Galaxy | null {
+  function getGalaxyByPgc(pgc: number): Galaxy | null {
     if (!db) return null
-    const stmt = db.prepare('SELECT * FROM galaxies WHERE id = ?')
-    stmt.bind([id])
-    if (stmt.step()) {
-      const values = stmt.get()
-      const columns = stmt.getColumnNames()
-      stmt.free()
-      return rowToGalaxy(columns, values as any[])
-    }
-    stmt.free()
-    return null
-  }
-
-  function getGalaxyByName(name: string): Galaxy | null {
-    if (!db) return null
-    const stmt = db.prepare('SELECT * FROM galaxies WHERE name = ?')
-    stmt.bind([name])
+    const stmt = db.prepare('SELECT * FROM galaxies WHERE pgc = ?')
+    stmt.bind([pgc])
     if (stmt.step()) {
       const values = stmt.get()
       const columns = stmt.getColumnNames()
@@ -118,7 +103,6 @@ export function useGalaxyData() {
     getAllGalaxies,
     getGalaxiesByRedshiftRange,
     searchGalaxies,
-    getGalaxyById,
-    getGalaxyByName,
+    getGalaxyByPgc,
   }
 }

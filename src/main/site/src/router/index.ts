@@ -9,7 +9,7 @@ export const router = createRouter({
       component: () => import('@/views/HomeView.vue'),
     },
     {
-      path: '/g/:name',
+      path: '/g/:pgc',
       name: 'galaxy',
       component: () => import('@/views/GalaxyView.vue'),
     },
