@@ -27,8 +27,8 @@ void main() {
       : smoothstep(uMaxRedshift, fadeStart, aRedshift);
   }
 
-  // Subtle twinkle
-  float twinkle = sin(uTime * 2.0 + position.x * 0.1 + position.z * 0.07) * 0.1 + 1.0;
+  // Galaxies should feel stable; keep only a very subtle pulse.
+  float twinkle = sin(uTime * 0.6 + aTexIndex * 0.7) * 0.03 + 1.0;
 
   // Scale size with fade so galaxies grow in as they appear
   float sizeScale = mix(0.5, 1.0, vAlpha);
@@ -36,12 +36,14 @@ void main() {
   // FOV-based scaling: zoomed out (75°) = compact, zoomed in (10°) = larger for interaction
   // Uses default 60° as reference. Ratio gives ~0.7x at 75° and ~4x at 10°.
   float fovScale = 60.0 / uFov;
-  vDetailMix = smoothstep(55.0, 22.0, uFov);
+  // Bring texture detail in earlier so points read as galaxies, not debug squares.
+  vDetailMix = smoothstep(80.0, 40.0, uFov);
 
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   // Base marker stays visible at all zoom levels to avoid LOD dead zones.
-  float basePx = aSize * uPixelRatio * fovScale * twinkle * sizeScale * 5.2;
-  float detailBoost = mix(1.0, 1.9, vDetailMix);
-  gl_PointSize = max(3.8 * uPixelRatio, basePx * detailBoost);
+  float basePx = aSize * uPixelRatio * fovScale * twinkle * sizeScale * 3.0;
+  float detailBoost = mix(1.0, 1.35, vDetailMix);
+  float farBoost = mix(1.32, 1.0, vDetailMix);
+  gl_PointSize = max(2.3 * uPixelRatio, basePx * detailBoost * farBoost);
   gl_Position = projectionMatrix * mvPosition;
 }

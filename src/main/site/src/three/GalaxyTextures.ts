@@ -320,9 +320,8 @@ export function generateGalaxyTextureAtlas(): THREE.CanvasTexture {
   const atlasHeight = ATLAS_ROWS * TEX_SIZE
 
   const canvas = new OffscreenCanvas(atlasWidth, atlasHeight)
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = 'black'
-  ctx.fillRect(0, 0, atlasWidth, atlasHeight)
+  const ctx = canvas.getContext('2d', { alpha: true })!
+  ctx.clearRect(0, 0, atlasWidth, atlasHeight)
 
   for (let i = 0; i < ATLAS_ORDER.length; i++) {
     const morphClass = ATLAS_ORDER[i]
@@ -331,9 +330,8 @@ export function generateGalaxyTextureAtlas(): THREE.CanvasTexture {
 
     // Create individual texture canvas
     const tileCanvas = new OffscreenCanvas(TEX_SIZE, TEX_SIZE)
-    const tileCtx = tileCanvas.getContext('2d')!
-    tileCtx.fillStyle = 'black'
-    tileCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE)
+    const tileCtx = tileCanvas.getContext('2d', { alpha: true })!
+    tileCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE)
 
     RENDERERS[morphClass](tileCtx)
 

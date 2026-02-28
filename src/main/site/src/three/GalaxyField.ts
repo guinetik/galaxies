@@ -42,30 +42,29 @@ export class GalaxyField {
       // Color from morphology with per-galaxy variation
       const morphClass = classifyMorphology(g.morphology)
       let baseColor: [number, number, number]
+      const seed = (g.id * 2654435761) >>> 0
 
       if (morphClass === 'unknown') {
-        // Pick a random neon hue for unknowns
-        const seed = (g.id * 2654435761) >>> 0
         const t = (seed % 1000) / 1000
-        if (t < 0.25) {
-          baseColor = [1.0, 0.2, 0.4]       // pink
-        } else if (t < 0.5) {
-          baseColor = [0.2, 0.7, 1.0]       // blue
-        } else if (t < 0.75) {
-          baseColor = [0.0, 1.0, 0.7]       // green
+        if (t < 0.33) {
+          baseColor = [0.84, 0.84, 0.90]
+        } else if (t < 0.66) {
+          baseColor = [0.90, 0.86, 0.80]
         } else {
-          baseColor = [0.8, 0.3, 1.0]       // purple
+          baseColor = [0.74, 0.84, 0.94]
         }
       } else {
         baseColor = MORPHOLOGY_COLORS[morphClass]
       }
 
-      // Per-galaxy brightness/hue variation
-      const hueShift = (Math.random() - 0.5) * 0.2
-      const brightShift = 0.8 + Math.random() * 0.4
-      colors[i * 3] = Math.min(1, Math.max(0, baseColor[0] * brightShift + hueShift))
-      colors[i * 3 + 1] = Math.min(1, Math.max(0, baseColor[1] * brightShift + hueShift * 0.3))
-      colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightShift - hueShift * 0.4))
+      // Per-galaxy variation stays subtle to keep a realistic palette.
+      const t1 = ((seed >>> 8) % 1024) / 1023
+      const t2 = ((seed >>> 18) % 1024) / 1023
+      const brightnessScale = 0.9 + t1 * 0.22
+      const coolWarmTilt = (t2 - 0.5) * 0.08
+      colors[i * 3] = Math.min(1, Math.max(0, baseColor[0] * brightnessScale + coolWarmTilt * 0.5))
+      colors[i * 3 + 1] = Math.min(1, Math.max(0, baseColor[1] * brightnessScale))
+      colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightnessScale - coolWarmTilt * 0.6))
 
       // Size from magnitude (use b_mag as primary, fall back to r_mag)
       const mag = g.b_mag ?? g.r_mag ?? null
@@ -105,7 +104,7 @@ export class GalaxyField {
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     })
 
     this.points = new THREE.Points(this.geometry, this.material)
@@ -136,7 +135,7 @@ export class GalaxyField {
     let bestIndex = -1
     let bestDistanceSq = Number.POSITIVE_INFINITY
     const pixelRatio = Math.min(window.devicePixelRatio, 2)
-    const detailMix = this.smoothstep(0, 1, this.clamp01((55 - fov) / (55 - 22)))
+    const detailMix = this.smoothstep(0, 1, this.clamp01((80 - fov) / (80 - 40)))
 
     for (let i = 0; i < this.galaxies.length; i++) {
       const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift)
@@ -173,9 +172,10 @@ export class GalaxyField {
   private estimatePointSizePx(size: number, alpha: number, pixelRatio: number, fov: number, detailMix: number): number {
     const sizeScale = 0.5 + 0.5 * alpha
     const fovScale = 60 / fov
-    const basePx = size * pixelRatio * fovScale * sizeScale * 5.2
-    const detailBoost = 1 + 0.9 * detailMix
-    return Math.max(3.8 * pixelRatio, basePx * detailBoost)
+    const basePx = size * pixelRatio * fovScale * sizeScale * 3.0
+    const detailBoost = 1 + 0.35 * detailMix
+    const farBoost = 1.32 - 0.32 * detailMix
+    return Math.max(2.3 * pixelRatio, basePx * detailBoost * farBoost)
   }
 
   /** Match shader redshift visibility curve. */
