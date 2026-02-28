@@ -219,8 +219,14 @@ onMounted(() => {
 .about-method-card {
   padding: 1.25rem;
   border-radius: 0.5rem;
-  background: rgba(0, 0, 0, 0.6); /* Darker background for cards */
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent; /* Removed darker background to match other sections */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Slightly more visible border */
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.about-method-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .about-method-header {
