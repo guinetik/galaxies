@@ -8,6 +8,9 @@
     "siteName": "Galaxies",
     "location": "Location"
   },
+  "nav": {
+    "about": "About"
+  },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
     "fss": "Flat Galaxy Survey"
@@ -19,5 +22,83 @@
     "barred": "Barred Spiral",
     "irregular": "Irregular",
     "unknown": "Unknown"
+  },
+  "pages": {
+    "about": {
+      "title": "Galaxies",
+      "subtitle": "55,877 galaxies. Measured distances. One celestial sphere.",
+      "backToSky": "Back to Sky",
+      "data": {
+        "title": "The Data",
+        "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains 55,877 galaxies with distances measured through direct observational methods — not estimates derived from the expansion of the universe.",
+        "methodsTitle": "Eight Ways to Measure Distance",
+        "methodsIntro": "Each galaxy in the catalog has its distance determined by one or more of these methods, forming a cosmic distance ladder:",
+        "methods": {
+          "snia": {
+            "name": "Type Ia Supernovae",
+            "abbr": "SNIa",
+            "desc": "Standardizable explosions of white dwarf stars. Their consistent peak luminosity makes them visible across billions of light-years."
+          },
+          "tf": {
+            "name": "Tully-Fisher",
+            "abbr": "TF",
+            "desc": "The faster a spiral galaxy rotates, the more luminous it is. Comparing intrinsic brightness to observed brightness gives the distance."
+          },
+          "fp": {
+            "name": "Fundamental Plane",
+            "abbr": "FP",
+            "desc": "Elliptical galaxies follow a tight relationship between size, surface brightness, and velocity dispersion."
+          },
+          "sbf": {
+            "name": "Surface Brightness Fluctuations",
+            "abbr": "SBF",
+            "desc": "Nearby galaxies look grainy; distant ones look smooth. The amplitude of pixel-to-pixel variations reveals the distance."
+          },
+          "snii": {
+            "name": "Type II Supernovae",
+            "abbr": "SNII",
+            "desc": "Core-collapse supernovae from massive stars. Their expanding photospheres can be used as geometric distance indicators."
+          },
+          "trgb": {
+            "name": "Tip of the Red Giant Branch",
+            "abbr": "TRGB",
+            "desc": "Red giant stars reach a maximum luminosity before helium ignition. This sharp cutoff in brightness is a reliable standard candle."
+          },
+          "ceph": {
+            "name": "Cepheid Variables",
+            "abbr": "Ceph",
+            "desc": "Pulsating stars whose period of brightening and dimming is directly related to their intrinsic luminosity. The original distance ladder rung."
+          },
+          "mas": {
+            "name": "Masers",
+            "abbr": "Mas",
+            "desc": "Water masers in galaxy accretion disks emit microwave radiation. VLBI observations give geometric distances with extraordinary precision."
+          }
+        },
+        "paperLink": "Read the paper",
+        "dataLink": "Explore the data"
+      },
+      "mapping": {
+        "title": "From Data to Sky",
+        "positioning": "Each galaxy is placed on a celestial sphere using its right ascension and declination — the same coordinate system astronomers use to locate objects in the night sky. You are looking outward from Earth, surrounded by the observable universe.",
+        "visibility": "Not all 55,877 galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies — from the local neighborhood (~560 galaxies) at the widest angle, down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
+        "sizing": "Galaxy size on screen is determined by measured distance. Closer galaxies appear larger, distant ones smaller — a direct representation of their physical proximity, not an arbitrary aesthetic choice."
+      },
+      "rendering": {
+        "title": "Procedural Galaxy Rendering",
+        "intro": "Cosmicflows-4 provides superb distance data but no morphological information — no galaxy type, no brightness magnitude, no diameter. Every galaxy you see in the detail view is procedurally generated.",
+        "morphology": "Each galaxy is assigned a morphological type based on its PGC catalog number, using a seeded random function weighted by observed cosmic proportions: ~35% spiral, ~35% barred spiral, ~15% elliptical, ~10% lenticular, and ~5% irregular. The same PGC number always produces the same galaxy — the generation is deterministic.",
+        "particles": "The detail view renders each galaxy as a particle system of tens of thousands of stars, shaped by morphology-specific parameters: spiral arm count and tightness, bar length, ellipticity, bulge size, and disk thickness. All parameters are derived from the seeded random generator.",
+        "blackhole": "At the center of each galaxy, a supermassive black hole is rendered with an accretion disk and gravitational lensing effect. The lensing warps the surrounding starfield in a post-processing pass, with strength proportional to the camera zoom level."
+      },
+      "credits": {
+        "title": "Credits",
+        "builtBy": "Built by",
+        "dataSource": "Data from",
+        "dataName": "Cosmicflows-4",
+        "dataCitation": "Tully, Courtois, Kourkchi et al. (2023)",
+        "techTitle": "Built With"
+      }
+    }
   }
 }

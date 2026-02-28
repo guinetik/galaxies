@@ -8,6 +8,9 @@
     "siteName": "Galáxias",
     "location": "Localização"
   },
+  "nav": {
+    "about": "Sobre"
+  },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
     "fss": "Pesquisa de Galáxias Planas"
@@ -19,5 +22,83 @@
     "barred": "Espiral Barrada",
     "irregular": "Irregular",
     "unknown": "Desconhecida"
+  },
+  "pages": {
+    "about": {
+      "title": "Galáxias",
+      "subtitle": "55.877 galáxias. Distâncias medidas. Uma esfera celeste.",
+      "backToSky": "Voltar ao Céu",
+      "data": {
+        "title": "Os Dados",
+        "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém 55.877 galáxias com distâncias medidas por métodos observacionais diretos — não estimativas derivadas da expansão do universo.",
+        "methodsTitle": "Oito Maneiras de Medir Distâncias",
+        "methodsIntro": "Cada galáxia no catálogo tem sua distância determinada por um ou mais destes métodos, formando uma escada de distâncias cósmicas:",
+        "methods": {
+          "snia": {
+            "name": "Supernovas Tipo Ia",
+            "abbr": "SNIa",
+            "desc": "Explosões padronizáveis de estrelas anãs brancas. Sua luminosidade de pico consistente as torna visíveis a bilhões de anos-luz."
+          },
+          "tf": {
+            "name": "Tully-Fisher",
+            "abbr": "TF",
+            "desc": "Quanto mais rápido uma galáxia espiral gira, mais luminosa ela é. Comparar o brilho intrínseco ao observado revela a distância."
+          },
+          "fp": {
+            "name": "Plano Fundamental",
+            "abbr": "PF",
+            "desc": "Galáxias elípticas seguem uma relação precisa entre tamanho, brilho superficial e dispersão de velocidade."
+          },
+          "sbf": {
+            "name": "Flutuações de Brilho Superficial",
+            "abbr": "SBF",
+            "desc": "Galáxias próximas parecem granuladas; distantes parecem suaves. A amplitude das variações pixel a pixel revela a distância."
+          },
+          "snii": {
+            "name": "Supernovas Tipo II",
+            "abbr": "SNII",
+            "desc": "Supernovas de colapso de núcleo de estrelas massivas. Suas fotosferas em expansão servem como indicadores geométricos de distância."
+          },
+          "trgb": {
+            "name": "Ponta do Ramo das Gigantes Vermelhas",
+            "abbr": "TRGB",
+            "desc": "Estrelas gigantes vermelhas atingem uma luminosidade máxima antes da ignição do hélio. Este corte brusco no brilho é uma vela padrão confiável."
+          },
+          "ceph": {
+            "name": "Variáveis Cefeidas",
+            "abbr": "Ceph",
+            "desc": "Estrelas pulsantes cujo período de brilho está diretamente relacionado à sua luminosidade intrínseca. O degrau original da escada de distâncias."
+          },
+          "mas": {
+            "name": "Masers",
+            "abbr": "Mas",
+            "desc": "Masers de água em discos de acreção de galáxias emitem radiação de micro-ondas. Observações VLBI fornecem distâncias geométricas com precisão extraordinária."
+          }
+        },
+        "paperLink": "Ler o artigo",
+        "dataLink": "Explorar os dados"
+      },
+      "mapping": {
+        "title": "Dos Dados ao Céu",
+        "positioning": "Cada galáxia é posicionada em uma esfera celeste usando sua ascensão reta e declinação — o mesmo sistema de coordenadas que astrônomos usam para localizar objetos no céu noturno. Você está olhando para fora da Terra, cercado pelo universo observável.",
+        "visibility": "Nem todas as 55.877 galáxias são visíveis ao mesmo tempo. Conforme você aproxima o zoom, a visão revela progressivamente galáxias mais distantes — da vizinhança local (~560 galáxias) no ângulo mais amplo, até o campo profundo completo no zoom máximo. Este filtro baseado em redshift espelha como telescópios reais funcionam: exposições mais profundas revelam objetos mais fracos e distantes.",
+        "sizing": "O tamanho da galáxia na tela é determinado pela distância medida. Galáxias mais próximas aparecem maiores, distantes menores — uma representação direta de sua proximidade física, não uma escolha estética arbitrária."
+      },
+      "rendering": {
+        "title": "Renderização Procedural de Galáxias",
+        "intro": "O Cosmicflows-4 fornece dados excelentes de distância, mas nenhuma informação morfológica — sem tipo de galáxia, sem magnitude de brilho, sem diâmetro. Cada galáxia que você vê na visão detalhada é gerada proceduralmente.",
+        "morphology": "Cada galáxia recebe um tipo morfológico baseado em seu número de catálogo PGC, usando uma função aleatória com semente ponderada pelas proporções cósmicas observadas: ~35% espiral, ~35% espiral barrada, ~15% elíptica, ~10% lenticular e ~5% irregular. O mesmo número PGC sempre produz a mesma galáxia — a geração é determinística.",
+        "particles": "A visão detalhada renderiza cada galáxia como um sistema de partículas de dezenas de milhares de estrelas, moldado por parâmetros específicos da morfologia: número e curvatura dos braços espirais, comprimento da barra, elipticidade, tamanho do bojo e espessura do disco. Todos os parâmetros são derivados do gerador aleatório com semente.",
+        "blackhole": "No centro de cada galáxia, um buraco negro supermassivo é renderizado com um disco de acreção e efeito de lente gravitacional. A lente distorce o campo estelar ao redor em um passo de pós-processamento, com intensidade proporcional ao nível de zoom da câmera."
+      },
+      "credits": {
+        "title": "Créditos",
+        "builtBy": "Desenvolvido por",
+        "dataSource": "Dados de",
+        "dataName": "Cosmicflows-4",
+        "dataCitation": "Tully, Courtois, Kourkchi et al. (2023)",
+        "techTitle": "Construído Com"
+      }
+    }
   }
 }

@@ -13,5 +13,10 @@ export const router = createRouter({
       name: 'galaxy',
       component: () => import('@/views/GalaxyView.vue'),
     },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/AboutView.vue'),
+    },
   ],
 })

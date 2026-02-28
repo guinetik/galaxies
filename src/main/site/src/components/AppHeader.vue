@@ -1,8 +1,13 @@
 <template>
   <header class="fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-black/50 backdrop-blur-sm">
-    <h1 class="text-lg font-light tracking-widest text-white/90 uppercase">
-      {{ t('header.siteName') }}
-    </h1>
+    <div class="flex items-center gap-4">
+      <router-link to="/" class="text-lg font-light tracking-widest text-white/90 uppercase hover:text-white transition-colors">
+        {{ t('header.siteName') }}
+      </router-link>
+      <router-link to="/about" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.about') }}
+      </router-link>
+    </div>
 
     <div class="flex items-center gap-4">
       <span v-if="galaxyCount > 0" class="text-xs text-white/50">
