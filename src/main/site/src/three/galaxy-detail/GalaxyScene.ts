@@ -7,6 +7,8 @@ import { GalaxyParticles } from './GalaxyParticles'
 import { GalaxyHaze } from './GalaxyHaze'
 import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
+import lensingVert from './shaders/lensing.vert.glsl?raw'
+import lensingFrag from './shaders/lensing.frag.glsl?raw'
 
 // ─── Reusable math objects (avoid per-frame allocations) ─────────────────────
 
@@ -27,6 +29,13 @@ export class GalaxyScene {
   private clock = new THREE.Clock()
   private galaxyRotation = 0
   private params: GeneratorParams
+
+  // Lensing post-process
+  private galaxyRT: THREE.WebGLRenderTarget
+  private lensingMaterial: THREE.ShaderMaterial
+  private lensingScene: THREE.Scene
+  private lensingCamera: THREE.OrthographicCamera
+  private _bhScreenVec = new THREE.Vector3()
 
   // Quaternion-based orbit camera (no gimbal lock)
   private orbitQuat = new THREE.Quaternion()
@@ -58,7 +67,7 @@ export class GalaxyScene {
     // ─── Scene ─────────────────────────────────────────────────────────
 
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0x000000)
+    this.renderer.setClearColor(0x000000, 1)
 
     // ─── Galaxy data pipeline ──────────────────────────────────────────
 
@@ -86,6 +95,46 @@ export class GalaxyScene {
     this.blackHole = new GalaxyBlackHole(galaxy.activity_class, R * 0.08)
     this.scene.add(this.blackHole.depthMesh)
     this.scene.add(this.blackHole.mesh)
+
+    // ─── Layer assignments ───────────────────────────────────────────
+    // Layer 1: galaxy objects (rendered to RT for lensing)
+    // Layer 2: black hole (rendered on top after lensing pass)
+    this.particles.points.layers.set(1)
+    this.haze.mesh.layers.set(1)
+    this.nebula.mesh.layers.set(1)
+    // Black hole layers are set in GalaxyBlackHole constructor (layer 2)
+
+    // ─── Lensing render target & fullscreen quad ─────────────────────
+
+    const w = canvas.clientWidth
+    const h = canvas.clientHeight
+    this.galaxyRT = new THREE.WebGLRenderTarget(
+      w * window.devicePixelRatio,
+      h * window.devicePixelRatio,
+      { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter },
+    )
+
+    this.lensingMaterial = new THREE.ShaderMaterial({
+      vertexShader: lensingVert,
+      fragmentShader: lensingFrag,
+      uniforms: {
+        uSceneTexture: { value: this.galaxyRT.texture },
+        uBHScreenPos: { value: new THREE.Vector2(0.5, 0.5) },
+        uLensStrength: { value: 0.0 },
+        uAspectRatio: { value: w / h },
+      },
+      depthTest: false,
+      depthWrite: false,
+    })
+
+    const lensingQuad = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      this.lensingMaterial,
+    )
+
+    this.lensingScene = new THREE.Scene()
+    this.lensingScene.add(lensingQuad)
+    this.lensingCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
     // ─── Initial orbit from position angle ───────────────────────────
 
@@ -137,12 +186,15 @@ export class GalaxyScene {
     // ─── Resize handling ───────────────────────────────────────────────
 
     this.resizeObserver = new ResizeObserver(() => {
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      if (w === 0 || h === 0) return
-      this.renderer.setSize(w, h, false)
-      this.camera.aspect = w / h
+      const rw = canvas.clientWidth
+      const rh = canvas.clientHeight
+      if (rw === 0 || rh === 0) return
+      this.renderer.setSize(rw, rh, false)
+      this.camera.aspect = rw / rh
       this.camera.updateProjectionMatrix()
+      const dpr = this.renderer.getPixelRatio()
+      this.galaxyRT.setSize(rw * dpr, rh * dpr)
+      this.lensingMaterial.uniforms.uAspectRatio.value = rw / rh
     })
     this.resizeObserver.observe(canvas)
   }
@@ -225,9 +277,42 @@ export class GalaxyScene {
       const rotY = Math.atan2(cp.x, cp.z)
       this.blackHole.update(time, tiltX, rotY, this.camera, this.renderer)
 
-      // ─── Render ───────────────────────────────────────────────────
+      // ─── Render (3-pass lensing pipeline) ─────────────────────────
 
-      this.renderer.render(this.scene, this.camera)
+      // Project black hole world position (0,0,0) to screen UV
+      this._bhScreenVec.set(0, 0, 0).project(this.camera)
+      const bhU = this._bhScreenVec.x * 0.5 + 0.5
+      const bhV = this._bhScreenVec.y * 0.5 + 0.5
+
+      // LOD-driven lens strength: 0 when far, 0.03 when close
+      const lod = this.blackHole.getLOD()
+      const lensStrength = lod * lod * 0.03
+
+      if (lensStrength < 0.001) {
+        // ─── Fast path: no visible lensing, single render ──────────
+        this.camera.layers.enableAll()
+        this.renderer.setRenderTarget(null)
+        this.renderer.render(this.scene, this.camera)
+      } else {
+        // ─── Pass 1: Galaxy objects → render target ────────────────
+        this.camera.layers.set(1)
+        this.renderer.setRenderTarget(this.galaxyRT)
+        this.renderer.clear()
+        this.renderer.render(this.scene, this.camera)
+
+        // ─── Pass 2: Lensing quad → screen ─────────────────────────
+        this.lensingMaterial.uniforms.uBHScreenPos.value.set(bhU, bhV)
+        this.lensingMaterial.uniforms.uLensStrength.value = lensStrength
+        this.renderer.setRenderTarget(null)
+        this.renderer.clear()
+        this.renderer.render(this.lensingScene, this.lensingCamera)
+
+        // ─── Pass 3: Black hole billboard → screen (composite) ─────
+        this.camera.layers.set(2)
+        this.renderer.autoClear = false
+        this.renderer.render(this.scene, this.camera)
+        this.renderer.autoClear = true
+      }
     }
 
     animate()
@@ -249,6 +334,8 @@ export class GalaxyScene {
     this.haze.dispose()
     this.nebula.dispose()
     this.blackHole.dispose()
+    this.galaxyRT.dispose()
+    this.lensingMaterial.dispose()
     this.renderer.dispose()
   }
 }

@@ -21,6 +21,7 @@ export class GalaxyBlackHole {
     const depthGeometry = new THREE.SphereGeometry(1, 4, 4)
     const depthMaterial = new THREE.MeshBasicMaterial({ visible: false })
     this.depthMesh = new THREE.Mesh(depthGeometry, depthMaterial)
+    this.depthMesh.layers.set(2)
 
     // ─── Pass 2: Visual billboard quad ──────────────────────────────────
     this.material = new THREE.ShaderMaterial({
@@ -43,6 +44,7 @@ export class GalaxyBlackHole {
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material)
     this.mesh.scale.set(quadSize, quadSize, 1)
     this.mesh.renderOrder = 1
+    this.mesh.layers.set(2)
   }
 
   update(time: number, cameraTiltX: number, cameraRotY: number, camera?: THREE.Camera, renderer?: THREE.WebGLRenderer): void {
@@ -68,6 +70,10 @@ export class GalaxyBlackHole {
       const lod = Math.min(Math.max((apparentPx - 6) / 220, 0), 1)
       this.material.uniforms.uLOD.value = lod
     }
+  }
+
+  getLOD(): number {
+    return this.material.uniforms.uLOD.value
   }
 
   dispose(): void {
