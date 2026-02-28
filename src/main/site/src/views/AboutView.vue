@@ -1,16 +1,18 @@
 <template>
-  <div class="about-scroll">
+  <div class="about-scroll" ref="scrollContainer" @scroll="onScroll">
+    <AboutBackground :current-section="currentSection" :scroll-progress="scrollProgress" />
+    
     <div class="about-page">
     <router-link to="/" class="back-button">&larr; {{ t('pages.about.backToSky') }}</router-link>
 
     <!-- Hero -->
-    <section class="about-hero">
+    <section class="about-hero" data-section="0">
       <h1 class="about-hero-title">{{ t('pages.about.title') }}</h1>
       <p class="about-hero-subtitle">{{ t('pages.about.subtitle') }}</p>
     </section>
 
     <!-- The Data -->
-    <section class="about-section">
+    <section class="about-section" data-section="1">
       <h2 class="about-section-title">{{ t('pages.about.data.title') }}</h2>
       <p class="about-body">{{ t('pages.about.data.intro') }}</p>
 
@@ -38,7 +40,7 @@
     </section>
 
     <!-- From Data to Sky -->
-    <section class="about-section">
+    <section class="about-section" data-section="2">
       <h2 class="about-section-title">{{ t('pages.about.mapping.title') }}</h2>
       <div class="about-image-placeholder">
         <span><!-- alt: Celestial sphere showing galaxies at different zoom levels, from wide-angle sparse view to deep-field dense view --></span>
@@ -49,7 +51,7 @@
     </section>
 
     <!-- Procedural Rendering -->
-    <section class="about-section">
+    <section class="about-section" data-section="3">
       <h2 class="about-section-title">{{ t('pages.about.rendering.title') }}</h2>
       <p class="about-body">{{ t('pages.about.rendering.intro') }}</p>
       <div class="about-image-placeholder">
@@ -61,7 +63,7 @@
     </section>
 
     <!-- Credits -->
-    <section class="about-credits">
+    <section class="about-credits" data-section="4">
       <h2 class="about-section-title">{{ t('pages.about.credits.title') }}</h2>
       <p>
         {{ t('pages.about.credits.builtBy') }}
@@ -86,12 +88,43 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import AboutBackground from '@/components/AboutBackground.vue'
 
 const { t } = useI18n()
 
 const methodKeys = ['snia', 'tf', 'fp', 'sbf', 'snii', 'trgb', 'ceph', 'mas']
 const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 'SQLite', 'Tailwind', 'Vite']
+
+const scrollContainer = ref<HTMLElement | null>(null)
+const currentSection = ref(0)
+const scrollProgress = ref(0)
+
+function onScroll() {
+  if (!scrollContainer.value) return
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+  scrollProgress.value = scrollTop / (scrollHeight - clientHeight)
+}
+
+onMounted(() => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const sectionIndex = Number(entry.target.getAttribute('data-section'))
+        if (!isNaN(sectionIndex)) {
+          currentSection.value = sectionIndex
+        }
+      }
+    })
+  }, {
+    threshold: 0.5 // Trigger when 50% of the section is visible
+  })
+
+  document.querySelectorAll('[data-section]').forEach((el) => {
+    observer.observe(el)
+  })
+})
 </script>
 
 <style scoped>
@@ -99,7 +132,7 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: #000;
+  background: transparent; /* Changed from #000 to transparent */
   z-index: 1;
 }
 
@@ -110,13 +143,19 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
   margin-left: auto;
   margin-right: auto;
   padding: 4rem 1.5rem;
+  position: relative;
+  z-index: 10; /* Ensure content is above background */
 }
 
 /* Hero */
 .about-hero {
   text-align: center;
   margin-bottom: 6rem;
-  padding-top: 3rem;
+  padding-top: 20vh; /* More space for hero */
+  min-height: 80vh; /* Make hero take up most of the screen */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .about-hero-title {
@@ -125,20 +164,27 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
   letter-spacing: -0.025em;
   color: #ffffff;
   margin-bottom: 1.5rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.5); /* Add shadow for readability */
 }
 
 .about-hero-subtitle {
   font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8); /* Increased opacity */
   font-weight: 300;
   max-width: 42rem;
   margin-left: auto;
   margin-right: auto;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 /* Sections */
 .about-section {
-  margin-bottom: 6rem;
+  margin-bottom: 15vh; /* More spacing between sections */
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.4); /* Glassmorphism background */
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .about-section-title {
@@ -157,7 +203,7 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
 }
 
 .about-body {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8); /* Increased opacity */
   line-height: 1.625;
   margin-bottom: 1.5rem;
 }
@@ -173,7 +219,7 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
 .about-method-card {
   padding: 1.25rem;
   border-radius: 0.5rem;
-  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.04), transparent);
+  background: rgba(0, 0, 0, 0.6); /* Darker background for cards */
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -197,7 +243,7 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
 }
 
 .about-method-desc {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
   line-height: 1.625;
 }
@@ -225,12 +271,12 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
   height: 12rem;
   border-radius: 0.5rem;
   margin: 2rem 0;
-  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.875rem;
   font-family: ui-monospace, monospace;
 }
@@ -238,9 +284,13 @@ const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 
 /* Credits */
 .about-credits {
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
   margin-bottom: 4rem;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
 }
 
 .about-credits > * + * {
