@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>UGC - Uppsala General Catalog of Galaxies</title>
+</head>
+<body bgcolor="#cceeff">
+<div><div><div><div><div><div>
+
+<table border="0" cellpadding="10" width="100%" align="center">
+  <tbody><tr>
+    <td align="left"><a target="_blank" href="https://heasarc.gsfc.nasa.gov/xamin/?table=ugc">Search&nbsp;in<br>Xamin</a>&nbsp;or <a target="_blank" href="https://heasarc.gsfc.nasa.gov/db-perl/W3Browse/w3table.pl?tablehead=name%3Dugc&amp;Action=More+Options">Browse</a>...</td>
+    <td align="center"><h1>UGC - Uppsala General Catalog of Galaxies</h1></td>
+    <td align="right"><a href="https://heasarc.gsfc.nasa.gov/docs/archive.html">HEASARC<br>Archive</a></td>
+  </tr>
+</tbody></table>
+<hr>
+<h2><a name="overview">Overview</a></h2>
+The Uppsala General Catalogue of Galaxies (UGC) is an essentially complete
+catalog of galaxies to a limiting diameter of 1.0 arcminute and/or to a
+limiting apparent magnitude of 14.5 on the blue prints of the Palomar
+Observatory Sky Survey (POSS). Coverage is limited to the sky north of
+declination -02.5 degrees. Galaxies smaller than 1.0 arcminute in diameter
+but brighter than 14.5 mag may be included from the Catalogue of Galaxies and
+of Clusters of Galaxies (CGCG, Zwicky et al. 1961-1968); all such galaxies in
+the CGCG are included in the UGC. The galaxies are numbered in order of their
+1950.0 right ascension values.
+<p>
+
+The catalog contains descriptions of the galaxies and their surrounding
+areas, plus conventional system classifications and position angles for
+flattened galaxies. Galaxy diameters on both the blue and red POSS prints
+are included and the classifications and descriptions are given in such a way
+as to provide as accurate an account as possible of the appearance of the
+galaxies on the prints. Only the data portion of the published UGC is
+included in the machine-readable version, notice. For additional details
+regarding the classifications, measurement of apparent magnitudes, and data
+content, the source reference should be consulted.
+
+</p><hr><h3><a name="catalog_bibcode">Catalog Bibcode</a></h3>
+<a href="https://ui.adsabs.harvard.edu/abs/1973UGC%2E%2E%2EC%2E%2E%2E0000N">1973UGC...C...0000N</a>
+
+<hr><h3><a name="references">References</a></h3>
+The Uppsala General Catalogue of Galaxies (UGC), Nilson P. 1973, Uppsala
+Astron. Obs. Ann. 6.
+
+<hr><h3><a name="provenance">Provenance</a></h3>
+This database table was first ingested by the HEASARC in September 2000 based
+on a machine-readable version of the UGC obtained from the ADC (ADC Catalog
+VII/26D). This latter version was a corrected and modified version of the
+original magnetic tape version of the UGC. A list of the types of changes and
+modifications made by the ADC is available at
+<a href="https://cdsarc.u-strasbg.fr/ftp/cats/VII/26D/ReadMe">https://cdsarc.u-strasbg.fr/ftp/cats/VII/26D/ReadMe</a>, while the list of the
+affected entries is available at
+<a href="https://cdsarc.u-strasbg.fr/ftp/cats/VII/26D/errors.dat.gz">https://cdsarc.u-strasbg.fr/ftp/cats/VII/26D/errors.dat.gz</a>.
+<p>
+
+The HEASARC last updated this database table in November 2021 upon reflection
+that the original catalog's coordinates were B1950 (instead of J1950, as
+originally assumed by the HEASARC). Due to the precision of the coordinates
+in this catalog, the difference is negligible.
+
+</p><hr><h3><a name="parameters">Parameters</a></h3>
+<p>
+<b><a name="ugc_number">UGC_Number</a></b><br>
+  The catalog number of the object in the UGC.
+</p><p>
+<b><a name="name">Name</a></b><br>
+  The UGC galaxy designation based on the catalog number. The galaxies are
+  numbered in order of their 1950.0 right ascension values.
+</p><p>
+<b><a name="ra">RA</a></b><br>
+  The Right Ascension of the galaxy in the selected equinox. Notice that the
+  RAs in the original catalog were given in "epoch 1950.0" coordinates to a
+  precision of 0.1 minutes of time. Based on the language in the
+  <a href="http://ned.ipac.caltech.edu/level5/March02/Nilson/Nilson_contents.html">original catalog</a>
+  and other documentation, the HEASARC has interpreted the positions to be in
+  the B1950 equatorial coordinate system.
+</p><p>
+<b><a name="dec">Dec</a></b><br>
+  The Declination of the galaxy in the selected equinox. Notice that the
+  Declinations in the original catalog were given in "epoch 1950.0" coordinates
+  to a precision of 1 arcminute. Based on the language in the
+  <a href="http://ned.ipac.caltech.edu/level5/March02/Nilson/Nilson_contents.html">original catalog</a>
+  and other documentation, the HEASARC has interpreted the positions to be in
+  the B1950 equatorial coordinate system.
+</p><p>
+<b><a name="lii">LII</a></b><br>
+  The Galactic Longitude of the galaxy. This parameter was added by the
+  HEASARC and calculated from the given 1950.0 position.
+</p><p>
+<b><a name="bii">BII</a></b><br>
+  The Galactic Latitude of the galaxy. This parameter was added by the
+  HEASARC and calculated from the given 1950.0 position.
+</p><p>
+<b><a name="mcg">MCG</a></b><br>
+  The Morphological Catalogue of Galaxies (MCG: CDS/ADC Catalog VII/62A,
+  Vorontsov-Velyaminov et al. 1962, 1963, 1964, 1968) designation of the
+  galaxy, if available, or a pseudo-MCG designation (explained below), if not.
+  The first number of the designation is the Palomar Observatory Sky Survey
+  (POSS) 6 deg zone, from the equator +00 to the north celestial pole +15; the
+  second number is the POSS field along the zone, while the third number is the
+  galaxy in this field in the MCG. Non-MCG galaxies are assigned the number 000
+  in the third position, but the first and second values are given correctly.
+</p><p>
+<b><a name="poss_field">POSS_Field</a></b><br>
+  The number of the Palomar Observatory Sky Survey (POSS) field in which the
+  galaxy is best visible.
+</p><p>
+<b><a name="blue_major_axis">Blue_Major_Axis</a></b><br>
+  The major axis of the galaxy as measured on the POSS blue print, in
+  arcminutes. The precision of this number is typically 0.1 arcminutes,
+  although in some cases it was only given to the nearest arcminute in the
+  originating catalog.
+</p><p>
+<b><a name="blue_minor_axis">Blue_Minor_Axis</a></b><br>
+  The minor axis of the galaxy as measured on the POSS blue print, in
+  arcminutes. The precision of this number is typically 0.01 or 0.1 arcminutes,
+  although in some cases it was only given to the nearest arcminute in the
+  originating catalog.
+</p><p>
+<b><a name="position_angle">Position_Angle</a></b><br>
+  The position angle of the galaxy's major axis, in degrees, measured in the
+  conventional manner from North through East. This field is left blank if this
+  datum is not available. The original catalog's coordinates were in the B1950
+  equatorial coordinates system. The position angles are therefore relative to
+  that Equatorial North Pole, with a positive angle tilting toward the East.
+  Since the HEASARC catalogs all use J2000, the original RA and Dec columns
+  were converted from B1950 to J2000 for consistency with the rest of the
+  HEASARC database. However, the HEASARC did not transform the position angle,
+  which remains relative to North in the "epoch 1950.0" equatorial coordinates
+  system.
+</p><p>
+<b><a name="hubble_type">Hubble_Type</a></b><br>
+  The classification in the Hubble system or a less specific description of the
+  galaxy type. Notice that this is an abbreviated version of the information
+  available in the printed version of this catalog, which latter should be
+  consulted, if required. Some abbreviations are used:
+  </p><pre>    Abbreviation       Meaning
+
+    COMP               Companion
+    DBL SYS            Double System
+    DWF                Dwarf
+    DWRF EL            Dwarf Elliptical
+    DWF PEC            Dwarf Peculiar
+    DWRF SP            Dwarf Spiral
+    DWF SYS            Dwarf System
+    DISTRBD            Disturbed
+    ERUPTVE            Eruptive
+    EX CMPT            Extremely Compact
+    PECULR             Peculiar
+    TRP SYS            Triple System
+</pre>
+<p>
+<b><a name="phot_mag">Phot_Mag</a></b><br>
+  The photographic magnitude of the galaxy, usually given to a precision of 0.1
+  magnitudes, sometimes to only the nearest magnitude, in the originating
+  version of the catalog.
+</p><p>
+<b><a name="radial_velocity">Radial_Velocity</a></b><br>
+  The radial velocity of the galaxy in km/s relative to the Local Group of
+  galaxies and corrected for the solar motion according to the relation V0 =
+  +300 cos A, where A is the distance to the conventional Solar apex at lI = 55
+  deg, bI = 0 deg, or lII = 87 deg, bII = +1 deg. If the uncertainties in the
+  measurements were considered too large to make corrections meaningful,
+  usually only the uncorrected value is given.
+</p><p>
+<b><a name="red_major_axis">Red_Major_Axis</a></b><br>
+  The major axis of the galaxy as measured on the POSS red print, in
+  arcminutes. The precision of this number is typically 0.1 arcminutes,
+  although in some cases it was only given to the nearest arcminute in the
+  originating catalog.
+</p><p>
+<b><a name="red_minor_axis">Red_Minor_Axis</a></b><br>
+  The minor axis of the galaxy as measured on the POSS red print, in
+  arcminutes. The precision of this number is typically 0.01 or 0.1 arcminutes,
+  although in some cases it was only given to the nearest arcminute in the
+  originating catalog.
+</p><p>
+<b><a name="inclination_code">Inclination_Code</a></b><br>
+  A code describing the inclination of the galaxy, measured on a scale from 1
+  (face-on) to 7 (edge-on). For galaxies of high inclination, a value is
+  calculated from the Hubble formula n = 10(a-b)/a, where a is the major axis
+  and b the minor axis. The value of 7 denotes objects that are inclined not
+  more than a few degrees to the line of sight.
+</p><p>
+<b><a name="class">Class</a></b><br>
+  The HEASARC Browse classification is derived from the hubble_type parameter
+  for this database table.
+
+</p><hr><h3><a name="contact_person">Contact Person</a></h3>
+Questions regarding the UGC database table can be addressed to the
+<a href="https://heasarc.gsfc.nasa.gov/cgi-bin/Feedback?selected=heasarc">HEASARC Help Desk</a>.
+
+<!--================================================================-->
+<hr>
+<em>Page Author:</em> <a href="https://heasarc.gsfc.nasa.gov/cgi-bin/Feedback?selected=w3browse">Browse Software Development Team</a><br>
+<em>Last Modified:</em> Monday, 16-Sep-2024 17:35:54 EDT
+<hr>
+<!-- This is portalfooter.html -->
+<!-- Because some pages don't use the header files that include the css, the styles need to be written out here. -->
+</div>
+<!-- full-width-content-item -->
+                         <div class="divClear" style="clear:both;"></div>
+                      </div><!-- id=maincontent -->
+                   </div><!-- id="content-wrapper" -->
+		</div><!-- id="content" -->
+	<div class="divClear" style="clear:both;"></div>
+<div class="navigation">
+<div id="HEASARCfooter" style="background-color:#2E2E2E;height:20px;width:952px;border-top:none;margin:0 auto;margin-top:5px;">
+<table width="100%">
+<tbody><tr><td style="text-align:center;vertical-align:middle;">
+<p style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;margin:0;">A service of the <a href="https://science.gsfc.nasa.gov/astrophysics" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Astrophysics Science Division</a> at <a href="http://www.nasa.gov/" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">NASA/</a><a href="http://www.nasa.gov/goddard" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">GSFC</a>.</p>
+</td></tr>
+</tbody></table>
+</div>
+
+<div id="footer" style="background-color:#2E2E2E;height:98px;width:952px;border-top:2px solid #222222;margin:0 auto;">
+                <div>
+               		<a href="http://www.nasa.gov/" class="imageLink" style="display:block;float:left;"><img class="logo" style="border:0;" src="UGC%20-%20Uppsala%20General%20Catalog%20of%20Galaxies_files/nasa_header_logo1.gif" alt="NASA Logo, National Aeronautics and Space Administration" width="140" height="98"></a>
+                </div><!-- class="nasaLogo" -->
+
+                <div id="footer-signature" style="padding-left:20px;padding-top:19px;float:left;">
+               		<a href="http://www.nasa.gov/goddard/" class="imageLink" style="display:block;float:left;"><img class="logo" style="border:0;" src="UGC%20-%20Uppsala%20General%20Catalog%20of%20Galaxies_files/goddardsignature2.png" alt="Goddard Space Flight Center Signature Logo" width="172" height="68"></a>
+                </div>
+                <div class="nasafootlinks" style="float:left;height:84px;margin-left:15px;padding-left:0px;padding-top:14px;width:295px;">
+                	<ul style="list-style:none;padding:0;margin:0;">
+                		<li style="margin-bottom:2px;color:#B2B2B2;font-size:11px;font-family:Arial,Helvetica,sans-serif;">HEASARC Director: Vacant</li>
+                		<li style="margin-bottom:2px;color:#B2B2B2;font-size:11px;font-family:Arial,Helvetica,sans-serif;">NASA Official: Ryan Smallcomb</li>
+                		<li style="margin-bottom:2px;color:#B2B2B2;font-size:11px;font-family:Arial,Helvetica,sans-serif;">Web Curator: <a href="mailto:john.d.myers@nasa.gov">J.D. Myers</a></li>
+	        		<li style="margin-bottom:2px;color:#B2B2B2;font-size:11px;font-family:Arial,Helvetica,sans-serif;">Last Modified: 16-Sep-2024</li>
+                	</ul>
+                </div><!-- nasafootlinks -->
+                <div class="nasafootlinks" id="footerRight" style="float:left;height:84px;margin-left:15px;padding-left:0px;padding-top:14px;width:295px;">
+                	<ul style="list-style:none;padding:0;margin:0;">
+                		<li style="margin-bottom:2px;padding-left:12px;background:url(/Images/portal_new/rsaquo_gray.gif) no-repeat scroll 0 1px transparent;color:#B2B2B2;font-size:11px;"><a href="http://science.nasa.gov/astrophysics/" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">NASA Astrophysics</a></li>
+                		<li style="margin-bottom:2px;padding-left:12px;background:url(/Images/portal_new/rsaquo_gray.gif) no-repeat scroll 0 1px transparent;color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;"><a href="https://heasarc.gsfc.nasa.gov/docs/faq.html" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">FAQ/Comments/Feedback</a></li>
+                		<li style="margin-bottom:2px;padding-left:12px;background:url(/Images/portal_new/rsaquo_gray.gif) no-repeat scroll 0 1px transparent;color:#B2B2B2;font-size:11px;"><a href="https://heasarc.gsfc.nasa.gov/docs/outreach.html" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Education Resources</a></li>
+                		<li style="margin-bottom:2px;padding-left:12px;background:url(/Images/portal_new/rsaquo_gray.gif) no-repeat scroll 0 1px transparent;color:#B2B2B2;font-size:11px;"><a href="https://heasarc.gsfc.nasa.gov/docs/plugins.html" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Find helper applications like Adobe Acrobat</a></li>
+                		<li style="margin-bottom:2px;padding-left:12px;background:url(/Images/portal_new/rsaquo_gray.gif) no-repeat scroll 0 1px transparent;color:#B2B2B2;font-size:11px;"><a target="_blank" href="http://www.nasa.gov/about/highlights/HP_Privacy.html" style="color:#B2B2B2;font-size:11px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Privacy Policy &amp; Important Notices</a></li>
+                	</ul>
+                </div><!-- nasafootlinks -->
+</div><!-- id=footer -->
+</div><!-- class=navigation -->
+</div><!-- id=page -->
+</div><!-- id=page-wrapper -->
+
+<pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+
+
+
+</body></html>
