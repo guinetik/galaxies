@@ -31,10 +31,11 @@ export class GalaxyBlackHole {
         uTime: { value: 0.0 },
         uTiltX: { value: 0.0 },
         uRotY: { value: 0.0 },
+        uLOD: { value: 0.0 },
       },
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       blending: THREE.NormalBlending,
       side: THREE.DoubleSide,
     })
@@ -57,6 +58,15 @@ export class GalaxyBlackHole {
 
     if (camera) {
       this.mesh.quaternion.copy(camera.quaternion)
+
+      // LOD: 0 = far away (dim), 1 = close up (full intensity)
+      const camDist = camera.position.length()
+      const fov = (camera as THREE.PerspectiveCamera).fov ?? 60
+      const vFov = fov * Math.PI / 180
+      const screenH = this.material.uniforms.uResolution.value.y
+      const apparentPx = (this.quadSize / camDist) * (screenH / (2 * Math.tan(vFov / 2)))
+      const lod = Math.min(Math.max((apparentPx - 6) / 220, 0), 1)
+      this.material.uniforms.uLOD.value = lod
     }
   }
 

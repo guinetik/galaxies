@@ -198,9 +198,11 @@ export class GalaxyScene {
       // Force matrix update so nebula's inverse VP is current-frame, not stale
       this.camera.updateMatrixWorld(true)
 
-      // ─── Galaxy rotation ──────────────────────────────────────────
+      // ─── Galaxy rotation (faster as we zoom in) ──────────────────
 
-      this.galaxyRotation += dt * 0.02
+      const zoomNorm = Math.min(this.zoom / 20, 1)  // 0 at min zoom, 1 at max
+      const rotSpeed = 0.02 + 0.18 * zoomNorm * zoomNorm  // 0.02 far → 0.20 close
+      this.galaxyRotation += dt * rotSpeed
 
       // ─── Update visual layers ─────────────────────────────────────
 

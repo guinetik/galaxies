@@ -5,6 +5,7 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform float uTiltX;
 uniform float uRotY;
+uniform float uLOD;  // 0 = far (dim, simple), 1 = close (full detail)
 
 const float pi = 3.1415927;
 
@@ -79,17 +80,23 @@ void main() {
     // Jitter to reduce banding
     p += pv * hash13(rd + vec3(uTime)) * 0.02;
 
+    // LOD-driven parameters
+    float intensity = mix(0.3, 1.0, uLOD);       // dim when far, full when close
+    float stepSize = mix(0.012, 0.005, uLOD);     // coarser steps when far
+    float animSpeed = mix(0.005, 0.02, uLOD);     // slower animation when far
+    float grainMix = mix(0.1, 0.5, uLOD);         // less grain detail when far
+
     float dt = 0.02;
     vec3 col = vec3(0.0);
     float noncaptured = 1.0;
     float captured = 0.0;
 
-    vec3 c1 = vec3(0.8, 0.35, 0.05);
-    vec3 c2 = vec3(1.0, 0.6, 0.2);
+    vec3 c1 = vec3(0.6, 0.25, 0.04);
+    vec3 c2 = vec3(0.85, 0.5, 0.15);
 
     // ─── Ray march with gravity ─────────────────────────────────────────
 
-    for (float t = 0.0; t < 1.0; t += 0.005) {
+    for (float t = 0.0; t < 1.0; t += stepSize) {
         p += pv * dt * noncaptured;
 
         // Gravity
@@ -103,23 +110,28 @@ void main() {
         // Disk texture using polar coordinates
         float dr = length(bhv.xz);
         float da = atan(bhv.x, bhv.z);
-        vec2 ra = vec2(dr, da * (0.01 + (dr - bhr) * 0.002) + 2.0 * pi + uTime * 0.02);
+        vec2 ra = vec2(dr, da * (0.01 + (dr - bhr) * 0.002) + 2.0 * pi + uTime * animSpeed);
         ra *= vec2(10.0, 20.0);
 
-        // Procedural noise instead of iChannel1 texture
-        float diskTex = max(0.0, noise(ra * vec2(0.1, 0.5)) + 0.05);
+        // Procedural noise — coarse structure + fine grain for dusty look
+        float coarse = max(0.0, noise(ra * vec2(0.1, 0.5)) + 0.05);
+        float grain = noise(ra * vec2(1.5, 3.0) + 77.0);
+        float diskTex = coarse * (1.0 - grainMix + grainMix * grain);
 
         vec3 dcol = mix(c2, c1, pow(max(length(bhv) - bhr, 0.0), 2.0))
                     * diskTex
-                    * (4.0 / (0.001 + (length(bhv) - bhr) * 50.0));
+                    * (2.5 / (0.001 + (length(bhv) - bhr) * 50.0));
 
         col += max(vec3(0.0), dcol
-            * step(0.0, -sdTorus(p * vec3(1.0, 50.0, 1.0) - bh, vec2(0.8, 0.99)))
+            * step(0.0, -sdTorus(p * vec3(1.0, 20.0, 1.0) - bh, vec2(0.8, 1.2)))
             * noncaptured);
 
-        // Glow
-        col += vec3(1.0, 0.6, 0.2) * (1.0 / vec3(dot(bhv, bhv))) * 0.003 * noncaptured;
+        // Glow — subdued
+        col += vec3(0.85, 0.5, 0.15) * (1.0 / vec3(dot(bhv, bhv))) * 0.002 * noncaptured;
     }
+
+    // Apply LOD intensity
+    col *= intensity;
 
     // ─── Output with alpha ──────────────────────────────────────────────
 
