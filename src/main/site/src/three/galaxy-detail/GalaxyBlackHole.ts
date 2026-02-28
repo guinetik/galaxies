@@ -1,36 +1,68 @@
 import * as THREE from 'three'
+import vertexShader from './shaders/blackhole.vert.glsl?raw'
+import fragmentShader from './shaders/blackhole.frag.glsl?raw'
 
 /**
- * Simple black sphere representing the black hole event horizon.
- * Renders as solid black and writes depth to occlude stars behind it.
+ * Two-pass black hole rendering:
+ *
+ * Pass 1 (depthMesh): Black sphere that writes depth to occlude stars behind it.
+ * Pass 2 (mesh): Billboard quad with gravitational lensing + accretion disk shader.
  */
 export class GalaxyBlackHole {
   readonly mesh: THREE.Mesh
   readonly depthMesh: THREE.Mesh
+  private material: THREE.ShaderMaterial
+  private quadSize: number
 
   constructor(_activityClass: string | null, quadSize = 60) {
-    // Solid black sphere
-    const geometry = new THREE.SphereGeometry(quadSize * 0.35, 32, 24)
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      depthWrite: true,
-      depthTest: true,
-    })
-    this.depthMesh = new THREE.Mesh(geometry, material)
-    this.depthMesh.renderOrder = -2
+    this.quadSize = quadSize
 
-    // Placeholder mesh (no visual — kept for API compatibility)
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ visible: false }))
+    // ─── Pass 1: Depth sphere (disabled — shader handles the visual) ────
+    const depthGeometry = new THREE.SphereGeometry(1, 4, 4)
+    const depthMaterial = new THREE.MeshBasicMaterial({ visible: false })
+    this.depthMesh = new THREE.Mesh(depthGeometry, depthMaterial)
+
+    // ─── Pass 2: Visual billboard quad ──────────────────────────────────
+    this.material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uResolution: { value: new THREE.Vector2(512, 512) },
+        uTime: { value: 0.0 },
+        uTiltX: { value: 0.0 },
+        uRotY: { value: 0.0 },
+      },
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.NormalBlending,
+      side: THREE.DoubleSide,
+    })
+
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material)
+    this.mesh.scale.set(quadSize, quadSize, 1)
     this.mesh.renderOrder = 1
   }
 
-  update(_time: number, _cameraTiltX: number, _cameraRotY: number, _camera?: THREE.Camera, _renderer?: THREE.WebGLRenderer): void {
-    // No-op — static black sphere
+  update(time: number, cameraTiltX: number, cameraRotY: number, camera?: THREE.Camera, renderer?: THREE.WebGLRenderer): void {
+    this.material.uniforms.uTime.value = time
+    this.material.uniforms.uTiltX.value = cameraTiltX
+    this.material.uniforms.uRotY.value = cameraRotY
+
+    if (renderer) {
+      const size = renderer.getSize(new THREE.Vector2())
+      const dpr = renderer.getPixelRatio()
+      this.material.uniforms.uResolution.value.set(size.x * dpr, size.y * dpr)
+    }
+
+    if (camera) {
+      this.mesh.quaternion.copy(camera.quaternion)
+    }
   }
 
   dispose(): void {
+    this.material.dispose()
     ;(this.mesh.geometry as THREE.BufferGeometry).dispose()
-    ;(this.mesh.material as THREE.Material).dispose()
     ;(this.depthMesh.geometry as THREE.BufferGeometry).dispose()
     ;(this.depthMesh.material as THREE.Material).dispose()
   }
