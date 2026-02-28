@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 varying vec3 vColor;
 varying float vAlpha;
@@ -17,15 +17,16 @@ void main() {
   float haloMask = 1.0 - smoothstep(0.12, 0.62, dist);
   float farStarMix = 1.0 - vDetailMix;
   float markerAlpha = vAlpha * (coreMask * 0.24 + haloMask * 0.07);
-  markerAlpha *= mix(1.9, 1.0, vDetailMix);
+  markerAlpha *= mix(2.45, 1.0, vDetailMix);
 
   // Soft neutral glow avoids the "pixel square" debug look.
   float core = exp(-dist * dist * 20.0);
   vec3 whiteHot = vec3(1.0);
-  vec3 markerBaseColor = mix(vColor, whiteHot, mix(0.35, 1.0, farStarMix));
+  float whiteMix = clamp(0.3 + farStarMix * 1.0, 0.0, 1.0);
+  vec3 markerBaseColor = mix(vColor, whiteHot, whiteMix);
   float outerGlow = (1.0 - smoothstep(0.18, 0.7, dist)) * farStarMix;
-  vec3 markerColor = markerBaseColor * (0.95 + core * mix(1.35, 0.45, vDetailMix));
-  markerColor += whiteHot * outerGlow * 0.35;
+  vec3 markerColor = markerBaseColor * (0.98 + core * mix(1.7, 0.45, vDetailMix));
+  markerColor += whiteHot * outerGlow * 0.78;
 
   // Morphology detail from texture atlas.
   float atlasCols = 2.0;

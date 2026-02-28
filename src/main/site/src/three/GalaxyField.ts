@@ -135,7 +135,7 @@ export class GalaxyField {
     let bestIndex = -1
     let bestDistanceSq = Number.POSITIVE_INFINITY
     const pixelRatio = Math.min(window.devicePixelRatio, 2)
-    const detailMix = this.smoothstep(0, 1, this.clamp01((80 - fov) / (80 - 40)))
+    const detailMix = this.smoothstep(0, 1, this.clamp01((52 - fov) / (52 - 20)))
 
     for (let i = 0; i < this.galaxies.length; i++) {
       const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift)
@@ -174,8 +174,8 @@ export class GalaxyField {
     const fovScale = 60 / fov
     const basePx = size * pixelRatio * fovScale * sizeScale * 3.0
     const detailBoost = 1 + 0.35 * detailMix
-    const farBoost = 1.32 - 0.32 * detailMix
-    return Math.max(2.3 * pixelRatio, basePx * detailBoost * farBoost)
+    const farBoost = 1.75 - 0.75 * detailMix
+    return Math.max(2.8 * pixelRatio, basePx * detailBoost * farBoost)
   }
 
   /** Match shader redshift visibility curve. */

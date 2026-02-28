@@ -15,6 +15,9 @@
     <div v-if="galaxy.velocity != null" class="tooltip-row">
       <span class="tooltip-label">Velocity</span> {{ galaxy.velocity.toLocaleString() }} km/s
     </div>
+    <div v-if="galaxy.velocity != null && galaxy.velocity > 0" class="tooltip-row">
+      <span class="tooltip-label">Distance</span> ~{{ getDistanceInLightYears(galaxy.velocity) }} ly
+    </div>
   </div>
 </template>
 
@@ -26,6 +29,16 @@ defineProps<{
   x: number
   y: number
 }>()
+
+const HUBBLE_CONSTANT = 70 // km/s/Mpc
+const MPC_TO_LY = 3_261_564 // Light years per Mpc
+
+function getDistanceInLightYears(velocity: number): string {
+  const mpc = velocity / HUBBLE_CONSTANT
+  const ly = mpc * MPC_TO_LY
+  // Format with commas and no decimals for readability
+  return Math.round(ly).toLocaleString()
+}
 </script>
 
 <style scoped>

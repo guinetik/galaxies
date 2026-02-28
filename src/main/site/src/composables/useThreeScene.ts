@@ -29,7 +29,7 @@ export function useThreeScene() {
 
   // Spherical look direction
   let theta = Math.PI // azimuth (looking south)
-  let phi = 0.3       // elevation (slightly above horizon)
+  let phi = 1.68      // start angled down enough for Earth arc visibility
 
   // Drag state
   let isDragging = false

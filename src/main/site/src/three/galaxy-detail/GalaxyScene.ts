@@ -83,7 +83,8 @@ export class GalaxyScene {
     this.nebula = new GalaxyNebula(stars, R, galaxy.id)
     this.scene.add(this.nebula.mesh)
 
-    this.blackHole = new GalaxyBlackHole(galaxy.activity_class, R * 0.2)
+    this.blackHole = new GalaxyBlackHole(galaxy.activity_class, R * 0.08)
+    this.scene.add(this.blackHole.depthMesh)
     this.scene.add(this.blackHole.mesh)
 
     // ─── Initial orbit from position angle ───────────────────────────
