@@ -10,7 +10,8 @@
   },
   "nav": {
     "about": "About",
-    "map": "Cosmic Map"
+    "map": "Cosmic Map",
+    "cosmography": "Cosmography"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -164,6 +165,132 @@
       "statsGalaxies": "Individual galaxies",
       "statsMaxDist": "Max distance",
       "statsMpc": "Mpc"
+    },
+    "cosmography": {
+      "title": "Cosmography",
+      "subtitle": "How we measure the universe — the science, the instruments, the observations.",
+      "backToSky": "Back to Sky",
+      "ladder": {
+        "title": "The Distance Ladder",
+        "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together — each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
+        "rangeMpc": "Range (Mpc)"
+      },
+      "methods": {
+        "sectionTitle": "The Methods",
+        "ceph": {
+          "name": "Cepheid Variables",
+          "location": "Space",
+          "instruments": "Hubble, JWST",
+          "range": "1 – 30",
+          "count": "588",
+          "desc": "Cepheid variable stars pulsate with a period directly proportional to their intrinsic luminosity — a relationship discovered by Henrietta Swan Leavitt in 1912. By measuring how fast a Cepheid brightens and dims, astronomers know exactly how luminous it truly is. Comparing that to how bright it appears gives the distance. Cepheids are the foundational rung of the distance ladder, calibrating every method that reaches further.",
+          "telescopeAlt": "Hubble Space Telescope orbiting Earth with solar panels extended against the blackness of space",
+          "observationAlt": "HST image of Cepheid variable star in galaxy NGC 4258 showing periodic brightness pulsation"
+        },
+        "trgb": {
+          "name": "Tip of the Red Giant Branch",
+          "location": "Space",
+          "instruments": "Hubble, JWST",
+          "range": "1 – 20",
+          "count": "1,242",
+          "desc": "As low-mass stars age, they ascend the red giant branch — growing larger and more luminous. At a precise luminosity, helium ignites in a flash and the star rapidly changes character. This sharp cutoff in brightness is remarkably consistent across all galaxies, making it an excellent standard candle. TRGB distances are measured from color-magnitude diagrams of resolved stellar populations.",
+          "telescopeAlt": "James Webb Space Telescope in deep space with its golden hexagonal mirror array fully deployed",
+          "observationAlt": "Color-magnitude diagram showing a dense field of red giant branch stars with the luminosity tip clearly marked"
+        },
+        "mas": {
+          "name": "Masers",
+          "location": "Ground",
+          "instruments": "VLBA",
+          "range": "1 – 170",
+          "count": "36",
+          "desc": "Water molecules orbiting supermassive black holes can form natural microwave lasers — masers. Using Very Long Baseline Interferometry, astronomers track individual maser spots orbiting the central black hole. The geometry of their motion gives a purely geometric distance — no assumptions about luminosity needed. The most precise extragalactic distances ever measured come from masers in NGC 4258.",
+          "telescopeAlt": "Very Long Baseline Array radio antenna dish under a starry night sky in the American desert",
+          "observationAlt": "Water maser emission spectrum and orbital map from the accretion disk of galaxy NGC 4258"
+        },
+        "sbf": {
+          "name": "Surface Brightness Fluctuations",
+          "location": "Both",
+          "instruments": "Hubble, Gemini",
+          "range": "5 – 120",
+          "count": "730",
+          "desc": "Look at a galaxy close up and you can resolve individual bright stars — the image looks grainy. Look at a more distant galaxy and those stars blur together into a smooth glow. The amplitude of this pixel-to-pixel graininess depends on distance. SBF works best for elliptical galaxies with smooth, old stellar populations where the fluctuation signal is cleanest.",
+          "telescopeAlt": "Gemini Observatory telescope dome on Mauna Kea summit at twilight with clear sky above",
+          "observationAlt": "Galaxy image pair showing high surface brightness fluctuations nearby vs smooth appearance at greater distance"
+        },
+        "snii": {
+          "name": "Type II Supernovae",
+          "location": "Ground",
+          "instruments": "Ground optical telescopes",
+          "range": "5 – 200",
+          "count": "218",
+          "desc": "When a massive star exhausts its nuclear fuel, its core collapses and the outer layers explode as a Type II supernova. The expanding photosphere acts as a geometric distance indicator — by measuring how fast it expands (from spectral line shifts) and how large it appears (from its brightness and temperature), the physical size and thus the distance can be calculated.",
+          "telescopeAlt": "Large optical telescope dome interior with slit open to reveal the night sky during an observation session",
+          "observationAlt": "Before and after images of a galaxy showing the sudden appearance of a bright Type II supernova"
+        },
+        "tf": {
+          "name": "Tully-Fisher Relation",
+          "location": "Ground",
+          "instruments": "Arecibo, Green Bank",
+          "range": "10 – 250",
+          "count": "11,458",
+          "desc": "The faster a spiral galaxy rotates, the more massive and luminous it is. Brent Tully and Rick Fisher discovered this tight relationship in 1977. Radio telescopes measure the galaxy's rotation speed from the width of its 21cm hydrogen emission line. Comparing the predicted luminosity to the observed brightness gives the distance. This is the workhorse method of Cosmicflows-4, providing distances for over 11,000 galaxies.",
+          "telescopeAlt": "Arecibo radio telescope 305-meter dish nestled in a Puerto Rico karst sinkhole surrounded by tropical forest",
+          "observationAlt": "Spiral galaxy HI 21cm emission line profile showing the double-horned rotation curve used for Tully-Fisher"
+        },
+        "fp": {
+          "name": "Fundamental Plane",
+          "location": "Ground",
+          "instruments": "SDSS, 6dFGS",
+          "range": "20 – 300",
+          "count": "838",
+          "desc": "Elliptical galaxies obey a tight three-way relationship between their size, surface brightness, and how fast their stars move (velocity dispersion). This 'fundamental plane' in parameter space allows distance estimation: measure the velocity dispersion and surface brightness, predict the physical size, compare to the angular size on the sky. The Fundamental Plane is the elliptical galaxy equivalent of Tully-Fisher.",
+          "telescopeAlt": "SDSS telescope fiber optic plug plate with hundreds of precisely drilled aluminum holes for spectroscopic fibers",
+          "observationAlt": "Elliptical galaxy spectrum showing broadened absorption lines used to measure stellar velocity dispersion"
+        },
+        "snia": {
+          "name": "Type Ia Supernovae",
+          "location": "Both",
+          "instruments": "Survey telescopes, Hubble",
+          "range": "50 – 500+",
+          "count": "1,867",
+          "desc": "When a white dwarf star accretes enough matter from a companion to reach the Chandrasekhar limit (1.4 solar masses), it detonates completely. These thermonuclear explosions have remarkably uniform peak luminosities — after a small correction for how fast they fade, they become 'standardizable candles.' Type Ia supernovae are visible across billions of light-years and are the furthest-reaching rung of the distance ladder. Their discovery of the accelerating expansion of the universe won the 2011 Nobel Prize in Physics.",
+          "telescopeAlt": "Array of survey telescope domes at Cerro Tololo Inter-American Observatory in Chile at sunset",
+          "observationAlt": "Type Ia supernova light curves from multiple events overlaid showing standardizable peak brightness after correction"
+        }
+      },
+      "catalogs": {
+        "title": "The Catalogs",
+        "intro": "This visualization merges four astronomical catalogs into a single database. Each contributes different data about the same galaxies.",
+        "cf4": {
+          "name": "Cosmicflows-4",
+          "team": "Tully, Courtois, Kourkchi et al. (2023)",
+          "count": "55,877",
+          "desc": "The foundation — precision distance measurements using all eight methods of the cosmic distance ladder."
+        },
+        "alfalfa": {
+          "name": "ALFALFA-SDSS",
+          "team": "Durbala et al. (2020)",
+          "count": "31,500+",
+          "desc": "Hydrogen gas masses, stellar masses, and star formation rates from the Arecibo Legacy Fast ALFA radio survey."
+        },
+        "fss": {
+          "name": "Flat Galaxy Survey",
+          "team": "Karachentsev et al.",
+          "count": "~3,700",
+          "desc": "Morphological classifications — real Hubble types from direct observation of edge-on disk galaxies."
+        },
+        "ugc": {
+          "name": "Uppsala General Catalogue",
+          "team": "Nilson (1973)",
+          "count": "~1,200",
+          "desc": "Optical identifications and blue magnitudes for northern-sky galaxies with angular diameters over 1 arcminute."
+        }
+      },
+      "links": {
+        "cf4Paper": "Cosmicflows-4 Paper",
+        "alfalfaPaper": "ALFALFA-SDSS Paper",
+        "edd": "Extragalactic Distance Database"
+      }
     }
   }
 }

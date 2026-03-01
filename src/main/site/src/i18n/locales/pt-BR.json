@@ -10,7 +10,8 @@
   },
   "nav": {
     "about": "Sobre",
-    "map": "Mapa Cósmico"
+    "map": "Mapa Cósmico",
+    "cosmography": "Cosmografia"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -158,6 +159,132 @@
       "statsGalaxies": "Galáxias individuais",
       "statsMaxDist": "Distância máxima",
       "statsMpc": "Mpc"
+    },
+    "cosmography": {
+      "title": "Cosmografia",
+      "subtitle": "Como medimos o universo — a ciência, os instrumentos, as observações.",
+      "backToSky": "Voltar ao Céu",
+      "ladder": {
+        "title": "A Escada de Distâncias",
+        "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas — cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
+        "rangeMpc": "Alcance (Mpc)"
+      },
+      "methods": {
+        "sectionTitle": "Os Métodos",
+        "ceph": {
+          "name": "Cepheid Variables",
+          "location": "Space",
+          "instruments": "Hubble, JWST",
+          "range": "1 – 30",
+          "count": "588",
+          "desc": "Estrelas variáveis Cefeidas pulsam com um período diretamente proporcional à sua luminosidade intrínseca — uma relação descoberta por Henrietta Swan Leavitt em 1912. Ao medir a rapidez com que uma Cefeida brilha e escurece, os astrônomos sabem exatamente quão luminosa ela realmente é. Comparar isso com o quão brilhante ela aparenta ser fornece a distância. As Cefeidas são o degrau fundamental da escada de distâncias, calibrando cada método que alcança mais longe.",
+          "telescopeAlt": "Hubble Space Telescope orbiting Earth with solar panels extended against the blackness of space",
+          "observationAlt": "HST image of Cepheid variable star in galaxy NGC 4258 showing periodic brightness pulsation"
+        },
+        "trgb": {
+          "name": "Tip of the Red Giant Branch",
+          "location": "Space",
+          "instruments": "Hubble, JWST",
+          "range": "1 – 20",
+          "count": "1,242",
+          "desc": "Conforme estrelas de baixa massa envelhecem, elas ascendem o ramo das gigantes vermelhas — tornando-se maiores e mais luminosas. Em uma luminosidade precisa, o hélio se ignita em um flash e a estrela muda rapidamente de caráter. Este corte brusco no brilho é notavelmente consistente em todas as galáxias, tornando-o uma excelente vela padrão. Distâncias TRGB são medidas a partir de diagramas cor-magnitude de populações estelares resolvidas.",
+          "telescopeAlt": "James Webb Space Telescope in deep space with its golden hexagonal mirror array fully deployed",
+          "observationAlt": "Color-magnitude diagram showing a dense field of red giant branch stars with the luminosity tip clearly marked"
+        },
+        "mas": {
+          "name": "Masers",
+          "location": "Ground",
+          "instruments": "VLBA",
+          "range": "1 – 170",
+          "count": "36",
+          "desc": "Moléculas de água orbitando buracos negros supermassivos podem formar lasers naturais de micro-ondas — masers. Usando Interferometria de Base Muito Longa, os astrônomos rastreiam pontos individuais de maser orbitando o buraco negro central. A geometria de seu movimento fornece uma distância puramente geométrica — sem suposições sobre luminosidade. As distâncias extragalácticas mais precisas já medidas vêm de masers em NGC 4258.",
+          "telescopeAlt": "Very Long Baseline Array radio antenna dish under a starry night sky in the American desert",
+          "observationAlt": "Water maser emission spectrum and orbital map from the accretion disk of galaxy NGC 4258"
+        },
+        "sbf": {
+          "name": "Surface Brightness Fluctuations",
+          "location": "Both",
+          "instruments": "Hubble, Gemini",
+          "range": "5 – 120",
+          "count": "730",
+          "desc": "Observe uma galáxia de perto e você pode resolver estrelas brilhantes individuais — a imagem parece granulada. Observe uma galáxia mais distante e essas estrelas se fundem em um brilho suave. A amplitude dessa granulosidade pixel a pixel depende da distância. SBF funciona melhor para galáxias elípticas com populações estelares suaves e antigas, onde o sinal de flutuação é mais limpo.",
+          "telescopeAlt": "Gemini Observatory telescope dome on Mauna Kea summit at twilight with clear sky above",
+          "observationAlt": "Galaxy image pair showing high surface brightness fluctuations nearby vs smooth appearance at greater distance"
+        },
+        "snii": {
+          "name": "Type II Supernovae",
+          "location": "Ground",
+          "instruments": "Ground optical telescopes",
+          "range": "5 – 200",
+          "count": "218",
+          "desc": "Quando uma estrela massiva esgota seu combustível nuclear, seu núcleo colapsa e as camadas externas explodem como uma supernova Tipo II. A fotosfera em expansão atua como um indicador geométrico de distância — medindo a rapidez com que se expande (a partir de deslocamentos de linhas espectrais) e quão grande ela aparenta ser (a partir de seu brilho e temperatura), o tamanho físico e, portanto, a distância podem ser calculados.",
+          "telescopeAlt": "Large optical telescope dome interior with slit open to reveal the night sky during an observation session",
+          "observationAlt": "Before and after images of a galaxy showing the sudden appearance of a bright Type II supernova"
+        },
+        "tf": {
+          "name": "Tully-Fisher Relation",
+          "location": "Ground",
+          "instruments": "Arecibo, Green Bank",
+          "range": "10 – 250",
+          "count": "11,458",
+          "desc": "Quanto mais rápido uma galáxia espiral gira, mais massiva e luminosa ela é. Brent Tully e Rick Fisher descobriram esta relação precisa em 1977. Radiotelescópios medem a velocidade de rotação da galáxia a partir da largura de sua linha de emissão de hidrogênio de 21cm. Comparar a luminosidade prevista com o brilho observado fornece a distância. Este é o método principal do Cosmicflows-4, fornecendo distâncias para mais de 11.000 galáxias.",
+          "telescopeAlt": "Arecibo radio telescope 305-meter dish nestled in a Puerto Rico karst sinkhole surrounded by tropical forest",
+          "observationAlt": "Spiral galaxy HI 21cm emission line profile showing the double-horned rotation curve used for Tully-Fisher"
+        },
+        "fp": {
+          "name": "Fundamental Plane",
+          "location": "Ground",
+          "instruments": "SDSS, 6dFGS",
+          "range": "20 – 300",
+          "count": "838",
+          "desc": "Galáxias elípticas obedecem a uma relação tríplice precisa entre seu tamanho, brilho superficial e a rapidez com que suas estrelas se movem (dispersão de velocidade). Este 'plano fundamental' no espaço de parâmetros permite a estimativa de distância: meça a dispersão de velocidade e o brilho superficial, preveja o tamanho físico, compare com o tamanho angular no céu. O Plano Fundamental é o equivalente para galáxias elípticas do Tully-Fisher.",
+          "telescopeAlt": "SDSS telescope fiber optic plug plate with hundreds of precisely drilled aluminum holes for spectroscopic fibers",
+          "observationAlt": "Elliptical galaxy spectrum showing broadened absorption lines used to measure stellar velocity dispersion"
+        },
+        "snia": {
+          "name": "Type Ia Supernovae",
+          "location": "Both",
+          "instruments": "Survey telescopes, Hubble",
+          "range": "50 – 500+",
+          "count": "1,867",
+          "desc": "Quando uma estrela anã branca acumula matéria suficiente de uma companheira para atingir o limite de Chandrasekhar (1,4 massas solares), ela detona completamente. Essas explosões termonucleares têm luminosidades de pico notavelmente uniformes — após uma pequena correção pela rapidez com que desvanecem, tornam-se 'velas padronizáveis.' Supernovas Tipo Ia são visíveis a bilhões de anos-luz e são o degrau de maior alcance da escada de distâncias. Sua descoberta da expansão acelerada do universo ganhou o Prêmio Nobel de Física de 2011.",
+          "telescopeAlt": "Array of survey telescope domes at Cerro Tololo Inter-American Observatory in Chile at sunset",
+          "observationAlt": "Type Ia supernova light curves from multiple events overlaid showing standardizable peak brightness after correction"
+        }
+      },
+      "catalogs": {
+        "title": "Os Catálogos",
+        "intro": "Esta visualização combina quatro catálogos astronômicos em um único banco de dados. Cada um contribui com dados diferentes sobre as mesmas galáxias.",
+        "cf4": {
+          "name": "Cosmicflows-4",
+          "team": "Tully, Courtois, Kourkchi et al. (2023)",
+          "count": "55,877",
+          "desc": "A fundação — medições precisas de distância usando todos os oito métodos da escada de distâncias cósmicas."
+        },
+        "alfalfa": {
+          "name": "ALFALFA-SDSS",
+          "team": "Durbala et al. (2020)",
+          "count": "31,500+",
+          "desc": "Massas de gás hidrogênio, massas estelares e taxas de formação estelar do levantamento de rádio Arecibo Legacy Fast ALFA."
+        },
+        "fss": {
+          "name": "Flat Galaxy Survey",
+          "team": "Karachentsev et al.",
+          "count": "~3,700",
+          "desc": "Classificações morfológicas — tipos de Hubble reais a partir da observação direta de galáxias de disco vistas de perfil."
+        },
+        "ugc": {
+          "name": "Uppsala General Catalogue",
+          "team": "Nilson (1973)",
+          "count": "~1,200",
+          "desc": "Identificações ópticas e magnitudes azuis para galáxias do hemisfério norte com diâmetros angulares acima de 1 minuto de arco."
+        }
+      },
+      "links": {
+        "cf4Paper": "Artigo Cosmicflows-4",
+        "alfalfaPaper": "Artigo ALFALFA-SDSS",
+        "edd": "Banco de Dados de Distâncias Extragalácticas"
+      }
     }
   }
 }
