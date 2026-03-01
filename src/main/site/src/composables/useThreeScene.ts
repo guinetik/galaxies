@@ -16,6 +16,7 @@ export function useThreeScene() {
   const currentFov = ref(CAMERA_FOV_DEFAULT)
   const currentMaxRedshift = ref(fovToMaxRedshift(CAMERA_FOV_DEFAULT))
   const currentLocation = ref(DEFAULT_LOCATION)
+  const currentLookAt = ref({ azimuth: 0, elevation: 0 })
 
   let renderer: THREE.WebGLRenderer | null = null
   let scene: THREE.Scene | null = null
@@ -112,6 +113,16 @@ export function useThreeScene() {
       camera.position.z + lookZ * 100
     )
     camera.lookAt(target)
+
+    // Update reactive state (throttled/every frame is fine for Vue 3 refs usually, but let's see)
+    // Theta is 0..2PI (South=0/2PI?). Let's normalize to degrees.
+    // Phi is 0 (North Pole) .. PI (South Pole).
+    // Elevation: 90 (North) .. -90 (South).
+    // Azimuth: 0 .. 360.
+    currentLookAt.value = {
+      azimuth: theta * 180 / Math.PI, // Keep cumulative for smooth rotation
+      elevation: 90 - (phi * 180 / Math.PI)
+    }
   }
 
   /**
@@ -324,6 +335,7 @@ export function useThreeScene() {
     currentFov,
     currentMaxRedshift,
     currentLocation,
+    currentLookAt,
     init,
     getScene,
     getCamera,

@@ -79,14 +79,67 @@ export class EarthHorizon {
     const phi = lonRad + Math.PI           // horizontal angle on sphere
     const theta = (Math.PI / 2) - latRad   // vertical angle from pole
 
-    const cityDir = new THREE.Vector3(
+    // Local City Position (on the unrotated sphere)
+    const localCity = new THREE.Vector3(
       -Math.cos(phi) * Math.sin(theta),
        Math.cos(theta),
        Math.sin(phi) * Math.sin(theta)
     ).normalize()
 
-    // Rotate the sphere so this city ends up at +Y (top, closest to camera)
-    this.targetQuat.setFromUnitVectors(cityDir, new THREE.Vector3(0, 1, 0))
+    // Local North Pole (on the unrotated sphere)
+    const localNorth = new THREE.Vector3(0, 1, 0)
+
+    // Tangent North vector at City: component of North Pole perpendicular to Up
+    // We want the vector pointing towards the North Pole along the surface.
+    const up = localCity.clone()
+    const northTangent = new THREE.Vector3()
+    
+    if (Math.abs(up.y) > 0.99) {
+      // At poles, "North" is singular.
+      // If we are at North Pole (up ~ +Y), any direction is South.
+      // Let's align Prime Meridian (Z axis) to South (+Z).
+      // So "North" direction is -Z.
+      northTangent.set(0, 0, -1)
+    } else {
+      // Project North Pole onto tangent plane
+      // T = N - (N.U)U
+      northTangent.copy(localNorth).sub(up.clone().multiplyScalar(localNorth.dot(up))).normalize()
+    }
+
+    // East = North x Up?
+    // In standard RH system: X x Y = Z.
+    // Here: North (-Z) x Up (Y) = +X (East).
+    // So East = cross(NorthTangent, Up).
+    // Wait. If North is tangent pointing North, and Up is Up.
+    // North x Up = East?
+    // Let's visualize: North is forward. Up is up. East is right.
+    // Forward x Up = Right?
+    // (-Z) x (Y) = (0,0,-1) x (0,1,0) = (1,0,0) = +X. Yes.
+    // So East = North x Up.
+    const eastTangent = new THREE.Vector3().crossVectors(northTangent, up).normalize()
+
+    // Construct Rotation Matrix
+    // We want to map:
+    //   eastTangent -> (1, 0, 0)
+    //   up          -> (0, 1, 0)
+    //   northTangent -> (0, 0, -1)
+    
+    // Basis Matrix M_local has columns [East, Up, North]
+    const localBasis = new THREE.Matrix4().makeBasis(eastTangent, up, northTangent)
+    
+    // Target Basis M_target has columns [(1,0,0), (0,1,0), (0,0,-1)]
+    const targetBasis = new THREE.Matrix4().makeBasis(
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, 0, -1)
+    )
+
+    // R * M_local = M_target
+    // R = M_target * M_local^-1
+    // Since orthogonal, M_local^-1 = M_local^T
+    
+    const rotationMatrix = targetBasis.multiply(localBasis.transpose())
+    this.targetQuat.setFromRotationMatrix(rotationMatrix)
   }
 
   /** Call each frame to smoothly interpolate toward target rotation */

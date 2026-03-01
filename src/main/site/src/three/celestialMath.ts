@@ -52,3 +52,21 @@ export function fovToMaxRedshift(fov: number): number {
 
   return ranges[ranges.length - 1][1]
 }
+
+/**
+ * Convert redshift to distance in million Light Years (mLY).
+ * Uses simplified Hubble Law approximation for local universe (z < 0.1).
+ * d = (c * z) / H0
+ * c ≈ 300,000 km/s
+ * H0 ≈ 70 km/s/Mpc
+ * 1 Mpc ≈ 3.26 mLY
+ * Factor ≈ (300000 / 70) * 3.26 ≈ 13971
+ */
+export function redshiftToDistanceMLY(z: number): number {
+  // Use a slightly more precise factor if needed, but for visualization this is fine.
+  // c = 299,792.458 km/s
+  // H0 = 70 (approx)
+  // 1 Mpc = 3.26156 mLY
+  // Factor = (299792.458 / 70) * 3.26156 ≈ 13968.4
+  return z * 13968
+}

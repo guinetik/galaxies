@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const { currentFov, currentMaxRedshift, currentLocation, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
+const { currentFov, currentMaxRedshift, currentLocation, currentLookAt, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
 const { ready, getAllGalaxies } = useGalaxyData()
 
 function setLocation(name: string) {
@@ -55,7 +55,7 @@ function getAllGalaxiesCount() {
   return allGalaxies.length
 }
 
-defineExpose({ currentFov, currentMaxRedshift, currentLocation, setLocation, applyFilter, getAllGalaxiesCount })
+defineExpose({ currentFov, currentMaxRedshift, currentLocation, currentLookAt, setLocation, applyFilter, getAllGalaxiesCount })
 
 let galaxyField: GalaxyField | null = null
 let earthHorizon: EarthHorizon | null = null
