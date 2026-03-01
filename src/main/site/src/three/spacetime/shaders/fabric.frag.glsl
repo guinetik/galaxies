@@ -18,13 +18,15 @@ void main() {
   if (gridLine < 0.01) discard;
 
   // Glow: base cyan, brightening to white at deep wells
-  float glow = 0.15 + vDepth * 0.85;
+  float glow = 0.4 + vDepth * 0.6;
   vec3 cyanBase = vec3(0.133, 0.827, 0.933); // #22d3ee
   vec3 white = vec3(1.0);
-  vec3 color = mix(cyanBase * 0.3, mix(cyanBase, white, vDepth * 0.5), glow);
+  vec3 color = mix(cyanBase * 0.6, mix(cyanBase, white, vDepth * 0.5), glow);
 
   // Subtle pulse at deep wells
-  float pulse = 1.0 + 0.05 * sin(uTime * 2.0) * vDepth;
+  float pulse = 1.0 + 0.08 * sin(uTime * 2.0) * vDepth;
 
-  gl_FragColor = vec4(color * pulse, gridLine * glow);
+  // Boost line alpha so flat regions are clearly visible
+  float alpha = gridLine * (0.5 + glow * 0.5);
+  gl_FragColor = vec4(color * pulse, alpha);
 }
