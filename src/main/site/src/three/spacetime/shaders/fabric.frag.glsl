@@ -17,16 +17,16 @@ void main() {
   // Discard non-wireframe pixels
   if (gridLine < 0.01) discard;
 
-  // Glow: base cyan, brightening to white at deep wells
-  float glow = 0.4 + vDepth * 0.6;
+  // Glow: dim cyan in flat regions, brightening to white at deep wells
+  float glow = 0.25 + vDepth * 0.75;
   vec3 cyanBase = vec3(0.133, 0.827, 0.933); // #22d3ee
   vec3 white = vec3(1.0);
-  vec3 color = mix(cyanBase * 0.6, mix(cyanBase, white, vDepth * 0.5), glow);
+  vec3 color = mix(cyanBase * 0.4, mix(cyanBase, white, vDepth * 0.5), glow);
 
   // Subtle pulse at deep wells
   float pulse = 1.0 + 0.08 * sin(uTime * 2.0) * vDepth;
 
-  // Boost line alpha so flat regions are clearly visible
-  float alpha = gridLine * (0.5 + glow * 0.5);
+  // Flat regions visible but subdued, wells punch through
+  float alpha = gridLine * (0.3 + glow * 0.7);
   gl_FragColor = vec4(color * pulse, alpha);
 }
