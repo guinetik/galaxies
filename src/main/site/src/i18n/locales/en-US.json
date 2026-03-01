@@ -11,7 +11,8 @@
   "nav": {
     "about": "About",
     "map": "Cosmic Map",
-    "cosmography": "Cosmography"
+    "cosmography": "Cosmography",
+    "spacetime": "Spacetime"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -290,6 +291,20 @@
         "cf4Paper": "Cosmicflows-4 Paper",
         "alfalfaPaper": "ALFALFA-SDSS Paper",
         "edd": "Extragalactic Distance Database"
+      }
+    },
+    "spacetime": {
+      "title": "Spacetime Fabric",
+      "subtitle": "Gravity warps the fabric of spacetime. Where galaxies cluster, the grid sinks into deep wells — revealing the invisible architecture of mass.",
+      "backToSky": "Back to Sky",
+      "loading": "Computing density field...",
+      "velocityLabel": "Velocity (km/s)",
+      "infoTitle": "What You're Seeing",
+      "infoBody": "This grid represents the supergalactic plane — a 2D slice through the universe where most of the large-scale structure lives. Each vertex is displaced downward in proportion to the local galaxy density: clusters create deep wells, voids remain flat. The galaxy dots are color-coded by recession velocity, the same scale as the Cosmic Map.",
+      "stats": {
+        "groups": "Galaxy groups in slab",
+        "gridRes": "Grid resolution",
+        "slabThickness": "Slab thickness"
       }
     }
   }

@@ -13,6 +13,9 @@
       <router-link to="/cosmography" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.cosmography') }}
       </router-link>
+      <router-link to="/spacetime" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.spacetime') }}
+      </router-link>
     </div>
 
     <div class="flex items-center gap-4">

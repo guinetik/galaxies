@@ -11,7 +11,8 @@
   "nav": {
     "about": "Sobre",
     "map": "Mapa Cósmico",
-    "cosmography": "Cosmografia"
+    "cosmography": "Cosmografia",
+    "spacetime": "Espaço-Tempo"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -284,6 +285,20 @@
         "cf4Paper": "Artigo Cosmicflows-4",
         "alfalfaPaper": "Artigo ALFALFA-SDSS",
         "edd": "Banco de Dados de Distâncias Extragalácticas"
+      }
+    },
+    "spacetime": {
+      "title": "Tecido do Espaço-Tempo",
+      "subtitle": "A gravidade deforma o tecido do espaço-tempo. Onde as galáxias se agrupam, a grade afunda em poços profundos — revelando a arquitetura invisível da massa.",
+      "backToSky": "Voltar ao Céu",
+      "loading": "Calculando campo de densidade...",
+      "velocityLabel": "Velocidade (km/s)",
+      "infoTitle": "O Que Você Está Vendo",
+      "infoBody": "Esta grade representa o plano supergaláctico — um corte 2D pelo universo onde a maior parte da estrutura em larga escala existe. Cada vértice é deslocado para baixo proporcionalmente à densidade local de galáxias: aglomerados criam poços profundos, vazios permanecem planos. Os pontos de galáxias são coloridos por velocidade de recessão, a mesma escala do Mapa Cósmico.",
+      "stats": {
+        "groups": "Grupos no corte",
+        "gridRes": "Resolução da grade",
+        "slabThickness": "Espessura do corte"
       }
     }
   }
