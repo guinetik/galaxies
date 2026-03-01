@@ -15,12 +15,12 @@ void main() {
   float dist = length(toBH);
   vec2  dir  = toBH / max(dist, 0.0001);
 
-  // Event-horizon clamp — prevents sampling explosion near center
-  float softDist = max(dist, 0.02);
-
-  // Smooth falloff so distortion fades to zero at edge of influence
-  float falloff    = smoothstep(0.58, 0.1, dist);
-  float deflection = uLensStrength * (1.0 / softDist) * falloff;
+  // Compact lensing — peaks very close to center, drops to zero quickly
+  float radius = 0.18;                           // influence radius in UV space
+  float falloff = smoothstep(radius, 0.0, dist); // 1 at center, 0 at radius
+  falloff *= falloff;                             // squared for steep drop-off
+  float softDist = max(dist, 0.03);
+  float deflection = uLensStrength * falloff * (0.09 / softDist);
 
   // Compute offset and undo aspect correction
   vec2 offset = dir * deflection;
@@ -31,10 +31,10 @@ void main() {
   vec4 color = texture2D(uSceneTexture, distortedUV);
 
   // Subtle Einstein ring glow at characteristic radius
-  float ringRadius = 0.04;
-  float ring = exp(-pow((dist - ringRadius) / 0.012, 2.0));
-  ring *= falloff * uLensStrength * 12.0;
-  color.rgb += vec3(0.6, 0.7, 1.0) * ring * 0.15;
+  float ringRadius = 0.02;
+  float ring = exp(-pow((dist - ringRadius) / 0.006, 2.0));
+  ring *= falloff * uLensStrength * 8.0;
+  color.rgb += vec3(0.6, 0.7, 1.0) * ring * 0.12;
 
   gl_FragColor = color;
 }

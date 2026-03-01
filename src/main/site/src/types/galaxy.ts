@@ -20,6 +20,15 @@ export interface Galaxy {
   dm_trgb: number | null
   dm_ceph: number | null
   dm_mas: number | null
+  t17: number | null
+  e_dm_snia: number | null
+  e_dm_tf: number | null
+  e_dm_fp: number | null
+  e_dm_sbf: number | null
+  e_dm_snii: number | null
+  e_dm_trgb: number | null
+  e_dm_ceph: number | null
+  e_dm_mas: number | null
 }
 
 export type MorphologyClass =

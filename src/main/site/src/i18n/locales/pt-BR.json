@@ -77,7 +77,8 @@
           }
         },
         "paperLink": "Ler o artigo",
-        "dataLink": "Explorar os dados"
+        "dataLink": "Explorar os dados",
+        "downloadDb": "Baixar BD (18 MB)"
       },
       "mapping": {
         "title": "Dos Dados ao Céu",
@@ -99,6 +100,40 @@
         "dataName": "Cosmicflows-4",
         "dataCitation": "Tully, Courtois, Kourkchi et al. (2023)",
         "techTitle": "Construído Com"
+      }
+    },
+    "galaxy": {
+      "dataButton": "Dados",
+      "sections": {
+        "identity": "Identidade",
+        "distance": "Distância",
+        "coordinates": "Coordenadas",
+        "methods": "Métodos de Distância"
+      },
+      "fields": {
+        "pgc": { "label": "PGC", "desc": "Identificador do Catálogo Principal de Galáxias" },
+        "group_pgc": { "label": "PGC do Grupo", "desc": "Galáxia dominante no grupo gravitacional" },
+        "t17": { "label": "Grupo Tempel", "desc": "Identificador de grupo Tempel+ 2017" },
+        "morphology": { "label": "Morfologia", "desc": "Tipo atribuído proceduralmente (sem dados CF4)" },
+        "dm": { "label": "Módulo de Distância", "desc": "DM combinado ponderado de todos os métodos" },
+        "e_dm": { "label": "Incerteza do DM", "desc": "Erro padrão do módulo de distância" },
+        "distance_mpc": { "label": "Distância (Mpc)", "desc": "Megaparsecs, calculado a partir do DM" },
+        "distance_mly": { "label": "Distância (Mal)", "desc": "Milhões de anos-luz, calculado a partir do DM" },
+        "vcmb": { "label": "Velocidade CMB", "desc": "Velocidade de recessão no referencial CMB" },
+        "ra": { "label": "Ascensão Reta", "desc": "Longitude equatorial J2000" },
+        "dec": { "label": "Declinação", "desc": "Latitude equatorial J2000" },
+        "glon": { "label": "Lon Galáctica", "desc": "Longitude no sistema de coordenadas galácticas" },
+        "glat": { "label": "Lat Galáctica", "desc": "Latitude no sistema de coordenadas galácticas" },
+        "sgl": { "label": "Lon Supergaláctica", "desc": "Longitude em coordenadas supergalácticas" },
+        "sgb": { "label": "Lat Supergaláctica", "desc": "Latitude em coordenadas supergalácticas" },
+        "dm_snia": { "label": "Supernovas Tipo Ia", "desc": "Explosões padronizáveis de anãs brancas" },
+        "dm_tf": { "label": "Tully-Fisher", "desc": "Relação rotação-luminosidade de espirais" },
+        "dm_fp": { "label": "Plano Fundamental", "desc": "Relação tamanho-brilho-velocidade de elípticas" },
+        "dm_sbf": { "label": "Flutuações de Brilho Superficial", "desc": "Medida de distância por granularidade de pixels" },
+        "dm_snii": { "label": "Supernovas Tipo II", "desc": "Expansão da fotosfera de colapso de núcleo" },
+        "dm_trgb": { "label": "Ponta do Ramo das Gigantes Vermelhas", "desc": "Corte de luminosidade de gigantes vermelhas" },
+        "dm_ceph": { "label": "Variáveis Cefeidas", "desc": "Estrelas pulsantes período-luminosidade" },
+        "dm_mas": { "label": "Masers", "desc": "Distâncias geométricas de masers de água" }
       }
     },
     "map": {
