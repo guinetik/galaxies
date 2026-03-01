@@ -44,7 +44,7 @@ export class SpacetimeFabric {
       fragmentShader,
       uniforms: {
         uDensity: { value: this.densityTexture },
-        uDisplaceScale: { value: 4000.0 },
+        uDisplaceScale: { value: 6000.0 },
         uGridLines: { value: 64.0 },
         uTime: { value: 0 },
       },

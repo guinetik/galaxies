@@ -39,7 +39,7 @@ export class SpacetimeScene {
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
     this.controls.minDistance = 500
-    this.controls.maxDistance = 60000
+    this.controls.maxDistance = 100000
     this.controls.target.set(0, -1000, 0)
 
     this.resizeObserver = new ResizeObserver(() => {

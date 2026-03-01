@@ -24,7 +24,7 @@ export interface DensityFieldResult {
 export function computeDensityField(
   groups: GalaxyGroup[],
   resolution = 256,
-  extent = 16000,
+  extent = 30000,
   slabHalf = 2000,
   kernelRadius = 3,
   sigma = 1.5,

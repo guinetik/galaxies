@@ -21,7 +21,7 @@ export class SpacetimePoints {
   constructor(
     groups: GalaxyGroup[],
     densityField: DensityFieldResult,
-    displaceScale: number = 4000.0,
+    displaceScale: number = 6000.0,
   ) {
     this.groupData = groups
     const { grid, resolution, extent } = densityField

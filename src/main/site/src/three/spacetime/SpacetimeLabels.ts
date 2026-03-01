@@ -29,7 +29,7 @@ export class SpacetimeLabels {
   readonly group: THREE.Group
   private sprites: THREE.Sprite[] = []
 
-  constructor(densityField: DensityFieldResult, displaceScale: number = 4000.0) {
+  constructor(densityField: DensityFieldResult, displaceScale: number = 6000.0) {
     this.group = new THREE.Group()
     const { grid, resolution, extent } = densityField
 
