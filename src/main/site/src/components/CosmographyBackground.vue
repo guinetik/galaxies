@@ -35,12 +35,12 @@ interface Ring {
 }
 
 const rings: Ring[] = [
-  { radius: 0.12, speed: 0.02, angle: 0, opacity: 0.08, dash: [], width: 1 },
-  { radius: 0.22, speed: -0.015, angle: 1, opacity: 0.06, dash: [4, 8], width: 0.5 },
-  { radius: 0.35, speed: 0.01, angle: 2, opacity: 0.05, dash: [2, 10], width: 0.5 },
-  { radius: 0.50, speed: -0.008, angle: 3, opacity: 0.04, dash: [10, 20], width: 0.5 },
-  { radius: 0.70, speed: 0.005, angle: 0, opacity: 0.03, dash: [], width: 1 },
-  { radius: 0.95, speed: -0.002, angle: 1.5, opacity: 0.02, dash: [5, 15], width: 0.5 },
+  { radius: 0.12, speed: 0.02, angle: 0, opacity: 0.2, dash: [], width: 1.5 },
+  { radius: 0.22, speed: -0.015, angle: 1, opacity: 0.15, dash: [4, 8], width: 1 },
+  { radius: 0.35, speed: 0.01, angle: 2, opacity: 0.12, dash: [2, 10], width: 1 },
+  { radius: 0.50, speed: -0.008, angle: 3, opacity: 0.1, dash: [10, 20], width: 1 },
+  { radius: 0.70, speed: 0.005, angle: 0, opacity: 0.08, dash: [], width: 1.5 },
+  { radius: 0.95, speed: -0.002, angle: 1.5, opacity: 0.06, dash: [5, 15], width: 1 },
 ]
 
 interface Particle {
@@ -56,8 +56,8 @@ for (let i = 0; i < 60; i++) {
   particles.push({
     x: Math.random(),
     y: Math.random(),
-    size: Math.random() * 1.5 + 0.5,
-    opacity: Math.random() * 0.15 + 0.05,
+    size: Math.random() * 2.0 + 1.0,
+    opacity: Math.random() * 0.3 + 0.1,
     speed: 0.002 + Math.random() * 0.005
   })
 }
@@ -181,11 +181,11 @@ function draw(time: number) {
       cy + Math.sin(angle) * maxR
     )
     grad.addColorStop(0, `rgba(${COLOR_CYAN}, 0)`)
-    grad.addColorStop(0.5, `rgba(${COLOR_CYAN}, 0.05)`)
+    grad.addColorStop(0.5, `rgba(${COLOR_CYAN}, 0.15)`)
     grad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
     
     ctx.strokeStyle = grad
-    ctx.lineWidth = 1
+    ctx.lineWidth = 1.5
     ctx.setLineDash([])
     ctx.stroke()
   }
@@ -197,7 +197,7 @@ function draw(time: number) {
     
     const sweepGrad = ctx.createConicGradient(sweepAngle, cx, cy)
     sweepGrad.addColorStop(0, `rgba(${COLOR_CYAN}, 0)`)
-    sweepGrad.addColorStop(0.1, `rgba(${COLOR_CYAN}, 0.02)`)
+    sweepGrad.addColorStop(0.1, `rgba(${COLOR_CYAN}, 0.08)`)
     sweepGrad.addColorStop(0.2, `rgba(${COLOR_CYAN}, 0)`)
     sweepGrad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
     
@@ -209,7 +209,7 @@ function draw(time: number) {
   
   // 6. Central Glow
   const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100)
-  glow.addColorStop(0, `rgba(${COLOR_CYAN}, 0.05)`)
+  glow.addColorStop(0, `rgba(${COLOR_CYAN}, 0.15)`)
   glow.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
   
   ctx.fillStyle = glow
