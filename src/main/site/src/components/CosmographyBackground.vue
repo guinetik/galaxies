@@ -20,55 +20,56 @@ let animationId = 0
 let width = 0
 let height = 0
 
-// Lens center — slightly off-center for asymmetry
-const CENTER_X_RATIO = 0.42
-const CENTER_Y_RATIO = 0.44
+// Colors
+const COLOR_CYAN = '34, 211, 238' // #22d3ee
+const COLOR_WHITE = '255, 255, 255'
 
-interface LensRing {
-  radius: number       // base radius as fraction of min(w,h)
-  arcStart: number     // arc start angle in radians
-  arcSpan: number      // arc length in radians
-  speed: number        // rotation speed (rad/s), negative = CCW
-  opacity: number      // base stroke opacity
-  cyan: boolean        // tinted cyan or pure white
-  width: number        // stroke width
+// Animation State
+interface Ring {
+  radius: number       // Base radius (0-1 relative to screen min dim)
+  speed: number        // Rotation speed
+  angle: number        // Current angle
+  opacity: number      // Opacity
+  dash: number[]       // Line dash pattern
+  width: number        // Line width
 }
 
-const rings: LensRing[] = [
-  { radius: 0.08, arcStart: 0.2,  arcSpan: 5.2,  speed: 0.035,  opacity: 0.07, cyan: false, width: 0.8 },
-  { radius: 0.14, arcStart: 1.0,  arcSpan: 4.8,  speed: -0.025, opacity: 0.05, cyan: true,  width: 0.6 },
-  { radius: 0.21, arcStart: 0.5,  arcSpan: 5.4,  speed: 0.018,  opacity: 0.06, cyan: false, width: 0.7 },
-  { radius: 0.30, arcStart: 2.0,  arcSpan: 4.2,  speed: -0.042, opacity: 0.04, cyan: false, width: 0.5 },
-  { radius: 0.38, arcStart: 0.8,  arcSpan: 5.0,  speed: 0.015,  opacity: 0.05, cyan: true,  width: 0.6 },
-  { radius: 0.48, arcStart: 1.5,  arcSpan: 4.6,  speed: -0.010, opacity: 0.035, cyan: false, width: 0.5 },
-  { radius: 0.60, arcStart: 0.0,  arcSpan: 5.8,  speed: 0.008,  opacity: 0.025, cyan: false, width: 0.4 },
+const rings: Ring[] = [
+  { radius: 0.12, speed: 0.02, angle: 0, opacity: 0.08, dash: [], width: 1 },
+  { radius: 0.22, speed: -0.015, angle: 1, opacity: 0.06, dash: [4, 8], width: 0.5 },
+  { radius: 0.35, speed: 0.01, angle: 2, opacity: 0.05, dash: [2, 10], width: 0.5 },
+  { radius: 0.50, speed: -0.008, angle: 3, opacity: 0.04, dash: [10, 20], width: 0.5 },
+  { radius: 0.70, speed: 0.005, angle: 0, opacity: 0.03, dash: [], width: 1 },
+  { radius: 0.95, speed: -0.002, angle: 1.5, opacity: 0.02, dash: [5, 15], width: 0.5 },
 ]
 
-// Light rays — angles from center toward edge
-const rays = [
-  { angle: -0.6, opacity: 0.025 },
-  { angle:  0.9, opacity: 0.020 },
-  { angle:  2.4, opacity: 0.030 },
-  { angle: -2.1, opacity: 0.018 },
-]
-
-// Sparse star dots
-interface Star {
-  x: number  // 0-1 ratio
+interface Particle {
+  x: number
   y: number
   size: number
   opacity: number
+  speed: number
 }
 
-const stars: Star[] = []
+const particles: Particle[] = []
 for (let i = 0; i < 60; i++) {
-  stars.push({
+  particles.push({
     x: Math.random(),
     y: Math.random(),
-    size: 0.5 + Math.random() * 1.5,
-    opacity: 0.06 + Math.random() * 0.12,
+    size: Math.random() * 1.5 + 0.5,
+    opacity: Math.random() * 0.15 + 0.05,
+    speed: 0.002 + Math.random() * 0.005
   })
 }
+
+interface Blip {
+  ringIndex: number
+  angle: number
+  opacity: number
+  life: number
+}
+
+let blips: Blip[] = []
 
 function resize() {
   if (!canvas.value || !container.value) return
@@ -86,94 +87,136 @@ function resize() {
 function draw(time: number) {
   if (!ctx) return
   const t = time / 1000
-
+  
   ctx.clearRect(0, 0, width, height)
-
-  const cx = width * CENTER_X_RATIO
-  const cy = height * CENTER_Y_RATIO
+  
+  const cx = width * 0.5
+  const cy = height * 0.5
   const scale = Math.min(width, height)
-
-  // 1. Star dots
-  for (const star of stars) {
+  
+  // 1. Background Particles (Drifting Upwards)
+  ctx.fillStyle = `rgba(${COLOR_WHITE}, 1)`
+  particles.forEach(p => {
+    p.y -= p.speed * 0.5
+    if (p.y < 0) p.y = 1
+    
+    ctx.globalAlpha = p.opacity
     ctx.beginPath()
-    ctx.arc(star.x * width, star.y * height, star.size, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`
+    ctx.arc(p.x * width, p.y * height, p.size, 0, Math.PI * 2)
     ctx.fill()
+  })
+  ctx.globalAlpha = 1
+  
+  // 2. Concentric Rings (Distance Ladder)
+  rings.forEach((ring, i) => {
+    const r = ring.radius * scale * 0.8
+    const rotation = ring.angle + t * ring.speed
+    
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(rotation)
+    
+    ctx.beginPath()
+    ctx.arc(0, 0, r, 0, Math.PI * 2)
+    ctx.strokeStyle = `rgba(${i % 2 === 0 ? COLOR_CYAN : COLOR_WHITE}, ${ring.opacity})`
+    ctx.lineWidth = ring.width
+    ctx.setLineDash(ring.dash)
+    ctx.stroke()
+    
+    ctx.restore()
+  })
+  
+  // 3. Blips (Data points on rings)
+  if (Math.random() < 0.03) {
+    const ringIdx = Math.floor(Math.random() * rings.length)
+    blips.push({
+      ringIndex: ringIdx,
+      angle: Math.random() * Math.PI * 2,
+      opacity: 0,
+      life: 1.0
+    })
   }
+  
+  blips = blips.filter(b => b.life > 0)
+  blips.forEach(b => {
+    b.life -= 0.01
+    // Fade in then out
+    b.opacity = b.life > 0.8 ? (1 - b.life) * 5 : b.life
+    
+    const ring = rings[b.ringIndex]
+    const r = ring.radius * scale * 0.8
+    // Blip rotates with ring
+    const rotation = ring.angle + t * ring.speed + b.angle
+    
+    const bx = cx + Math.cos(rotation) * r
+    const by = cy + Math.sin(rotation) * r
+    
+    ctx!.beginPath()
+    ctx!.arc(bx, by, 2, 0, Math.PI * 2)
+    ctx!.fillStyle = `rgba(${COLOR_CYAN}, ${b.opacity})`
+    ctx!.fill()
+    
+    // Tiny ring around blip
+    ctx!.beginPath()
+    ctx!.arc(bx, by, 6 * (1-b.life), 0, Math.PI * 2)
+    ctx!.strokeStyle = `rgba(${COLOR_CYAN}, ${b.opacity * 0.5})`
+    ctx!.lineWidth = 0.5
+    ctx!.stroke()
+  })
 
-  // 2. Light rays
-  const rayLength = scale * 0.75
-  for (const ray of rays) {
+  // 4. Connecting Lines (Ladder Rungs / Web)
+  const numLines = 8
+  const maxR = rings[rings.length - 1].radius * scale * 0.8
+  
+  for (let i = 0; i < numLines; i++) {
+    const angle = (i / numLines) * Math.PI * 2 + t * 0.02
+    
     ctx.beginPath()
     ctx.moveTo(cx, cy)
-    ctx.lineTo(
-      cx + Math.cos(ray.angle) * rayLength,
-      cy + Math.sin(ray.angle) * rayLength
+    ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR)
+    
+    const grad = ctx.createLinearGradient(
+      cx, cy, 
+      cx + Math.cos(angle) * maxR, 
+      cy + Math.sin(angle) * maxR
     )
-    ctx.strokeStyle = `rgba(255, 255, 255, ${ray.opacity})`
-    ctx.lineWidth = 0.5
+    grad.addColorStop(0, `rgba(${COLOR_CYAN}, 0)`)
+    grad.addColorStop(0.5, `rgba(${COLOR_CYAN}, 0.05)`)
+    grad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
+    
+    ctx.strokeStyle = grad
+    ctx.lineWidth = 1
+    ctx.setLineDash([])
     ctx.stroke()
   }
 
-  // 3. Lens rings
-  for (const ring of rings) {
-    const r = ring.radius * scale
-    const rotation = ring.arcStart + t * ring.speed
-    const fadeLen = 0.3 // radians of fade at each end
-
-    // Draw the arc in small segments for endpoint fading
-    const segments = 80
-    const step = ring.arcSpan / segments
-
-    for (let i = 0; i < segments; i++) {
-      const segAngle = rotation + i * step
-      const segEnd = segAngle + step + 0.01 // tiny overlap to avoid gaps
-
-      // Fade at endpoints
-      let fade = 1
-      const fromStart = i * step
-      const fromEnd = ring.arcSpan - (i + 1) * step
-      if (fromStart < fadeLen) fade = fromStart / fadeLen
-      if (fromEnd < fadeLen) fade = Math.min(fade, fromEnd / fadeLen)
-
-      const alpha = ring.opacity * fade
-      if (alpha < 0.002) continue
-
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, segAngle, segEnd)
-
-      if (ring.cyan) {
-        ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`
-      } else {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`
-      }
-      ctx.lineWidth = ring.width
-      ctx.stroke()
-    }
+  // 5. Radar Sweep (Subtle)
+  if (ctx.createConicGradient) {
+    const sweepAngle = t * 0.15
+    const sweepR = scale * 0.6
+    
+    const sweepGrad = ctx.createConicGradient(sweepAngle, cx, cy)
+    sweepGrad.addColorStop(0, `rgba(${COLOR_CYAN}, 0)`)
+    sweepGrad.addColorStop(0.1, `rgba(${COLOR_CYAN}, 0.02)`)
+    sweepGrad.addColorStop(0.2, `rgba(${COLOR_CYAN}, 0)`)
+    sweepGrad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
+    
+    ctx.fillStyle = sweepGrad
+    ctx.beginPath()
+    ctx.arc(cx, cy, sweepR, 0, Math.PI * 2)
+    ctx.fill()
   }
-
-  // 4. Focal glow
-  const pulseAlpha = 0.025 + 0.02 * Math.sin(t * 0.8)
-  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 35)
-  glow.addColorStop(0, `rgba(34, 211, 238, ${pulseAlpha})`)
-  glow.addColorStop(1, 'rgba(34, 211, 238, 0)')
-  ctx.beginPath()
-  ctx.arc(cx, cy, 35, 0, Math.PI * 2)
+  
+  // 6. Central Glow
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100)
+  glow.addColorStop(0, `rgba(${COLOR_CYAN}, 0.05)`)
+  glow.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
+  
   ctx.fillStyle = glow
-  ctx.fill()
-
-  // 5. Tiny crosshair at focal point
-  const chSize = 6
-  const chAlpha = 0.08
-  ctx.strokeStyle = `rgba(255, 255, 255, ${chAlpha})`
-  ctx.lineWidth = 0.5
   ctx.beginPath()
-  ctx.moveTo(cx - chSize, cy)
-  ctx.lineTo(cx + chSize, cy)
-  ctx.moveTo(cx, cy - chSize)
-  ctx.lineTo(cx, cy + chSize)
-  ctx.stroke()
-
+  ctx.arc(cx, cy, 100, 0, Math.PI * 2)
+  ctx.fill()
+  
   animationId = requestAnimationFrame(draw)
 }
 
