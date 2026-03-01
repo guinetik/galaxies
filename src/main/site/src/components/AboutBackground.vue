@@ -30,10 +30,34 @@ let gridHelper: THREE.PolarGridHelper
 
 // Textures
 const galaxyAtlas = generateGalaxyTextureAtlas()
+const particleTexture = createCircleTexture()
 
 // Constants
 const PARTICLE_COUNT = 2000
 const GALAXY_SIZE = 100
+
+function createCircleTexture() {
+  const size = 64
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return new THREE.Texture()
+
+  const center = size / 2
+  const radius = size / 2
+
+  const gradient = ctx.createRadialGradient(center, center, 0, center, center, radius)
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)')
+  gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)')
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  return texture
+}
 
 function init() {
   if (!container.value) return
@@ -91,9 +115,12 @@ function createStarField() {
   const material = new THREE.PointsMaterial({
     color: 0xffffff,
     size: 0.5,
+    map: particleTexture,
     transparent: true,
     opacity: 0.6,
-    sizeAttenuation: true
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
   })
   
   starField = new THREE.Points(geometry, material)
@@ -142,8 +169,10 @@ function createHeroGalaxy() {
   const material = new THREE.PointsMaterial({
     size: 0.2,
     vertexColors: true,
+    map: particleTexture,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
+    transparent: true
   })
 
   heroGalaxy = new THREE.Points(geometry, material)
@@ -165,10 +194,12 @@ function createDataCloud() {
   
   const material = new THREE.PointsMaterial({
     color: 0x22d3ee,
-    size: 0.3,
+    size: 0.5, // Slightly larger to account for soft edges
+    map: particleTexture,
     transparent: true,
     opacity: 0, // Start invisible
-    blending: THREE.AdditiveBlending
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
   })
   
   dataCloud = new THREE.Points(geometry, material)
