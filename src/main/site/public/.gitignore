@@ -1,0 +1,2 @@
+# Override repo .gitignore for gh-pages deployment.
+# Ensures data/*.db and other assets are committed.
