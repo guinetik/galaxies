@@ -40,8 +40,8 @@ export class SpacetimePoints {
       // Sample density at this position to get Y displacement
       const u = (g.sgx + extent) / (extent * 2)
       const v = (g.sgy + extent) / (extent * 2)
-      const gx = Math.min(Math.floor(u * resolution), resolution - 1)
-      const gy = Math.min(Math.floor(v * resolution), resolution - 1)
+      const gx = Math.min(Math.max(Math.floor(u * resolution), 0), resolution - 1)
+      const gy = Math.min(Math.max(Math.floor(v * resolution), 0), resolution - 1)
       const density = grid[gy * resolution + gx]
       const y = -(Math.pow(density, 0.7) * displaceScale)
 

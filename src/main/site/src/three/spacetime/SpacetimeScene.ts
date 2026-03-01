@@ -64,7 +64,7 @@ export class SpacetimeScene {
     this.slabCount = densityField.slabCount
 
     // Filter groups to same slab for points
-    const slabGroups = groups.filter((g) => Math.abs(g.sgz) < 2000)
+    const slabGroups = groups.filter((g) => Math.abs(g.sgz) <= 2000)
 
     // Build fabric
     this.fabric = new SpacetimeFabric(densityField)
