@@ -76,27 +76,30 @@ export class CosmicMapField {
    */
   setGalaxies(galaxies: Galaxy[]): void {
     this.currentMode = 'galaxies'
-    this.galaxyData = galaxies
     this.groupData = []
 
-    const count = galaxies.length
+    // Only plot galaxies with supergalactic coordinates and velocity
+    const valid = galaxies.filter(g => g.sgl != null && g.sgb != null && g.vcmb != null)
+    this.galaxyData = valid
+
+    const count = valid.length
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const DEG2RAD = Math.PI / 180
 
     for (let i = 0; i < count; i++) {
-      const g = galaxies[i]
-      const sglRad = (g.sgl ?? 0) * DEG2RAD
-      const sgbRad = (g.sgb ?? 0) * DEG2RAD
+      const g = valid[i]
+      const sglRad = g.sgl! * DEG2RAD
+      const sgbRad = g.sgb! * DEG2RAD
       // Use vcmb (km/s) as radial distance to match group SGX/Y/Z coordinate system
-      const v = Math.abs(g.vcmb ?? 0)
+      const v = Math.abs(g.vcmb!)
 
       positions[i * 3] = v * Math.cos(sgbRad) * Math.cos(sglRad)
       positions[i * 3 + 1] = v * Math.cos(sgbRad) * Math.sin(sglRad)
       positions[i * 3 + 2] = v * Math.sin(sgbRad)
 
-      const c = velocityToColor(g.vcmb ?? 0)
+      const c = velocityToColor(g.vcmb!)
       colors[i * 3] = c[0]
       colors[i * 3 + 1] = c[1]
       colors[i * 3 + 2] = c[2]

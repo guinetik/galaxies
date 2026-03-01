@@ -12,7 +12,8 @@ import { EarthHorizon } from '@/three/EarthHorizon'
 import { BackgroundStars } from '@/three/BackgroundStars'
 import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
 import { LOCATIONS } from '@/three/constants'
-import type { Galaxy } from '@/types/galaxy'
+import type { Galaxy, MorphologyClass } from '@/types/galaxy'
+import { assignMorphology } from '@/types/galaxy'
 
 export interface HoverEvent {
   galaxy: Galaxy
@@ -38,7 +39,23 @@ function setLocation(name: string) {
   }
 }
 
-defineExpose({ currentFov, currentMaxRedshift, currentLocation, setLocation })
+let allGalaxies: Galaxy[] = []
+
+function applyFilter(morphologies: Set<MorphologyClass>, sources: Set<string>) {
+  if (!galaxyField) return 0
+  const filtered = allGalaxies.filter(g => {
+    const morph = assignMorphology(g.pgc, g.morphology)
+    return morphologies.has(morph) && sources.has(g.source ?? 'CF4')
+  })
+  galaxyField.rebuild(filtered)
+  return filtered.length
+}
+
+function getAllGalaxiesCount() {
+  return allGalaxies.length
+}
+
+defineExpose({ currentFov, currentMaxRedshift, currentLocation, setLocation, applyFilter, getAllGalaxiesCount })
 
 let galaxyField: GalaxyField | null = null
 let earthHorizon: EarthHorizon | null = null
@@ -146,9 +163,9 @@ onMounted(async () => {
   await ready
 
   // 3. Create objects
-  const galaxies = getAllGalaxies()
+  allGalaxies = getAllGalaxies()
   const atlasTexture = generateGalaxyTextureAtlas()
-  galaxyField = new GalaxyField(galaxies, atlasTexture)
+  galaxyField = new GalaxyField(allGalaxies, atlasTexture)
   earthHorizon = new EarthHorizon()
   backgroundStars = new BackgroundStars()
 

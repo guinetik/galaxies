@@ -25,6 +25,12 @@
     "unknown": "Unknown"
   },
   "pages": {
+    "home": {
+      "filter": "Filter",
+      "morphologyLabel": "Morphology",
+      "catalogLabel": "Catalog",
+      "showing": "Showing {count} / {total}"
+    },
     "about": {
       "title": "Galaxies",
       "subtitle": "55,877 galaxies. Measured distances. One celestial sphere.",

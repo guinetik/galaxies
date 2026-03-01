@@ -1,7 +1,7 @@
 <template>
   <div class="galaxy-info-card">
     <div class="info-row">
-      <span class="info-label">{{ t('pages.galaxy.fields.morphology.label') }}</span> {{ t('morphology.' + morphology) }}
+      <span class="info-label">{{ t('pages.galaxy.fields.morphology.label') }}</span> {{ t('morphology.' + morphology) }}<sup v-if="!galaxy.morphology" class="procedural-mark" title="Procedurally assigned">p</sup>
     </div>
     <div class="info-row">
       <span class="info-label">Distance</span> {{ galaxy.distance_mpc.toFixed(1) }} Mpc ({{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly)
@@ -38,7 +38,7 @@ const props = defineProps<{
   galaxy: Galaxy
 }>()
 
-const morphology = computed(() => assignMorphology(props.galaxy.pgc))
+const morphology = computed(() => assignMorphology(props.galaxy.pgc, props.galaxy.morphology))
 
 const methodEntries = computed(() => {
   const g = props.galaxy
@@ -108,5 +108,12 @@ const methodEntries = computed(() => {
 .method-tag:hover {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+.procedural-mark {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: 2px;
+  cursor: help;
 }
 </style>

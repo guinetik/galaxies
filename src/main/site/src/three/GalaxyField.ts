@@ -9,7 +9,7 @@ import fragmentShader from './shaders/galaxy.frag.glsl?raw'
 
 export class GalaxyField {
   readonly points: THREE.Points
-  readonly galaxies: Galaxy[]
+  galaxies: Galaxy[]
   private material: THREE.ShaderMaterial
   private geometry: THREE.BufferGeometry
   private atlasTexture: THREE.Texture
@@ -22,6 +22,35 @@ export class GalaxyField {
   constructor(galaxies: Galaxy[], atlasTexture: THREE.Texture) {
     this.galaxies = galaxies
     this.atlasTexture = atlasTexture
+    this.positions = new Float32Array(0)
+    this.sizes = new Float32Array(0)
+    this.redshifts = new Float32Array(0)
+
+    this.geometry = new THREE.BufferGeometry()
+
+    this.material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uMaxRedshift: { value: 0.01 },
+        uFov: { value: 60.0 },
+        uTexture: { value: atlasTexture },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    })
+
+    this.points = new THREE.Points(this.geometry, this.material)
+    this.points.frustumCulled = false
+
+    this.rebuild(galaxies)
+  }
+
+  rebuild(galaxies: Galaxy[]): void {
+    this.galaxies = galaxies
     const count = galaxies.length
 
     const positions = new Float32Array(count * 3)
@@ -67,6 +96,7 @@ export class GalaxyField {
     this.sizes = sizes
     this.redshifts = redshifts
 
+    this.geometry.dispose()
     this.geometry = new THREE.BufferGeometry()
     this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3))
@@ -74,23 +104,7 @@ export class GalaxyField {
     this.geometry.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
     this.geometry.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
 
-    this.material = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: {
-        uTime: { value: 0 },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uMaxRedshift: { value: 0.01 },
-        uFov: { value: 60.0 },
-        uTexture: { value: atlasTexture },
-      },
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending,
-    })
-
-    this.points = new THREE.Points(this.geometry, this.material)
-    this.points.frustumCulled = false
+    this.points.geometry = this.geometry
   }
 
   update(elapsed: number, maxRedshift: number, fov: number): void {

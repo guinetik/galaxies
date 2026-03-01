@@ -29,6 +29,18 @@ export interface Galaxy {
   e_dm_trgb: number | null
   e_dm_ceph: number | null
   e_dm_mas: number | null
+  source: string | null
+  name: string | null
+  morphology: string | null
+  agc: number | null
+  v_hi: number | null
+  log_mhi: number | null
+  e_log_mhi: number | null
+  log_ms_t: number | null
+  e_log_ms_t: number | null
+  log_sfr_nuv: number | null
+  e_log_sfr_nuv: number | null
+  b_mag: number | null
 }
 
 export type MorphologyClass =
@@ -49,11 +61,29 @@ function seededRandom(seed: number): number {
 }
 
 /**
- * Assign a morphology class to a galaxy based on its PGC number.
- * Uses seeded random weighted by cosmic proportions:
+ * Map a Hubble type string (from FSS catalog) to a MorphologyClass.
+ * Returns null if the string doesn't match a known type.
+ */
+function hubbleToClass(hubble: string): MorphologyClass | null {
+  const h = hubble.trim()
+  if (/^E\d?$/.test(h) || h === 'E/S0') return 'elliptical'
+  if (h === 'S0' || h === 'S0/a') return 'lenticular'
+  if (/^SB/.test(h)) return 'barred'
+  if (/^S[a-m]/.test(h)) return 'spiral'
+  if (h === 'Irr') return 'irregular'
+  return null
+}
+
+/**
+ * Get morphology class for a galaxy. Uses real catalog data when available
+ * (FSS Hubble types), falls back to seeded random weighted by cosmic proportions:
  *   ~35% spiral, ~35% barred, ~15% elliptical, ~10% lenticular, ~5% irregular
  */
-export function assignMorphology(pgc: number): MorphologyClass {
+export function assignMorphology(pgc: number, morphology?: string | null): MorphologyClass {
+  if (morphology) {
+    const cls = hubbleToClass(morphology)
+    if (cls) return cls
+  }
   const r = seededRandom(pgc)
   if (r < 0.35) return 'spiral'
   if (r < 0.70) return 'barred'

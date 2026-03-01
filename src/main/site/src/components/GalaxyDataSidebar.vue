@@ -119,7 +119,7 @@ defineEmits<{
   'update:show': [value: boolean]
 }>()
 
-const morphology = computed(() => assignMorphology(props.galaxy.pgc))
+const morphology = computed(() => assignMorphology(props.galaxy.pgc, props.galaxy.morphology))
 
 function formatSigned(v: number, decimals: number): string {
   const s = v.toFixed(decimals)

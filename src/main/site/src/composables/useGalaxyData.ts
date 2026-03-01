@@ -32,7 +32,7 @@ async function initDatabase(): Promise<void> {
     locateFile: () => '/data/sql-wasm.wasm',
   })
 
-  const response = await fetch('/data/cosmicflows4.db')
+  const response = await fetch('/data/galaxies.db')
   const buffer = await response.arrayBuffer()
   db = new SQL.Database(new Uint8Array(buffer))
 

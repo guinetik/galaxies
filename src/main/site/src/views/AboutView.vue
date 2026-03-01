@@ -36,7 +36,7 @@
         <a href="https://edd.ifa.hawaii.edu/" target="_blank" rel="noopener" class="about-link">
           {{ t('pages.about.data.dataLink') }} &nearr;
         </a>
-        <a href="/data/cosmicflows4.db" download="cosmicflows4.db" class="about-link about-link-download">
+        <a href="/data/galaxies.db" download="galaxies.db" class="about-link about-link-download">
           {{ t('pages.about.data.downloadDb') }} &darr;
         </a>
       </div>
