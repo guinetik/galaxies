@@ -7,6 +7,9 @@
       <router-link to="/about" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.about') }}
       </router-link>
+      <router-link to="/map" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.map') }}
+      </router-link>
     </div>
 
     <div class="flex items-center gap-4">

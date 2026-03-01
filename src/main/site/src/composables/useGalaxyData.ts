@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { Galaxy } from '@/types/galaxy'
+import type { Galaxy, GalaxyGroup } from '@/types/galaxy'
 import initSqlJs from 'sql.js'
 import type { Database } from 'sql.js'
 
@@ -15,6 +15,14 @@ function rowToGalaxy(columns: string[], values: any[]): Galaxy {
     obj[columns[i]] = values[i]
   }
   return obj as Galaxy
+}
+
+function rowToGroup(columns: string[], values: any[]): GalaxyGroup {
+  const obj: any = {}
+  for (let i = 0; i < columns.length; i++) {
+    obj[columns[i]] = values[i]
+  }
+  return obj as GalaxyGroup
 }
 
 async function initDatabase(): Promise<void> {
@@ -82,6 +90,20 @@ export function useGalaxyData() {
     return galaxies
   }
 
+  function getAllGroups(): GalaxyGroup[] {
+    if (!db) return []
+    const stmt = db.prepare(
+      'SELECT group_pgc, sgx, sgy, sgz, dist_mpc, vh, sgl, sgb FROM galaxy_groups WHERE sgx IS NOT NULL'
+    )
+    const groups: GalaxyGroup[] = []
+    const columns = stmt.getColumnNames()
+    while (stmt.step()) {
+      groups.push(rowToGroup(columns, stmt.get() as any[]))
+    }
+    stmt.free()
+    return groups
+  }
+
   function getGalaxyByPgc(pgc: number): Galaxy | null {
     if (!db) return null
     const stmt = db.prepare('SELECT * FROM galaxies WHERE pgc = ?')
@@ -104,5 +126,6 @@ export function useGalaxyData() {
     getGalaxiesByRedshiftRange,
     searchGalaxies,
     getGalaxyByPgc,
+    getAllGroups,
   }
 }

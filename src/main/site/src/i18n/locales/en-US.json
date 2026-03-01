@@ -9,7 +9,8 @@
     "location": "Location"
   },
   "nav": {
-    "about": "About"
+    "about": "About",
+    "map": "Cosmic Map"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -99,6 +100,29 @@
         "dataCitation": "Tully, Courtois, Kourkchi et al. (2023)",
         "techTitle": "Built With"
       }
+    },
+    "map": {
+      "title": "Cosmic Map",
+      "backToSky": "Back to Sky",
+      "groups": "Groups",
+      "galaxies": "Galaxies",
+      "showAxes": "Show Axes",
+      "velocityLabel": "V_CMB (km/s)",
+      "loading": "Loading cosmic map...",
+      "info": "Info",
+      "infoTitle": "The Cosmic Web",
+      "infoIntro": "You are looking at the three-dimensional distribution of 55,877 galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside — the actual spatial arrangement of galaxies in cosmic space.",
+      "infoStructure": "The large-scale structure of the universe is not random. Galaxies cluster along filaments and sheets, surrounding vast empty voids. This network — the cosmic web — is the largest known pattern in nature, shaped by gravity over billions of years.",
+      "infoCoords": "The axes show supergalactic Cartesian coordinates (SGX, SGY, SGZ), measured in km/s of recession velocity. This velocity-space representation preserves the observed redshift structure: nearby galaxies are near the origin, distant ones are far out.",
+      "infoColors": "Colors encode CMB velocity — the galaxy's recession speed after correcting for our motion relative to the cosmic microwave background. Blue galaxies are nearby (slow recession), red and orange are far away (fast recession). This mirrors the color scheme used in the Tully et al. (2023) paper.",
+      "infoGroups": "In Groups mode, galaxies are clustered by gravitational association — each point represents a galaxy group or cluster. In Galaxies mode, each of the 55,877 individual catalog entries is plotted separately.",
+      "distributionTitle": "Velocity Distribution",
+      "statsTitle": "Statistics",
+      "statsPoints": "Points displayed",
+      "statsGroups": "Galaxy groups",
+      "statsGalaxies": "Individual galaxies",
+      "statsMaxDist": "Max distance",
+      "statsMpc": "Mpc"
     }
   }
 }

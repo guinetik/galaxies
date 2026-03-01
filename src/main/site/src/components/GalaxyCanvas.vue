@@ -121,14 +121,14 @@ function onPointerUpCapture() {
   pointerMovedDuringGesture = false
 }
 
-function onPointerClickGalaxy(e: PointerEvent) {
+function onPointerClickGalaxy(e: MouseEvent) {
   if (suppressNextClick) {
     suppressNextClick = false
     return
   }
   if (getIsDragging()) return
 
-  const galaxy = pickGalaxyFromPointer(e)
+  const galaxy = pickGalaxyFromPointer(e as PointerEvent)
   if (galaxy) {
     router.push(`/g/${galaxy.pgc}`)
   }

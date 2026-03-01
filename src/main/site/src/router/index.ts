@@ -18,5 +18,10 @@ export const router = createRouter({
       name: 'about',
       component: () => import('@/views/AboutView.vue'),
     },
+    {
+      path: '/map',
+      name: 'map',
+      component: () => import('@/views/CosmicMapView.vue'),
+    },
   ],
 })

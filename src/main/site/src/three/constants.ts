@@ -76,3 +76,16 @@ export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]
   irregular:  [0.67, 0.83, 0.90], // young blue-white stars
   unknown:    [0.82, 0.82, 0.85], // neutral silver-white
 }
+
+/** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */
+export const VELOCITY_COLOR_BINS: { label: string; max: number; color: [number, number, number] }[] = [
+  { label: '< 0',       max: 0,     color: [0.55, 0.00, 1.00] },
+  { label: '0–2k',      max: 2000,  color: [0.00, 0.00, 1.00] },
+  { label: '2–4k',      max: 4000,  color: [0.00, 0.75, 1.00] },
+  { label: '4–6k',      max: 6000,  color: [0.00, 0.80, 0.00] },
+  { label: '6–8k',      max: 8000,  color: [1.00, 1.00, 0.00] },
+  { label: '8–10k',     max: 10000, color: [1.00, 0.00, 0.00] },
+  { label: '10–12k',    max: 12000, color: [0.80, 0.00, 0.00] },
+  { label: '12–14k',    max: 14000, color: [1.00, 0.55, 0.00] },
+  { label: '14k+',      max: Infinity, color: [0.55, 0.27, 0.07] },
+]

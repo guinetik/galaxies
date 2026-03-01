@@ -52,3 +52,31 @@ export function assignMorphology(pgc: number): MorphologyClass {
   if (r < 0.95) return 'lenticular'
   return 'irregular'
 }
+
+/** Galaxy group with pre-computed supergalactic Cartesian coordinates */
+export interface GalaxyGroup {
+  group_pgc: number
+  sgx: number
+  sgy: number
+  sgz: number
+  dist_mpc: number
+  vh: number | null
+  sgl: number
+  sgb: number
+}
+
+/**
+ * Map CMB velocity to RGB color matching the Tully et al. (2023) paper's
+ * Aitoff projection color scheme (Figure 9).
+ */
+export function velocityToColor(vcmb: number): [number, number, number] {
+  if (vcmb < 0)     return [0.55, 0.00, 1.00]  // Purple
+  if (vcmb < 2000)  return [0.00, 0.00, 1.00]  // Blue
+  if (vcmb < 4000)  return [0.00, 0.75, 1.00]  // Cyan
+  if (vcmb < 6000)  return [0.00, 0.80, 0.00]  // Green
+  if (vcmb < 8000)  return [1.00, 1.00, 0.00]  // Yellow
+  if (vcmb < 10000) return [1.00, 0.00, 0.00]  // Red
+  if (vcmb < 12000) return [0.80, 0.00, 0.00]  // Dark Red
+  if (vcmb < 14000) return [1.00, 0.55, 0.00]  // Orange
+  return [0.55, 0.27, 0.07]                     // Dark Brown
+}

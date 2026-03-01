@@ -9,7 +9,8 @@
     "location": "Localização"
   },
   "nav": {
-    "about": "Sobre"
+    "about": "Sobre",
+    "map": "Mapa Cósmico"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -99,6 +100,29 @@
         "dataCitation": "Tully, Courtois, Kourkchi et al. (2023)",
         "techTitle": "Construído Com"
       }
+    },
+    "map": {
+      "title": "Mapa Cósmico",
+      "backToSky": "Voltar ao Céu",
+      "groups": "Grupos",
+      "galaxies": "Galáxias",
+      "showAxes": "Mostrar Eixos",
+      "velocityLabel": "V_CMB (km/s)",
+      "loading": "Carregando mapa cósmico...",
+      "info": "Info",
+      "infoTitle": "A Teia Cósmica",
+      "infoIntro": "Você está observando a distribuição tridimensional de 55.877 galáxias do catálogo Cosmicflows-4, mapeadas em coordenadas supergalácticas. Em vez de olhar para fora da Terra, você agora vê o universo de fora — a disposição espacial real das galáxias no espaço cósmico.",
+      "infoStructure": "A estrutura em larga escala do universo não é aleatória. As galáxias se agrupam ao longo de filamentos e folhas, cercando vastos vazios. Esta rede — a teia cósmica — é o maior padrão conhecido na natureza, moldado pela gravidade ao longo de bilhões de anos.",
+      "infoCoords": "Os eixos mostram coordenadas cartesianas supergalácticas (SGX, SGY, SGZ), medidas em km/s de velocidade de recessão. Esta representação em espaço de velocidade preserva a estrutura de redshift observada: galáxias próximas estão perto da origem, distantes estão longe.",
+      "infoColors": "As cores codificam a velocidade CMB — a velocidade de recessão da galáxia após correção do nosso movimento em relação à radiação cósmica de fundo. Galáxias azuis estão próximas (recessão lenta), vermelhas e laranjas estão distantes (recessão rápida). Isto espelha o esquema de cores usado no artigo de Tully et al. (2023).",
+      "infoGroups": "No modo Grupos, as galáxias são agrupadas por associação gravitacional — cada ponto representa um grupo ou aglomerado de galáxias. No modo Galáxias, cada uma das 55.877 entradas individuais do catálogo é plotada separadamente.",
+      "distributionTitle": "Distribuição de Velocidade",
+      "statsTitle": "Estatísticas",
+      "statsPoints": "Pontos exibidos",
+      "statsGroups": "Grupos de galáxias",
+      "statsGalaxies": "Galáxias individuais",
+      "statsMaxDist": "Distância máxima",
+      "statsMpc": "Mpc"
     }
   }
 }
