@@ -86,44 +86,45 @@ function resize() {
 
 function draw(time: number) {
   if (!ctx) return
+  const c = ctx
   const t = time / 1000
   
-  ctx.clearRect(0, 0, width, height)
+  c.clearRect(0, 0, width, height)
   
   const cx = width * 0.5
   const cy = height * 0.5
   const scale = Math.min(width, height)
   
   // 1. Background Particles (Drifting Upwards)
-  ctx.fillStyle = `rgba(${COLOR_WHITE}, 1)`
+  c.fillStyle = `rgba(${COLOR_WHITE}, 1)`
   particles.forEach(p => {
     p.y -= p.speed * 0.5
     if (p.y < 0) p.y = 1
     
-    ctx.globalAlpha = p.opacity
-    ctx.beginPath()
-    ctx.arc(p.x * width, p.y * height, p.size, 0, Math.PI * 2)
-    ctx.fill()
+    c.globalAlpha = p.opacity
+    c.beginPath()
+    c.arc(p.x * width, p.y * height, p.size, 0, Math.PI * 2)
+    c.fill()
   })
-  ctx.globalAlpha = 1
+  c.globalAlpha = 1
   
   // 2. Concentric Rings (Distance Ladder)
   rings.forEach((ring, i) => {
     const r = ring.radius * scale * 0.8
     const rotation = ring.angle + t * ring.speed
     
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.rotate(rotation)
+    c.save()
+    c.translate(cx, cy)
+    c.rotate(rotation)
     
-    ctx.beginPath()
-    ctx.arc(0, 0, r, 0, Math.PI * 2)
-    ctx.strokeStyle = `rgba(${i % 2 === 0 ? COLOR_CYAN : COLOR_WHITE}, ${ring.opacity})`
-    ctx.lineWidth = ring.width
-    ctx.setLineDash(ring.dash)
-    ctx.stroke()
+    c.beginPath()
+    c.arc(0, 0, r, 0, Math.PI * 2)
+    c.strokeStyle = `rgba(${i % 2 === 0 ? COLOR_CYAN : COLOR_WHITE}, ${ring.opacity})`
+    c.lineWidth = ring.width
+    c.setLineDash(ring.dash)
+    c.stroke()
     
-    ctx.restore()
+    c.restore()
   })
   
   // 3. Blips (Data points on rings)
@@ -151,17 +152,17 @@ function draw(time: number) {
     const bx = cx + Math.cos(rotation) * r
     const by = cy + Math.sin(rotation) * r
     
-    ctx!.beginPath()
-    ctx!.arc(bx, by, 2, 0, Math.PI * 2)
-    ctx!.fillStyle = `rgba(${COLOR_CYAN}, ${b.opacity})`
-    ctx!.fill()
+    c.beginPath()
+    c.arc(bx, by, 2, 0, Math.PI * 2)
+    c.fillStyle = `rgba(${COLOR_CYAN}, ${b.opacity})`
+    c.fill()
     
     // Tiny ring around blip
-    ctx!.beginPath()
-    ctx!.arc(bx, by, 6 * (1-b.life), 0, Math.PI * 2)
-    ctx!.strokeStyle = `rgba(${COLOR_CYAN}, ${b.opacity * 0.5})`
-    ctx!.lineWidth = 0.5
-    ctx!.stroke()
+    c.beginPath()
+    c.arc(bx, by, 6 * (1-b.life), 0, Math.PI * 2)
+    c.strokeStyle = `rgba(${COLOR_CYAN}, ${b.opacity * 0.5})`
+    c.lineWidth = 0.5
+    c.stroke()
   })
 
   // 4. Connecting Lines (Ladder Rungs / Web)
@@ -171,11 +172,11 @@ function draw(time: number) {
   for (let i = 0; i < numLines; i++) {
     const angle = (i / numLines) * Math.PI * 2 + t * 0.02
     
-    ctx.beginPath()
-    ctx.moveTo(cx, cy)
-    ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR)
+    c.beginPath()
+    c.moveTo(cx, cy)
+    c.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR)
     
-    const grad = ctx.createLinearGradient(
+    const grad = c.createLinearGradient(
       cx, cy, 
       cx + Math.cos(angle) * maxR, 
       cy + Math.sin(angle) * maxR
@@ -184,38 +185,38 @@ function draw(time: number) {
     grad.addColorStop(0.5, `rgba(${COLOR_CYAN}, 0.15)`)
     grad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
     
-    ctx.strokeStyle = grad
-    ctx.lineWidth = 1.5
-    ctx.setLineDash([])
-    ctx.stroke()
+    c.strokeStyle = grad
+    c.lineWidth = 1.5
+    c.setLineDash([])
+    c.stroke()
   }
 
   // 5. Radar Sweep (Subtle)
-  if (ctx.createConicGradient) {
+  if (c.createConicGradient) {
     const sweepAngle = t * 0.15
     const sweepR = scale * 0.6
     
-    const sweepGrad = ctx.createConicGradient(sweepAngle, cx, cy)
+    const sweepGrad = c.createConicGradient(sweepAngle, cx, cy)
     sweepGrad.addColorStop(0, `rgba(${COLOR_CYAN}, 0)`)
     sweepGrad.addColorStop(0.1, `rgba(${COLOR_CYAN}, 0.08)`)
     sweepGrad.addColorStop(0.2, `rgba(${COLOR_CYAN}, 0)`)
     sweepGrad.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
     
-    ctx.fillStyle = sweepGrad
-    ctx.beginPath()
-    ctx.arc(cx, cy, sweepR, 0, Math.PI * 2)
-    ctx.fill()
+    c.fillStyle = sweepGrad
+    c.beginPath()
+    c.arc(cx, cy, sweepR, 0, Math.PI * 2)
+    c.fill()
   }
   
   // 6. Central Glow
-  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100)
+  const glow = c.createRadialGradient(cx, cy, 0, cx, cy, 100)
   glow.addColorStop(0, `rgba(${COLOR_CYAN}, 0.15)`)
   glow.addColorStop(1, `rgba(${COLOR_CYAN}, 0)`)
   
-  ctx.fillStyle = glow
-  ctx.beginPath()
-  ctx.arc(cx, cy, 100, 0, Math.PI * 2)
-  ctx.fill()
+  c.fillStyle = glow
+  c.beginPath()
+  c.arc(cx, cy, 100, 0, Math.PI * 2)
+  c.fill()
   
   animationId = requestAnimationFrame(draw)
 }
