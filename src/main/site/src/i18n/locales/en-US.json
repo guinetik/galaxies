@@ -115,11 +115,16 @@
     },
     "galaxy": {
       "dataButton": "Data",
+      "size": "Size",
+      "sizeObserved": "observed",
+      "sizeMass": "est. from mass",
+      "sizeEstimated": "estimated",
       "sections": {
         "identity": "Identity",
         "distance": "Distance",
         "coordinates": "Coordinates",
-        "methods": "Distance Methods"
+        "methods": "Distance Methods",
+        "physical": "Physical Properties"
       },
       "fields": {
         "pgc": { "label": "PGC", "desc": "Principal Galaxies Catalogue identifier" },
@@ -144,11 +149,18 @@
         "dm_snii": { "label": "Type II Supernovae", "desc": "Core-collapse photosphere expansion" },
         "dm_trgb": { "label": "Tip of Red Giant Branch", "desc": "Red giant luminosity cutoff" },
         "dm_ceph": { "label": "Cepheid Variables", "desc": "Period-luminosity pulsating stars" },
-        "dm_mas": { "label": "Masers", "desc": "Water maser geometric distances" }
+        "dm_mas": { "label": "Masers", "desc": "Water maser geometric distances" },
+        "diameter_arcsec": { "label": "Angular Diameter", "desc": "Apparent diameter from FSS catalog (arcseconds)" },
+        "axial_ratio": { "label": "Axial Ratio (FSS)", "desc": "Minor/major axis ratio from FSS catalog" },
+        "ba": { "label": "Axial Ratio (SDSS)", "desc": "Minor/major axis ratio from SDSS photometry" },
+        "log_ms_t": { "label": "Stellar Mass", "desc": "Total stellar mass (log M☉)" },
+        "diameter_kpc": { "label": "Diameter", "desc": "Physical diameter in kiloparsecs" },
+        "size_method": { "label": "Size Method", "desc": "How the physical size was determined" }
       }
     },
     "map": {
       "title": "Cosmic Map",
+      "subtitle": "Galaxy groups and individual galaxies plotted in supergalactic coordinates — a three-dimensional atlas of the local universe.",
       "backToSky": "Back to Sky",
       "groups": "Groups",
       "galaxies": "Galaxies",
@@ -178,6 +190,10 @@
         "title": "The Distance Ladder",
         "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together — each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
         "rangeMpc": "Range (Mpc)"
+      },
+      "cylinder": {
+        "title": "The Local Universe in 3D",
+        "intro": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane. The vertical axis is SGZ — height above and below the plane where most structures concentrate. Drag to rotate, scroll to zoom."
       },
       "methods": {
         "sectionTitle": "The Methods",

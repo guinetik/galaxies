@@ -115,11 +115,16 @@
     },
     "galaxy": {
       "dataButton": "Dados",
+      "size": "Tamanho",
+      "sizeObserved": "observado",
+      "sizeMass": "est. pela massa",
+      "sizeEstimated": "estimado",
       "sections": {
         "identity": "Identidade",
         "distance": "Distância",
         "coordinates": "Coordenadas",
-        "methods": "Métodos de Distância"
+        "methods": "Métodos de Distância",
+        "physical": "Propriedades Físicas"
       },
       "fields": {
         "pgc": { "label": "PGC", "desc": "Identificador do Catálogo Principal de Galáxias" },
@@ -144,11 +149,18 @@
         "dm_snii": { "label": "Supernovas Tipo II", "desc": "Expansão da fotosfera de colapso de núcleo" },
         "dm_trgb": { "label": "Ponta do Ramo das Gigantes Vermelhas", "desc": "Corte de luminosidade de gigantes vermelhas" },
         "dm_ceph": { "label": "Variáveis Cefeidas", "desc": "Estrelas pulsantes período-luminosidade" },
-        "dm_mas": { "label": "Masers", "desc": "Distâncias geométricas de masers de água" }
+        "dm_mas": { "label": "Masers", "desc": "Distâncias geométricas de masers de água" },
+        "diameter_arcsec": { "label": "Diâmetro Angular", "desc": "Diâmetro aparente do catálogo FSS (segundos de arco)" },
+        "axial_ratio": { "label": "Razão Axial (FSS)", "desc": "Razão eixo menor/maior do catálogo FSS" },
+        "ba": { "label": "Razão Axial (SDSS)", "desc": "Razão eixo menor/maior da fotometria SDSS" },
+        "log_ms_t": { "label": "Massa Estelar", "desc": "Massa estelar total (log M☉)" },
+        "diameter_kpc": { "label": "Diâmetro", "desc": "Diâmetro físico em quiloparsecs" },
+        "size_method": { "label": "Método de Tamanho", "desc": "Como o tamanho físico foi determinado" }
       }
     },
     "map": {
       "title": "Mapa Cósmico",
+      "subtitle": "Grupos de galáxias e galáxias individuais plotados em coordenadas supergalácticas — um atlas tridimensional do universo local.",
       "backToSky": "Voltar ao Céu",
       "groups": "Grupos",
       "galaxies": "Galáxias",
@@ -178,6 +190,10 @@
         "title": "A Escada de Distâncias",
         "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas — cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
         "rangeMpc": "Alcance (Mpc)"
+      },
+      "cylinder": {
+        "title": "O Universo Local em 3D",
+        "intro": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico. O eixo vertical é SGZ — altura acima e abaixo do plano onde a maioria das estruturas se concentra. Arraste para girar, role para ampliar."
       },
       "methods": {
         "sectionTitle": "Os Métodos",
