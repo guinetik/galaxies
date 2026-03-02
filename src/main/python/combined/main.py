@@ -94,6 +94,9 @@ def load_cf4(db_path):
         d["e_log_sfr_nuv"] = None
         d["morphology"] = None
         d["b_mag"] = None
+        d["diameter_arcsec"] = None
+        d["axial_ratio"] = None
+        d["ba"] = None
         galaxies[d["pgc"]] = d
 
     groups = []
@@ -112,7 +115,7 @@ def load_alfalfa(db_path):
 
     rows = []
     for row in cur.execute("SELECT agc, ra, dec, v_hi, dist, log_mhi, e_log_mhi, "
-                           "log_ms_t, e_log_ms_t, log_sfr_nuv, e_log_sfr_nuv "
+                           "log_ms_t, e_log_ms_t, log_sfr_nuv, e_log_sfr_nuv, ba "
                            "FROM galaxies"):
         rows.append(dict(row))
 
@@ -127,7 +130,8 @@ def load_fss_ugc(db_path):
     cur = conn.cursor()
 
     fss_rows = []
-    for row in cur.execute("SELECT id, name, ra, dec, velocity, pgc, morphology, b_mag "
+    for row in cur.execute("SELECT id, name, ra, dec, velocity, pgc, morphology, b_mag, "
+                           "diameter_arcsec, axial_ratio "
                            "FROM galaxies WHERE catalog = 'FSS'"):
         fss_rows.append(dict(row))
 
@@ -152,6 +156,8 @@ def fss_pgc_join(cf4, fss_rows):
         if pgc is not None and pgc in cf4:
             cf4[pgc]["morphology"] = fss["morphology"]
             cf4[pgc]["b_mag"] = fss["b_mag"]
+            cf4[pgc]["diameter_arcsec"] = fss["diameter_arcsec"]
+            cf4[pgc]["axial_ratio"] = fss["axial_ratio"]
             if cf4[pgc]["name"] is None:
                 cf4[pgc]["name"] = fss["name"]
             matched += 1
@@ -214,6 +220,7 @@ def alfalfa_crossmatch(cf4, alfalfa_rows, spatial_idx):
             cf4[pgc]["e_log_ms_t"] = alf["e_log_ms_t"]
             cf4[pgc]["log_sfr_nuv"] = alf["log_sfr_nuv"]
             cf4[pgc]["e_log_sfr_nuv"] = alf["e_log_sfr_nuv"]
+            cf4[pgc]["ba"] = alf["ba"]
             matched += 1
         else:
             unmatched.append(alf)
@@ -271,6 +278,7 @@ def make_empty_galaxy():
         "log_ms_t": None, "e_log_ms_t": None,
         "log_sfr_nuv": None, "e_log_sfr_nuv": None,
         "morphology": None, "b_mag": None,
+        "diameter_arcsec": None, "axial_ratio": None, "ba": None,
     }
 
 
@@ -319,6 +327,7 @@ def add_unmatched_alfalfa(cf4, unmatched):
         gal["e_log_ms_t"] = alf.get("e_log_ms_t")
         gal["log_sfr_nuv"] = alf.get("log_sfr_nuv")
         gal["e_log_sfr_nuv"] = alf.get("e_log_sfr_nuv")
+        gal["ba"] = alf.get("ba")
         cf4[pgc] = gal
         added += 1
 
@@ -360,6 +369,8 @@ def add_unmatched_fss(cf4, unmatched):
         gal["name"] = fss.get("name")
         gal["morphology"] = fss.get("morphology")
         gal["b_mag"] = fss.get("b_mag")
+        gal["diameter_arcsec"] = fss.get("diameter_arcsec")
+        gal["axial_ratio"] = fss.get("axial_ratio")
         cf4[pgc] = gal
         added += 1
 
@@ -453,6 +464,9 @@ GALAXIES_COLUMNS = [
     ("e_log_sfr_nuv", "REAL"),
     ("morphology",    "TEXT"),
     ("b_mag",         "REAL"),
+    ("diameter_arcsec", "INTEGER"),
+    ("axial_ratio",     "REAL"),
+    ("ba",              "REAL"),
 ]
 
 GROUPS_COLUMNS = [
