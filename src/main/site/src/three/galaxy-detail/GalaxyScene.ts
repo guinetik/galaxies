@@ -42,6 +42,7 @@ export class GalaxyScene {
   private zoom = 4
   private targetZoom = 4
   private isDragging = false
+  private isPinching = false
   private lastX = 0
   private lastY = 0
   private velocityX = 0
@@ -50,11 +51,18 @@ export class GalaxyScene {
   // Base orbit distance scales with galaxy radius
   private baseDistance: number
 
+  // Pinch zoom state
+  private lastPinchDist = 0
+
   // Bound event handlers (stored for removal)
   private onPointerDown: (e: PointerEvent) => void
   private onPointerMove: (e: PointerEvent) => void
   private onPointerUp: (e: PointerEvent) => void
+  private onPointerCancel: (e: PointerEvent) => void
   private onWheel: (e: WheelEvent) => void
+  private onTouchStart: (e: TouchEvent) => void
+  private onTouchMove: (e: TouchEvent) => void
+  private onTouchEnd: () => void
   private resizeObserver: ResizeObserver
 
   constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
@@ -136,6 +144,12 @@ export class GalaxyScene {
     this.lensingScene.add(lensingQuad)
     this.lensingCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
+    // ─── Mobile: start more zoomed out for better fit on narrow viewports ───
+    const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768
+    const initialZoom = isNarrowViewport ? 2 : 4
+    this.zoom = initialZoom
+    this.targetZoom = initialZoom
+
     // ─── Initial orbit from position angle ───────────────────────────
 
     // PGC-seeded random angle (no position_angle in CF4)
@@ -150,6 +164,7 @@ export class GalaxyScene {
     // ─── Input bindings ────────────────────────────────────────────────
 
     this.onPointerDown = (e: PointerEvent) => {
+      if (this.isPinching) return
       this.isDragging = true
       this.lastX = e.clientX
       this.lastY = e.clientY
@@ -158,7 +173,7 @@ export class GalaxyScene {
     }
 
     this.onPointerMove = (e: PointerEvent) => {
-      if (!this.isDragging) return
+      if (this.isPinching || !this.isDragging) return
       const dx = e.clientX - this.lastX
       const dy = e.clientY - this.lastY
       this.velocityX = dx * 0.005
@@ -172,6 +187,11 @@ export class GalaxyScene {
       this.isDragging = false
     }
 
+    this.onPointerCancel = () => {
+      this.isDragging = false
+      this.isPinching = false
+    }
+
     this.onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const zoomDelta = this.targetZoom * 0.12
@@ -179,10 +199,43 @@ export class GalaxyScene {
       this.targetZoom = Math.max(0.1, Math.min(20, this.targetZoom))
     }
 
+    this.onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        this.isPinching = true
+        this.isDragging = false
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        this.lastPinchDist = Math.sqrt(dx * dx + dy * dy)
+      }
+    }
+
+    this.onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const zoomDelta = (this.lastPinchDist - dist) * 0.01
+        this.lastPinchDist = dist
+        this.targetZoom = Math.max(0.1, Math.min(20, this.targetZoom + zoomDelta))
+      }
+    }
+
+    this.onTouchEnd = () => {
+      if (this.lastPinchDist > 0) this.lastPinchDist = 0
+      this.isPinching = false
+    }
+
     canvas.addEventListener('pointerdown', this.onPointerDown)
     canvas.addEventListener('pointermove', this.onPointerMove)
     canvas.addEventListener('pointerup', this.onPointerUp)
+    canvas.addEventListener('pointercancel', this.onPointerCancel)
+    canvas.addEventListener('pointerleave', this.onPointerUp)
     canvas.addEventListener('wheel', this.onWheel, { passive: false })
+    canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
+    canvas.addEventListener('touchend', this.onTouchEnd)
 
     // ─── Resize handling ───────────────────────────────────────────────
 
@@ -328,7 +381,12 @@ export class GalaxyScene {
     canvas.removeEventListener('pointerdown', this.onPointerDown)
     canvas.removeEventListener('pointermove', this.onPointerMove)
     canvas.removeEventListener('pointerup', this.onPointerUp)
+    canvas.removeEventListener('pointercancel', this.onPointerCancel)
+    canvas.removeEventListener('pointerleave', this.onPointerUp)
     canvas.removeEventListener('wheel', this.onWheel)
+    canvas.removeEventListener('touchstart', this.onTouchStart)
+    canvas.removeEventListener('touchmove', this.onTouchMove)
+    canvas.removeEventListener('touchend', this.onTouchEnd)
     this.resizeObserver.disconnect()
 
     this.particles.dispose()

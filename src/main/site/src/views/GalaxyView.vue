@@ -1,11 +1,13 @@
 <template>
   <div class="w-full h-full">
     <GalaxyDetail v-if="galaxy" :galaxy="galaxy" />
-    <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     <GalaxyInfoCard v-if="galaxy" :galaxy="galaxy" />
-    <div class="top-buttons">
-      <button class="data-button" @click="showData = !showData">{{ t('pages.galaxy.dataButton') }}</button>
-      <router-link to="/" class="back-button">&larr; Back</router-link>
+    <div class="top-header">
+      <div class="top-buttons">
+        <button class="data-button" @click="showData = !showData">{{ t('pages.galaxy.dataButton') }}</button>
+        <router-link to="/" class="back-button">&larr; Back</router-link>
+      </div>
+      <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
     <GalaxyDataSidebar v-if="galaxy" :galaxy="galaxy" v-model:show="showData" />
     <div v-if="!galaxy && !isLoading" class="not-found">Galaxy not found</div>
@@ -35,13 +37,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.top-buttons {
+.top-header {
   position: fixed;
   top: 24px;
+  left: 24px;
   right: 24px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.top-buttons {
   display: flex;
   gap: 8px;
-  z-index: 20;
 }
 
 .back-button,
@@ -65,10 +75,8 @@ onMounted(async () => {
 }
 
 .galaxy-title {
-  position: fixed;
-  top: 28px;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
   font-size: 28px;
   font-weight: 300;
   letter-spacing: 0.25em;

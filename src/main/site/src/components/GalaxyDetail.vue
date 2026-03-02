@@ -29,5 +29,6 @@ onUnmounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
+  touch-action: none; /* Prevent browser scroll/zoom so touch orbit and pinch work */
 }
 </style>

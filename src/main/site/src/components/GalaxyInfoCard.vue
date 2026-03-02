@@ -72,6 +72,13 @@ const methodEntries = computed(() => {
   min-width: 180px;
 }
 
+@media (max-width: 767px) {
+  .galaxy-info-card {
+    top: auto;
+    bottom: 24px;
+  }
+}
+
 .info-row {
   line-height: 1.6;
 }
