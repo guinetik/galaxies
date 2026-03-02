@@ -1,15 +1,17 @@
 <template>
   <div class="cylinder-wrap">
     <canvas ref="canvasRef" class="cylinder-canvas" />
-    <div v-if="loading" class="cylinder-loading">Loading...</div>
+    <div v-if="loading" class="cylinder-loading">{{ t('pages.cosmography.cylinder.loading') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { CylinderScene } from '@/three/cosmography/CylinderScene'
 
+const { t } = useI18n()
 const { ready, getAllGroups } = useGalaxyData()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)

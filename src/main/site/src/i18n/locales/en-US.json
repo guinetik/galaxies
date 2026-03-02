@@ -193,7 +193,8 @@
       },
       "cylinder": {
         "title": "The Local Universe in 3D",
-        "intro": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane. The vertical axis is SGZ — height above and below the plane where most structures concentrate. Drag to rotate, scroll to zoom."
+        "intro": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane. The vertical axis is SGZ — height above and below the plane where most structures concentrate. Drag to rotate, scroll to zoom.",
+        "loading": "Loading local universe..."
       },
       "methods": {
         "sectionTitle": "The Methods",

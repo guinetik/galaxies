@@ -193,7 +193,8 @@
       },
       "cylinder": {
         "title": "O Universo Local em 3D",
-        "intro": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico. O eixo vertical é SGZ — altura acima e abaixo do plano onde a maioria das estruturas se concentra. Arraste para girar, role para ampliar."
+        "intro": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico. O eixo vertical é SGZ — altura acima e abaixo do plano onde a maioria das estruturas se concentra. Arraste para girar, role para ampliar.",
+        "loading": "Carregando universo local..."
       },
       "methods": {
         "sectionTitle": "Os Métodos",

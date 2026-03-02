@@ -213,29 +213,29 @@ export class CylinderScene {
 
   private buildLabels(groups: GalaxyGroup[]): void {
     for (const structure of STRUCTURES) {
+      // Find real SGZ from closest galaxy group (don't mutate the shared constant)
+      let sgz = 0
       if (structure.name !== 'Milky Way') {
         let bestDist = Infinity
-        let bestSgz = 0
         for (const g of groups) {
           const dx = g.sgx - structure.sgx
           const dz = g.sgy - structure.sgy
           const d = dx * dx + dz * dz
           if (d < bestDist) {
             bestDist = d
-            bestSgz = g.sgz
+            sgz = g.sgz
           }
         }
-        structure.sgz = bestSgz
       }
 
       const isMW = structure.name === 'Milky Way'
       const sprite = this.makeLabel(structure.name, isMW)
-      sprite.position.set(structure.sgx, structure.sgz + 300, structure.sgy)
+      sprite.position.set(structure.sgx, sgz + 300, structure.sgy)
       this.scene.add(sprite)
 
       if (!isMW) {
         const lineGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(structure.sgx, structure.sgz, structure.sgy),
+          new THREE.Vector3(structure.sgx, sgz, structure.sgy),
           new THREE.Vector3(structure.sgx, 0, structure.sgy),
         ])
         const lineMat = new THREE.LineBasicMaterial({
