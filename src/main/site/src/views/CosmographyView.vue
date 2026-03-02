@@ -30,22 +30,31 @@
               @click="scrollToMethod(key)"
             >
               <div class="ladder-label">{{ t(`pages.cosmography.methods.${key}.name`) }}</div>
-              <div class="ladder-track">
-                <div
-                  class="ladder-bar"
-                  :style="{
-                    left: mpcToPercent(ladderRanges[key][0]) + '%',
-                    width: (mpcToPercent(ladderRanges[key][1]) - mpcToPercent(ladderRanges[key][0])) + '%',
-                  }"
-                />
+              <div class="ladder-track-wrap">
+                <div class="ladder-track">
+                  <div
+                    class="ladder-bar"
+                    :style="{
+                      left: mpcToPercent(ladderRanges[key][0]) + '%',
+                      width: (mpcToPercent(ladderRanges[key][1]) - mpcToPercent(ladderRanges[key][0])) + '%',
+                    }"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Method Cards -->
+      <!-- Cylinder Infographic -->
       <section class="cosmo-section" data-section="2">
+        <h2 class="cosmo-section-title">{{ t('pages.cosmography.cylinder.title') }}</h2>
+        <p class="cosmo-body">{{ t('pages.cosmography.cylinder.intro') }}</p>
+        <CosmographyCylinder />
+      </section>
+
+      <!-- Method Cards -->
+      <section class="cosmo-section" data-section="3">
         <h2 class="cosmo-section-title">{{ t('pages.cosmography.methods.sectionTitle') }}</h2>
         <div
           v-for="key in methodKeys"
@@ -77,7 +86,7 @@
       </section>
 
       <!-- Catalogs -->
-      <section class="cosmo-section" data-section="3">
+      <section class="cosmo-section" data-section="4">
         <h2 class="cosmo-section-title">{{ t('pages.cosmography.catalogs.title') }}</h2>
         <p class="cosmo-body">{{ t('pages.cosmography.catalogs.intro') }}</p>
         <div class="catalog-grid">
@@ -108,6 +117,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CosmographyBackground from '@/components/CosmographyBackground.vue'
+import CosmographyCylinder from '@/components/CosmographyCylinder.vue'
 import TelescopeLens from '@/components/TelescopeLens.vue'
 
 const { t } = useI18n()
@@ -284,7 +294,6 @@ onMounted(() => {
 .ladder-axis {
   position: relative;
   height: 1.5rem;
-  margin-left: 140px;
   margin-bottom: 0.5rem;
 }
 
@@ -300,13 +309,15 @@ onMounted(() => {
 .ladder-rows {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
 .ladder-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.35rem;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 .ladder-row:hover .ladder-bar {
@@ -318,20 +329,20 @@ onMounted(() => {
 }
 
 .ladder-label {
-  width: 140px;
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
   transition: color 0.2s;
 }
 
+.ladder-track-wrap {
+  width: 100%;
+}
+
 .ladder-track {
-  flex: 1;
   position: relative;
-  height: 20px;
+  width: 100%;
+  height: 22px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
 }
@@ -340,7 +351,7 @@ onMounted(() => {
   position: absolute;
   height: 100%;
   border-radius: 4px;
-  background: linear-gradient(90deg, rgba(34, 211, 238, 0.3), rgba(34, 211, 238, 0.7));
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.35), rgba(34, 211, 238, 0.75));
   transition: opacity 0.2s;
 }
 
@@ -511,13 +522,18 @@ onMounted(() => {
 }
 
 @media (max-width: 767px) {
-  .ladder-label {
-    width: 80px;
-    font-size: 0.7rem;
+  .cosmo-hero {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
-  .ladder-axis {
-    margin-left: 80px;
+  .cosmo-hero-title {
+    font-size: 2.25rem;
+    word-break: break-word;
+  }
+
+  .ladder-label {
+    font-size: 0.8rem;
   }
 }
 </style>
