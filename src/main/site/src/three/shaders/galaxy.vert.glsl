@@ -2,6 +2,7 @@ attribute float aSize;
 attribute vec3 aColor;
 attribute float aRedshift;
 attribute float aTexIndex;
+attribute float aSelected;
 
 uniform float uTime;
 uniform float uPixelRatio;
@@ -12,10 +13,12 @@ varying vec3 vColor;
 varying float vAlpha;
 varying float vTexIndex;
 varying float vDetailMix;
+varying float vSelected;
 
 void main() {
   vColor = aColor;
   vTexIndex = aTexIndex;
+  vSelected = aSelected;
 
   // Smooth fade based on redshift distance from cutoff
   if (aRedshift < 0.0 || aRedshift > uMaxRedshift) {

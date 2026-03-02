@@ -16,6 +16,8 @@ export class GalaxyField {
   private positions: Float32Array
   private sizes: Float32Array
   private redshifts: Float32Array
+  private selected: Float32Array = new Float32Array(0)
+  private selectedPgc: number | null = null
   private readonly tempLocal = new THREE.Vector3()
   private readonly tempWorld = new THREE.Vector3()
 
@@ -58,6 +60,7 @@ export class GalaxyField {
     const sizes = new Float32Array(count)
     const redshifts = new Float32Array(count)
     const texIndices = new Float32Array(count)
+    const selected = new Float32Array(count)
 
     for (let i = 0; i < count; i++) {
       const g = galaxies[i]
@@ -91,8 +94,10 @@ export class GalaxyField {
 
       // Texture atlas index from morphology
       texIndices[i] = morphologyToAtlasIndex(morphClass)
+      selected[i] = this.selectedPgc != null && g.pgc === this.selectedPgc ? 1 : 0
     }
     this.positions = positions
+    this.selected = selected
     this.sizes = sizes
     this.redshifts = redshifts
 
@@ -103,8 +108,22 @@ export class GalaxyField {
     this.geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
     this.geometry.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
     this.geometry.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
+    this.geometry.setAttribute('aSelected', new THREE.BufferAttribute(selected, 1))
 
     this.points.geometry = this.geometry
+  }
+
+  /** Set selected galaxy PGC for outline highlight; null to clear. */
+  setSelectedPgc(pgc: number | null): void {
+    if (this.selectedPgc === pgc) return
+    this.selectedPgc = pgc
+    if (!this.geometry.attributes.aSelected) return
+    const attr = this.geometry.attributes.aSelected as THREE.BufferAttribute
+    const arr = attr.array as Float32Array
+    for (let i = 0; i < this.galaxies.length; i++) {
+      arr[i] = pgc != null && this.galaxies[i].pgc === pgc ? 1 : 0
+    }
+    attr.needsUpdate = true
   }
 
   update(elapsed: number, maxRedshift: number, fov: number): void {

@@ -6,9 +6,11 @@
   },
   "header": {
     "siteName": "Galáxias",
-    "location": "Localização"
+    "location": "Localização",
+    "language": "Idioma"
   },
   "nav": {
+    "home": "Céu",
     "about": "Sobre",
     "map": "Mapa Cósmico",
     "cosmography": "Cosmografia",
@@ -27,6 +29,13 @@
     "unknown": "Desconhecida"
   },
   "pages": {
+    "home": {
+      "goToGalaxy": "Ir para Galáxia",
+      "filter": "Filtrar",
+      "morphologyLabel": "Morfologia",
+      "catalogLabel": "Catálogo",
+      "showing": "Mostrando {count} / {total}"
+    },
     "about": {
       "title": "Galáxias",
       "subtitle": "55.877 galáxias. Distâncias medidas. Uma esfera celeste.",

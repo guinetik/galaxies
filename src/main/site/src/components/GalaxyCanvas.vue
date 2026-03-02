@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="canvasRef" class="fixed inset-0 w-full h-full" style="cursor: grab" />
+  <canvas ref="canvasRef" class="fixed inset-0 w-full h-full galaxy-canvas" />
 </template>
 
 <script setup lang="ts">
@@ -24,7 +24,11 @@ export interface HoverEvent {
 const emit = defineEmits<{
   ready: []
   hover: [payload: HoverEvent | null]
+  select: [payload: HoverEvent | null]
 }>()
+
+/** Mobile: touch-primary device (e.g. phone) — use tap-to-select instead of hover */
+const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
 const router = useRouter()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -66,6 +70,7 @@ let pointerDownX = 0
 let pointerDownY = 0
 let pointerMovedDuringGesture = false
 let suppressNextClick = false
+let selectedGalaxy: Galaxy | null = null
 
 /**
  * Perform pointer hit detection against square galaxy sprite bounds.
@@ -110,14 +115,22 @@ function onPointerMoveHover(e: PointerEvent) {
     emit('hover', { galaxy, screenX: e.clientX, screenY: e.clientY })
   } else {
     canvasRef.value!.style.cursor = 'grab'
-    emit('hover', null)
+    if (!isMobile) emit('hover', null)
   }
+}
+
+function setSelection(payload: HoverEvent | null) {
+  selectedGalaxy = payload?.galaxy ?? null
+  galaxyField?.setSelectedPgc(selectedGalaxy?.pgc ?? null)
+  emit('select', payload ?? null)
 }
 
 function onPointerLeave() {
   pointerIsDown = false
   pointerMovedDuringGesture = false
   emit('hover', null)
+  if (!isMobile) return
+  setSelection(null)
 }
 
 /**
@@ -146,7 +159,17 @@ function onPointerClickGalaxy(e: MouseEvent) {
   if (getIsDragging()) return
 
   const galaxy = pickGalaxyFromPointer(e as PointerEvent)
-  if (galaxy) {
+  if (isMobile) {
+    if (galaxy) {
+      if (selectedGalaxy?.pgc === galaxy.pgc) {
+        router.push(`/g/${galaxy.pgc}`)
+      } else {
+        setSelection({ galaxy, screenX: e.clientX, screenY: e.clientY })
+      }
+    } else {
+      setSelection(null)
+    }
+  } else if (galaxy) {
     router.push(`/g/${galaxy.pgc}`)
   }
 }
@@ -205,3 +228,10 @@ onUnmounted(() => {
   disposeScene()
 })
 </script>
+
+<style scoped>
+.galaxy-canvas {
+  cursor: grab;
+  touch-action: none; /* Prevent browser scroll/zoom so pan and pinch work on mobile */
+}
+</style>

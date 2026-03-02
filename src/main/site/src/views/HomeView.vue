@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-full">
-    <GalaxyCanvas ref="canvasRef" @ready="onCanvasReady" @hover="onHover" />
+    <GalaxyCanvas ref="canvasRef" @ready="onCanvasReady" @hover="onHover" @select="onSelect" />
     <AppHeader
       :galaxy-count="galaxyCount"
       :current-location="canvasRef?.currentLocation ?? 'North Pole'"
@@ -28,13 +28,20 @@
       :filtered-count="filteredCount"
       @filter-change="onFilterChange"
     />
-    <GalaxyTooltip :galaxy="hoveredGalaxy" :x="tooltipX" :y="tooltipY" />
+    <GalaxyTooltip
+      :galaxy="tooltipGalaxy"
+      :x="tooltipX"
+      :y="tooltipY"
+      :show-cta="isMobile"
+      @navigate="onTooltipNavigate"
+    />
     <LoadingOverlay :is-loading="isLoading" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import GalaxyCanvas from '@/components/GalaxyCanvas.vue'
 import type { HoverEvent } from '@/components/GalaxyCanvas.vue'
 import AppHeader from '@/components/AppHeader.vue'
@@ -48,14 +55,21 @@ import { useGalaxyData } from '@/composables/useGalaxyData'
 import { redshiftToDistanceMLY } from '@/three/celestialMath'
 import type { Galaxy, MorphologyClass } from '@/types/galaxy'
 
+const router = useRouter()
 const { isLoading, galaxyCount } = useGalaxyData()
+const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 const canvasRef = ref<InstanceType<typeof GalaxyCanvas> | null>(null)
 const canvasReady = ref(false)
 const totalGalaxyCount = ref(0)
 const filteredCount = ref(0)
 const hoveredGalaxy = ref<Galaxy | null>(null)
+const selectedGalaxy = ref<Galaxy | null>(null)
 const tooltipX = ref(0)
 const tooltipY = ref(0)
+
+const tooltipGalaxy = computed(() =>
+  isMobile ? selectedGalaxy.value : hoveredGalaxy.value
+)
 
 const currentAzimuth = computed(() => canvasRef.value?.currentLookAt?.azimuth ?? 0)
 const currentElevation = computed(() => canvasRef.value?.currentLookAt?.elevation ?? 0)
@@ -83,6 +97,22 @@ function onHover(payload: HoverEvent | null) {
     tooltipY.value = payload.screenY
   } else {
     hoveredGalaxy.value = null
+  }
+}
+
+function onSelect(payload: HoverEvent | null) {
+  if (payload) {
+    selectedGalaxy.value = payload.galaxy
+    tooltipX.value = payload.screenX
+    tooltipY.value = payload.screenY
+  } else {
+    selectedGalaxy.value = null
+  }
+}
+
+function onTooltipNavigate() {
+  if (selectedGalaxy.value) {
+    router.push(`/g/${selectedGalaxy.value.pgc}`)
   }
 }
 </script>

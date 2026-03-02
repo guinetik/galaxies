@@ -4,6 +4,7 @@ varying vec3 vColor;
 varying float vAlpha;
 varying float vTexIndex;
 varying float vDetailMix;
+varying float vSelected;
 
 uniform sampler2D uTexture;
 
@@ -50,6 +51,14 @@ void main() {
   float finalAlpha = clamp(markerAlpha + detailAlpha * (1.0 - markerAlpha), 0.0, 1.0);
   if (finalAlpha < 0.01) discard;
   vec3 finalColor = mix(markerColor, detailColor, clamp(detailAlpha, 0.0, 1.0));
+
+  // Selected outline: cyan glow at sprite edge
+  if (vSelected > 0.5) {
+    float outline = 1.0 - smoothstep(0.35, 0.65, dist);
+    vec3 outlineColor = vec3(0.4, 0.9, 1.0);
+    finalColor = mix(finalColor, outlineColor, outline * 0.7);
+    finalAlpha = max(finalAlpha, outline * 0.9);
+  }
 
   gl_FragColor = vec4(finalColor, finalAlpha);
 }

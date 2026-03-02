@@ -216,7 +216,7 @@ export class GalaxyScene {
         const dx = e.touches[0].clientX - e.touches[1].clientX
         const dy = e.touches[0].clientY - e.touches[1].clientY
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const zoomDelta = (this.lastPinchDist - dist) * 0.01
+        const zoomDelta = (dist - this.lastPinchDist) * 0.01
         this.lastPinchDist = dist
         this.targetZoom = Math.max(0.1, Math.min(20, this.targetZoom + zoomDelta))
       }

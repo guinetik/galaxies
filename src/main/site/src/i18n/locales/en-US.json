@@ -6,9 +6,11 @@
   },
   "header": {
     "siteName": "Galaxies",
-    "location": "Location"
+    "location": "Location",
+    "language": "Language"
   },
   "nav": {
+    "home": "Sky",
     "about": "About",
     "map": "Cosmic Map",
     "cosmography": "Cosmography",
@@ -28,6 +30,7 @@
   },
   "pages": {
     "home": {
+      "goToGalaxy": "Go to Galaxy",
       "filter": "Filter",
       "morphologyLabel": "Morphology",
       "catalogLabel": "Catalog",

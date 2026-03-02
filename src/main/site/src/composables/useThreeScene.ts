@@ -37,6 +37,8 @@ export function useThreeScene() {
   let lastX = 0
   let lastY = 0
   const DRAG_SENSITIVITY = 0.003
+  /** Touch base sensitivity — scaled down more at high zoom */
+  const DRAG_SENSITIVITY_TOUCH = 0.005
 
   // Drag momentum / inertia
   let velocityTheta = 0
@@ -45,6 +47,8 @@ export function useThreeScene() {
   const DRAG_FRICTION_ZOOMED = 0.76
   const VELOCITY_THRESHOLD = 0.00001
   const DRAG_SENSITIVITY_MIN_SCALE = 0.08
+  /** Touch: much slower at high zoom for precise telescope-like panning */
+  const DRAG_SENSITIVITY_MIN_SCALE_TOUCH = 0.025
   const DRAG_SENSITIVITY_POWER = 0.85
   const DRAG_VELOCITY_CAP = 0.03
 
@@ -128,13 +132,15 @@ export function useThreeScene() {
   /**
    * Compute drag scaling for the current FOV.
    * Uses tangent-space scaling so narrow FOV pans much less per pixel.
+   * Touch uses a lower minimum for slower panning when zoomed in.
    */
-  function getPanSensitivityScale(fov: number): number {
+  function getPanSensitivityScale(fov: number, isTouch: boolean): number {
     const fovRad = fov * Math.PI / 180
     const defaultRad = CAMERA_FOV_DEFAULT * Math.PI / 180
     const tanRatio = Math.tan(fovRad * 0.5) / Math.tan(defaultRad * 0.5)
     const scaled = Math.pow(Math.max(0, tanRatio), DRAG_SENSITIVITY_POWER)
-    return Math.max(DRAG_SENSITIVITY_MIN_SCALE, scaled)
+    const minScale = isTouch ? DRAG_SENSITIVITY_MIN_SCALE_TOUCH : DRAG_SENSITIVITY_MIN_SCALE
+    return Math.max(minScale, scaled)
   }
 
   /**
@@ -208,25 +214,27 @@ export function useThreeScene() {
   }
 
   function onPointerDown(e: PointerEvent) {
+    if (isPinching) return
     isDragging = true
     lastX = e.clientX
     lastY = e.clientY
-    // Prevent old momentum from fighting a new drag gesture.
     velocityTheta = 0
     velocityPhi = 0
     canvas!.style.cursor = 'grabbing'
+    canvas!.setPointerCapture(e.pointerId)
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (!isDragging) return
+    if (!isDragging || isPinching) return
     const dx = e.clientX - lastX
     const dy = e.clientY - lastY
     lastX = e.clientX
     lastY = e.clientY
 
-    // Narrow FOV needs nonlinear damping for precise telescope-like panning.
     const currentFovValue = camera?.fov ?? CAMERA_FOV_DEFAULT
-    const sensitivity = DRAG_SENSITIVITY * getPanSensitivityScale(currentFovValue)
+    const isTouch = e.pointerType === 'touch'
+    const baseSensitivity = isTouch ? DRAG_SENSITIVITY_TOUCH : DRAG_SENSITIVITY
+    const sensitivity = baseSensitivity * getPanSensitivityScale(currentFovValue, isTouch)
     const nextTheta = Math.max(-DRAG_VELOCITY_CAP, Math.min(DRAG_VELOCITY_CAP, -dx * sensitivity))
     const nextPhi = Math.max(-DRAG_VELOCITY_CAP, Math.min(DRAG_VELOCITY_CAP, -dy * sensitivity))
 
@@ -241,10 +249,14 @@ export function useThreeScene() {
     updateCameraLookAt()
   }
 
-  function onPointerUp() {
+  function onPointerUp(e?: PointerEvent) {
     isDragging = false
-    if (canvas) canvas.style.cursor = 'grab'
-    // velocityTheta/Phi carry over for momentum
+    if (canvas) {
+      canvas.style.cursor = 'grab'
+      if (e?.pointerId != null) {
+        try { canvas.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+      }
+    }
   }
 
   function onWheel(e: WheelEvent) {
@@ -256,9 +268,11 @@ export function useThreeScene() {
 
   // Pinch zoom state
   let lastPinchDist = 0
+  let isPinching = false
 
   function onTouchStart(e: TouchEvent) {
     if (e.touches.length === 2) {
+      isPinching = true
       e.preventDefault()
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
@@ -278,8 +292,9 @@ export function useThreeScene() {
     }
   }
 
-  function onTouchEnd() {
+  function onTouchEnd(e: TouchEvent) {
     lastPinchDist = 0
+    if (e.touches.length < 2) isPinching = false
   }
 
   function onResize() {
