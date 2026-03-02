@@ -1,39 +1,22 @@
 <template>
   <div class="spacetime-page">
-    <router-link to="/" class="back-button">&larr; {{ t('pages.spacetime.backToSky') }}</router-link>
+    <router-link to="/" class="back-button">&larr; {{ t('pages.localGroup.backToSky') }}</router-link>
 
     <!-- Title -->
     <div v-if="!loading" class="spacetime-title">
-      <h1 class="spacetime-title-text">{{ t('pages.spacetime.title') }}</h1>
-      <p class="spacetime-subtitle">{{ t('pages.spacetime.subtitle') }}</p>
+      <h1 class="spacetime-title-text">{{ t('pages.localGroup.title') }}</h1>
+      <p class="spacetime-subtitle">{{ t('pages.localGroup.subtitle') }}</p>
     </div>
 
     <div v-if="loading" class="loading-overlay">
-      <p>{{ t('pages.spacetime.loading') }}</p>
+      <p>{{ t('pages.localGroup.loading') }}</p>
     </div>
 
-    <canvas
-      ref="canvasRef"
-      class="spacetime-canvas"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @click="onClick"
-    />
-
-    <!-- Tooltip -->
-    <div
-      v-if="tooltip"
-      class="tooltip"
-      :style="{ left: tooltipX + 'px', top: tooltipY + 'px' }"
-    >
-      <div class="tooltip-pgc">PGC {{ tooltip.pgc }}</div>
-      <div class="tooltip-detail">{{ tooltip.velocity.toLocaleString() }} km/s</div>
-      <div class="tooltip-detail">{{ tooltip.distance.toFixed(1) }} Mpc</div>
-    </div>
+    <canvas ref="canvasRef" class="spacetime-canvas" />
 
     <!-- Velocity legend -->
     <div v-if="!loading" class="map-legend">
-      <div class="map-legend-title">{{ t('pages.spacetime.velocityLabel') }}</div>
+      <div class="map-legend-title">{{ t('pages.localGroup.velocityLabel') }}</div>
       <div class="map-legend-items">
         <div v-for="bin in velocityBins" :key="bin.label" class="map-legend-item">
           <span class="map-legend-swatch" :style="{ background: binToCSS(bin.color) }" />
@@ -49,13 +32,27 @@
 
     <!-- Info panel -->
     <div v-if="showInfo" class="info-panel">
-      <h3 class="info-title">{{ t('pages.spacetime.infoTitle') }}</h3>
-      <p class="info-body">{{ t('pages.spacetime.infoBody') }}</p>
+      <h3 class="info-title">{{ t('pages.localGroup.infoTitle') }}</h3>
+      <p class="info-body">{{ t('pages.localGroup.infoBody') }}</p>
       <div class="info-stats">
-        <div><span class="info-stat-value">{{ slabCount.toLocaleString() }}</span> {{ t('pages.spacetime.stats.groups') }}</div>
-        <div><span class="info-stat-value">256 × 256</span> {{ t('pages.spacetime.stats.gridRes') }}</div>
-        <div><span class="info-stat-value">±2,000 Mpc</span> {{ t('pages.spacetime.stats.slabThickness') }}</div>
+        <div><span class="info-stat-value">100 Mpc</span> {{ t('pages.localGroup.stats.radius') }}</div>
+        <div><span class="info-stat-value">SGX / SGY / SGZ</span> {{ t('pages.localGroup.stats.coords') }}</div>
+        <div><span class="info-stat-value">~4,000</span> {{ t('pages.localGroup.stats.groups') }}</div>
       </div>
+    </div>
+
+    <!-- Structures nav -->
+    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '300px' : '68px' }">
+      <div class="structures-nav-title">{{ t('pages.localGroup.structures') }}</div>
+      <button
+        v-for="name in structureNames"
+        :key="name"
+        class="structure-btn"
+        :class="{ active: activeStructure === name }"
+        @click="focusStructure(name)"
+      >
+        {{ name }}
+      </button>
     </div>
   </div>
 </template>
@@ -64,7 +61,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
-import { SpacetimeScene } from '@/three/spacetime/SpacetimeScene'
+import { CylinderScene, STRUCTURES } from '@/three/cosmography/CylinderScene'
 import { VELOCITY_COLOR_BINS } from '@/three/constants'
 
 const { t } = useI18n()
@@ -73,72 +70,33 @@ const { ready, getAllGroups } = useGalaxyData()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
 const showInfo = ref(false)
-const slabCount = ref(0)
+const activeStructure = ref<string | null>(null)
 const velocityBins = VELOCITY_COLOR_BINS
+const structureNames = STRUCTURES.map((s) => s.name)
 
-// Tooltip state
-const tooltip = ref<{ pgc: number; velocity: number; distance: number } | null>(null)
-const tooltipX = ref(0)
-const tooltipY = ref(0)
-
-// Pointer tracking for drag detection
-let pointerDownX = 0
-let pointerDownY = 0
-let isDragging = false
-
-let scene: SpacetimeScene | null = null
+let scene: CylinderScene | null = null
 
 function binToCSS(c: [number, number, number]): string {
   return `rgb(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)})`
 }
 
-function onPointerDown(e: PointerEvent) {
-  pointerDownX = e.clientX
-  pointerDownY = e.clientY
-  isDragging = false
-}
-
-let lastMoveTime = 0
-function onPointerMove(e: PointerEvent) {
-  const dx = e.clientX - pointerDownX
-  const dy = e.clientY - pointerDownY
-  if (dx * dx + dy * dy > 16) isDragging = true
-
-  // Throttle pick to 60fps
-  const now = performance.now()
-  if (now - lastMoveTime < 16) return
-  lastMoveTime = now
-
-  if (!scene || !canvasRef.value) return
-  const rect = canvasRef.value.getBoundingClientRect()
-  const hit = scene.pickAtScreen(
-    e.clientX - rect.left,
-    e.clientY - rect.top,
-    rect.width,
-    rect.height,
-  )
-  if (hit) {
-    tooltip.value = hit
-    tooltipX.value = e.clientX + 12
-    tooltipY.value = e.clientY - 10
+function focusStructure(name: string) {
+  if (!scene) return
+  if (activeStructure.value === name) {
+    scene.resetView()
+    activeStructure.value = null
   } else {
-    tooltip.value = null
+    scene.focusOn(name)
+    activeStructure.value = name
   }
-}
-
-function onClick() {
-  if (isDragging) return
-  // Could navigate to galaxy detail in the future
 }
 
 onMounted(async () => {
   await ready
   if (!canvasRef.value) return
 
-  scene = new SpacetimeScene(canvasRef.value)
-  const groups = getAllGroups()
-  scene.loadGroups(groups)
-  slabCount.value = scene.slabCount
+  scene = new CylinderScene(canvasRef.value)
+  scene.loadGroups(getAllGroups())
   scene.start()
   loading.value = false
 })
@@ -224,31 +182,6 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.5);
   font-size: 14px;
   z-index: 15;
-}
-
-/* Tooltip */
-.tooltip {
-  position: fixed;
-  z-index: 30;
-  pointer-events: none;
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  padding: 8px 12px;
-  backdrop-filter: blur(8px);
-}
-
-.tooltip-pgc {
-  font-size: 13px;
-  font-weight: 600;
-  color: #22d3ee;
-  margin-bottom: 2px;
-}
-
-.tooltip-detail {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: ui-monospace, monospace;
 }
 
 /* Velocity legend */
@@ -361,5 +294,53 @@ onUnmounted(() => {
   color: #22d3ee;
   font-family: ui-monospace, monospace;
   font-weight: 600;
+}
+
+/* Structures nav */
+.structures-nav {
+  position: fixed;
+  left: 24px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(8px);
+  transition: top 0.3s ease;
+}
+
+.structures-nav-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.structure-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.structure-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.structure-btn.active {
+  color: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.1);
 }
 </style>

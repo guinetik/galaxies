@@ -6,6 +6,9 @@
     <div class="info-row">
       <span class="info-label">Distance</span> {{ galaxy.distance_mpc.toFixed(1) }} Mpc ({{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly)
     </div>
+    <div class="info-row">
+      <span class="info-label">{{ t('pages.galaxy.size') }}</span> {{ sizeEstimate.diameterKpc.toFixed(1) }} kpc ({{ (sizeEstimate.diameterKpc * 3.26).toFixed(1) }} kly) <span class="size-source">{{ t('pages.galaxy.size' + sizeSourceKey) }}</span>
+    </div>
     <div v-if="galaxy.vcmb != null" class="info-row">
       <span class="info-label">CMB Velocity</span> {{ galaxy.vcmb.toLocaleString() }} km/s
     </div>
@@ -30,7 +33,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
-import { assignMorphology } from '@/types/galaxy'
+import { assignMorphology, estimateGalaxySize } from '@/types/galaxy'
 
 const { t } = useI18n()
 
@@ -39,6 +42,30 @@ const props = defineProps<{
 }>()
 
 const morphology = computed(() => assignMorphology(props.galaxy.pgc, props.galaxy.morphology))
+
+// Mulberry32 PRNG matching the one in GalaxyParamsMapper
+function mulberry32(seed: number): () => number {
+  let s = seed | 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const sizeEstimate = computed(() => {
+  const rand = mulberry32(props.galaxy.pgc)
+  return estimateGalaxySize(props.galaxy, morphology.value, rand)
+})
+
+const sizeSourceKey = computed(() => {
+  switch (sizeEstimate.value.source) {
+    case 'observed': return 'Observed'
+    case 'mass': return 'Mass'
+    default: return 'Estimated'
+  }
+})
 
 const methodEntries = computed(() => {
   const g = props.galaxy
@@ -115,6 +142,12 @@ const methodEntries = computed(() => {
 .method-tag:hover {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+.size-source {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
 }
 
 .procedural-mark {

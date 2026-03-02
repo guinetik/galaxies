@@ -9,7 +9,8 @@ void main() {
   vUv = uv;
 
   // Sample density at this vertex's UV
-  float density = texture2D(uDensity, uv).r;
+  // Flip V because PlaneGeometry rotated to XZ inverts the V-to-Z mapping
+  float density = texture2D(uDensity, vec2(uv.x, 1.0 - uv.y)).r;
 
   // Displace Y downward — deeper wells for higher density
   // Apply power curve to exaggerate deep wells

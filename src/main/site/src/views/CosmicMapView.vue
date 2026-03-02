@@ -10,6 +10,12 @@
     <!-- Back button -->
     <router-link to="/" class="back-button">&larr; {{ t('pages.map.backToSky') }}</router-link>
 
+    <!-- Title -->
+    <div v-if="!loading" class="map-title">
+      <h1 class="map-title-text">{{ t('pages.map.title') }}</h1>
+      <p class="map-subtitle">{{ t('pages.map.subtitle') }}</p>
+    </div>
+
     <!-- Controls overlay -->
     <div v-if="!loading" class="map-controls">
       <!-- Data mode toggle -->
@@ -355,6 +361,38 @@ onUnmounted(() => {
 .back-button:hover {
   color: #ffffff;
   background: rgba(0, 0, 0, 0.7);
+}
+
+/* ── Title ── */
+.map-title {
+  position: fixed;
+  top: 24px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  text-align: center;
+  pointer-events: none;
+}
+
+.map-title-text {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  margin-bottom: 6px;
+}
+
+.map-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 300;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Controls panel ── */

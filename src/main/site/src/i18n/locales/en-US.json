@@ -14,7 +14,8 @@
     "about": "About",
     "map": "Cosmic Map",
     "cosmography": "Cosmography",
-    "spacetime": "Spacetime"
+    "spacetime": "Spacetime",
+    "localGroup": "Local Group"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -191,11 +192,6 @@
         "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together — each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
         "rangeMpc": "Range (Mpc)"
       },
-      "cylinder": {
-        "title": "The Local Universe in 3D",
-        "intro": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane. The vertical axis is SGZ — height above and below the plane where most structures concentrate. Drag to rotate, scroll to zoom.",
-        "loading": "Loading local universe..."
-      },
       "methods": {
         "sectionTitle": "The Methods",
         "ceph": {
@@ -325,6 +321,21 @@
         "groups": "Galaxy groups in slab",
         "gridRes": "Grid resolution",
         "slabThickness": "Slab thickness"
+      }
+    },
+    "localGroup": {
+      "title": "Local Group",
+      "subtitle": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane — a 3D atlas of the local universe.",
+      "backToSky": "Back to Sky",
+      "loading": "Loading local universe...",
+      "velocityLabel": "V_CMB (km/s)",
+      "infoTitle": "The Local Universe in 3D",
+      "infoBody": "Galaxy groups are plotted in supergalactic Cartesian coordinates inside a cylinder of radius 100 Mpc. The vertical axis is SGZ — height above and below the supergalactic plane where most large-scale structures concentrate. Colors encode CMB recession velocity. Drag to rotate, scroll to zoom.",
+      "structures": "Structures",
+      "stats": {
+        "radius": "Cylinder radius",
+        "coords": "Coordinate axes",
+        "groups": "Galaxy groups"
       }
     }
   }

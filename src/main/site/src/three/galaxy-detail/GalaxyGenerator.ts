@@ -253,12 +253,14 @@ function generateSpiral(p: SpiralParams): Star[] {
     }
   }
 
-  // Bulge stars — dense, bright central spheroid (dominates galaxy center)
+  // Bulge stars — dense, bright central spheroid
+  // Fraction scales with bulge area relative to galaxy area so that
+  // large-radius galaxies don't dump most particles in a small core.
   const bulgeRadius = p.bulgeRadius || 0
   if (bulgeRadius > 0) {
-    const bulgeCount = Math.floor(totalStars * 0.35)
+    const bulgeFrac = Math.min(0.25, 0.10 + 0.20 * (bulgeRadius / galaxyRadius))
+    const bulgeCount = Math.floor(totalStars * bulgeFrac)
     for (let i = 0; i < bulgeCount; i++) {
-      // Steeper concentration: most stars packed in the inner core
       const r = Math.pow(Math.random(), 0.6) * bulgeRadius
       const theta = Math.random() * TAU
       const y = (Math.random() - 0.5) * bulgeRadius * 0.5
@@ -388,9 +390,11 @@ function generateBarredSpiral(p: BarredParams): Star[] {
   }
 
   // Bulge stars — dense, bright central spheroid
+  // Scale fraction with bulge/galaxy ratio to avoid starving arms
   const bulgeRadius = p.bulgeRadius || 0
   if (bulgeRadius > 0) {
-    const bulgeCount = Math.floor(totalStars * 0.3)
+    const bulgeFrac = Math.min(0.20, 0.08 + 0.18 * (bulgeRadius / galaxyRadius))
+    const bulgeCount = Math.floor(totalStars * bulgeFrac)
     for (let i = 0; i < bulgeCount; i++) {
       const r = Math.pow(Math.random(), 0.6) * bulgeRadius
       const theta = Math.random() * TAU

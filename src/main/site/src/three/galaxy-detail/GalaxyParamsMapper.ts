@@ -1,5 +1,5 @@
-import type { Galaxy } from '@/types/galaxy'
-import { assignMorphology } from '@/types/galaxy'
+import type { Galaxy, SizeSource } from '@/types/galaxy'
+import { assignMorphology, estimateGalaxySize } from '@/types/galaxy'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -11,11 +11,16 @@ export interface ParsedMorphology {
   ringType: 'r' | 's' | 'rs' | null
 }
 
-export interface SpiralParams {
-  type: 'spiral'
-  numArms: number
+interface BaseParams {
   starCount: number
   galaxyRadius: number
+  diameterKpc: number
+  sizeSource: SizeSource
+}
+
+export interface SpiralParams extends BaseParams {
+  type: 'spiral'
+  numArms: number
   armWidth: number
   spiralTightness: number
   spiralStart: number
@@ -24,11 +29,9 @@ export interface SpiralParams {
   irregularity: number
 }
 
-export interface BarredParams {
+export interface BarredParams extends BaseParams {
   type: 'barred'
   numArms: number
-  starCount: number
-  galaxyRadius: number
   armWidth: number
   spiralTightness: number
   spiralStart: number
@@ -39,27 +42,21 @@ export interface BarredParams {
   irregularity: number
 }
 
-export interface EllipticalParams {
+export interface EllipticalParams extends BaseParams {
   type: 'elliptical'
-  starCount: number
-  galaxyRadius: number
   ellipticity: number
   axisRatio: number
 }
 
-export interface LenticularParams {
+export interface LenticularParams extends BaseParams {
   type: 'lenticular'
-  starCount: number
-  galaxyRadius: number
   bulgeRadius: number
   bulgeFraction: number
   diskThickness: number
 }
 
-export interface IrregularParams {
+export interface IrregularParams extends BaseParams {
   type: 'irregular'
-  starCount: number
-  galaxyRadius: number
   irregularity: number
   clumpCount: number
 }
@@ -193,15 +190,27 @@ function morphClassToParsed(morphClass: string, rand: () => number): ParsedMorph
 
 export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
   const rand = mulberry32(galaxy.pgc)
-  const morphClass = assignMorphology(galaxy.pgc)
+  const morphClass = assignMorphology(galaxy.pgc, galaxy.morphology)
 
-  // --- Physical size estimation ---
-  // Typical galaxy ~25 kpc; apply ±50% PGC-seeded variation
-  const sizeVariation = 0.5 + rand() * 1.0 // 0.5 to 1.5
-  const galaxyRadius = clamp(300 * sizeVariation, 150, 450)
+  // --- Physical size estimation (3-tier priority) ---
+  const { diameterKpc, source: sizeSource } = estimateGalaxySize(galaxy, morphClass, rand)
 
-  // --- Star count: default 60,000 with ±30% variation ---
-  const starCount = clamp(Math.round(60000 * (0.7 + rand() * 0.6)), 42000, 78000)
+  // Map kpc to rendering units (12 units/kpc, baseline 300 units = 25 kpc)
+  const galaxyRadius = clamp(diameterKpc * 12, 30, 2400)
+
+  // --- Star count: only scale UP for massive galaxies ---
+  // Small galaxies are already visually smaller; reducing particle count
+  // too makes spiral arms look empty. Keep the old 42k–78k baseline and
+  // only add more particles for truly massive galaxies (log_ms_t > 10.8).
+  let starCount: number
+  if (galaxy.log_ms_t != null && galaxy.log_ms_t > 10.8) {
+    const massScale = Math.pow(10, 0.15 * (galaxy.log_ms_t - 10.8))
+    starCount = clamp(Math.round(60000 * massScale), 60000, 120000)
+  } else {
+    starCount = clamp(Math.round(60000 * (0.7 + rand() * 0.6)), 42000, 78000)
+  }
+
+  const base = { starCount, galaxyRadius, diameterKpc, sizeSource }
 
   // --- Map morphClass to ParsedMorphology for per-type params ---
   const morph = morphClassToParsed(morphClass, rand)
@@ -211,10 +220,9 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
     case 'spiral': {
       const t = clamp((morph.hubbleStage - 1) / 8, 0, 1)
       return {
+        ...base,
         type: 'spiral',
         numArms: morph.hubbleStage <= 2 ? 2 : morph.hubbleStage <= 5 ? Math.round(lerp(2, 4, rand())) : Math.round(lerp(2, 6, rand())),
-        starCount,
-        galaxyRadius,
         armWidth: galaxyRadius * lerp(0.06, 0.18, t),
         spiralTightness: lerp(0.08, 0.50, t),
         spiralStart: lerp(0.3, 0.1, t),
@@ -229,10 +237,9 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
       const strong = morph.barStrength === 'strong'
       const barR = rand()
       return {
+        ...base,
         type: 'barred',
         numArms: morph.hubbleStage <= 2 ? 2 : Math.round(lerp(2, 4, rand())),
-        starCount,
-        galaxyRadius,
         armWidth: galaxyRadius * lerp(0.06, 0.18, t),
         spiralTightness: lerp(0.08, 0.50, t),
         spiralStart: lerp(0.3, 0.1, t),
@@ -245,21 +252,20 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
     }
 
     case 'elliptical': {
-      const eNum = morph.eNumber ?? 3
+      const observedBa = galaxy.axial_ratio ?? galaxy.ba
+      const axisRatio = observedBa != null ? observedBa : (1 - (morph.eNumber ?? 3) / 10)
       return {
+        ...base,
         type: 'elliptical',
-        starCount,
-        galaxyRadius,
-        ellipticity: eNum / 10,
-        axisRatio: 1 - eNum / 10,
+        ellipticity: 1 - axisRatio,
+        axisRatio,
       }
     }
 
     case 'lenticular': {
       return {
+        ...base,
         type: 'lenticular',
-        starCount,
-        galaxyRadius,
         bulgeRadius: galaxyRadius * lerp(0.3, 0.5, rand()),
         bulgeFraction: lerp(0.4, 0.7, rand()),
         diskThickness: lerp(0.05, 0.15, rand()),
@@ -268,9 +274,8 @@ export function galaxyToGeneratorParams(galaxy: Galaxy): GeneratorParams {
 
     case 'irregular': {
       return {
+        ...base,
         type: 'irregular',
-        starCount,
-        galaxyRadius,
         irregularity: lerp(0.5, 1.0, rand()),
         clumpCount: Math.round(lerp(3, 12, rand())),
       }

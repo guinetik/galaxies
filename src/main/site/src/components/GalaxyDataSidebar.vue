@@ -88,6 +88,34 @@
           <div class="data-desc">{{ t('pages.galaxy.fields.sgb.desc') }}</div>
         </div>
 
+        <!-- Physical Properties -->
+        <h2 class="sidebar-section">{{ t('pages.galaxy.sections.physical') }}</h2>
+        <div class="data-row">
+          <div class="data-label">{{ t('pages.galaxy.fields.diameter_kpc.label') }}</div>
+          <div class="data-value">{{ sizeEstimate.diameterKpc.toFixed(1) }} kpc ({{ (sizeEstimate.diameterKpc * 3.26).toFixed(1) }} kly)</div>
+          <div class="data-desc">{{ t('pages.galaxy.fields.diameter_kpc.desc') }}</div>
+        </div>
+        <div v-if="galaxy.diameter_arcsec != null" class="data-row">
+          <div class="data-label">{{ t('pages.galaxy.fields.diameter_arcsec.label') }}</div>
+          <div class="data-value">{{ galaxy.diameter_arcsec }}″</div>
+          <div class="data-desc">{{ t('pages.galaxy.fields.diameter_arcsec.desc') }}</div>
+        </div>
+        <div v-if="(galaxy.axial_ratio ?? galaxy.ba) != null" class="data-row">
+          <div class="data-label">{{ galaxy.axial_ratio != null ? t('pages.galaxy.fields.axial_ratio.label') : t('pages.galaxy.fields.ba.label') }}</div>
+          <div class="data-value">{{ (galaxy.axial_ratio ?? galaxy.ba)!.toFixed(3) }}</div>
+          <div class="data-desc">{{ galaxy.axial_ratio != null ? t('pages.galaxy.fields.axial_ratio.desc') : t('pages.galaxy.fields.ba.desc') }}</div>
+        </div>
+        <div v-if="galaxy.log_ms_t != null" class="data-row">
+          <div class="data-label">{{ t('pages.galaxy.fields.log_ms_t.label') }}</div>
+          <div class="data-value">{{ galaxy.log_ms_t.toFixed(2) }} log M☉</div>
+          <div class="data-desc">{{ t('pages.galaxy.fields.log_ms_t.desc') }}</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">{{ t('pages.galaxy.fields.size_method.label') }}</div>
+          <div class="data-value">{{ t('pages.galaxy.size' + sizeSourceKey) }}</div>
+          <div class="data-desc">{{ t('pages.galaxy.fields.size_method.desc') }}</div>
+        </div>
+
         <!-- Distance Methods (only non-null) -->
         <template v-if="distanceMethods.length > 0">
           <h2 class="sidebar-section">{{ t('pages.galaxy.sections.methods') }}</h2>
@@ -106,7 +134,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
-import { assignMorphology } from '@/types/galaxy'
+import { assignMorphology, estimateGalaxySize } from '@/types/galaxy'
 
 const { t } = useI18n()
 
@@ -120,6 +148,29 @@ defineEmits<{
 }>()
 
 const morphology = computed(() => assignMorphology(props.galaxy.pgc, props.galaxy.morphology))
+
+function mulberry32(seed: number): () => number {
+  let s = seed | 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const sizeEstimate = computed(() => {
+  const rand = mulberry32(props.galaxy.pgc)
+  return estimateGalaxySize(props.galaxy, morphology.value, rand)
+})
+
+const sizeSourceKey = computed(() => {
+  switch (sizeEstimate.value.source) {
+    case 'observed': return 'Observed'
+    case 'mass': return 'Mass'
+    default: return 'Estimated'
+  }
+})
 
 function formatSigned(v: number, decimals: number): string {
   const s = v.toFixed(decimals)

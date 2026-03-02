@@ -33,5 +33,10 @@ export const router = createRouter({
       name: 'spacetime',
       component: () => import('@/views/SpacetimeView.vue'),
     },
+    {
+      path: '/local-group',
+      name: 'localGroup',
+      component: () => import('@/views/LocalGroupView.vue'),
+    },
   ],
 })

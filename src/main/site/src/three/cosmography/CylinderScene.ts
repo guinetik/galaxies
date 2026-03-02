@@ -6,7 +6,7 @@ import vertexShader from '../cosmic-map/shaders/cosmicmap.vert.glsl?raw'
 import fragmentShader from '../cosmic-map/shaders/cosmicmap.frag.glsl?raw'
 
 /** Labeled cosmic structures within ~100 Mpc */
-const STRUCTURES = [
+export const STRUCTURES = [
   { name: 'Milky Way',        sgx: 0,     sgy: 0,    sgz: 0 },
   { name: 'Virgo',            sgx: -200,  sgy: 1100, sgz: 0 },
   { name: 'Centaurus',        sgx: -3200, sgy: 3200, sgz: 0 },
@@ -29,6 +29,9 @@ export class CylinderScene {
   private animationId = 0
   private resizeObserver: ResizeObserver
   private pointsMaterial: THREE.ShaderMaterial | null = null
+  private structurePositions = new Map<string, THREE.Vector3>()
+  private focusTarget: THREE.Vector3 | null = null
+  private focusCamPos: THREE.Vector3 | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
@@ -79,6 +82,15 @@ export class CylinderScene {
       this.animationId = requestAnimationFrame(animate)
       const elapsed = this.clock.getElapsedTime()
 
+      if (this.focusTarget && this.focusCamPos) {
+        this.controls.target.lerp(this.focusTarget, 0.05)
+        this.camera.position.lerp(this.focusCamPos, 0.05)
+        if (this.controls.target.distanceTo(this.focusTarget) < 10) {
+          this.focusTarget = null
+          this.focusCamPos = null
+        }
+      }
+
       this.controls.update()
       if (this.pointsMaterial) {
         this.pointsMaterial.uniforms.uTime.value = elapsed
@@ -110,6 +122,25 @@ export class CylinderScene {
       }
     })
     this.renderer.dispose()
+  }
+
+  get structureNames(): string[] {
+    return STRUCTURES.map((s) => s.name)
+  }
+
+  focusOn(name: string): void {
+    const pos = this.structurePositions.get(name)
+    if (!pos) return
+    this.focusTarget = pos.clone()
+    const dir = this.camera.position.clone().sub(pos).normalize()
+    this.focusCamPos = pos.clone().add(dir.multiplyScalar(4000))
+    this.controls.autoRotate = false
+  }
+
+  resetView(): void {
+    this.focusTarget = new THREE.Vector3(0, 0, 0)
+    this.focusCamPos = new THREE.Vector3(6000, 8000, 12000)
+    this.controls.autoRotate = true
   }
 
   private getHalfHeight(groups: GalaxyGroup[]): number {
@@ -227,6 +258,11 @@ export class CylinderScene {
           }
         }
       }
+
+      this.structurePositions.set(
+        structure.name,
+        new THREE.Vector3(structure.sgx, sgz, structure.sgy),
+      )
 
       const isMW = structure.name === 'Milky Way'
       const sprite = this.makeLabel(structure.name, isMW)

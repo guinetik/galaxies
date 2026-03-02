@@ -1,11 +1,16 @@
 <template>
-  <header class="fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-black/50 backdrop-blur-sm">
-    <router-link to="/" class="text-lg font-light tracking-widest text-white/90 uppercase hover:text-white transition-colors shrink-0">
+  <header class="fixed top-0 left-0 right-0 z-10 flex items-center px-4 py-2 bg-black/50 backdrop-blur-sm">
+    <div class="hidden md:flex flex-1 justify-start">
+      <router-link to="/" class="text-lg font-light tracking-widest text-white/90 uppercase hover:text-white transition-colors">
+        {{ t('header.siteName') }}
+      </router-link>
+    </div>
+    <router-link to="/" class="md:hidden text-lg font-light tracking-widest text-white/90 uppercase hover:text-white transition-colors shrink-0">
       {{ t('header.siteName') }}
     </router-link>
 
-    <!-- Desktop nav -->
-    <nav class="hidden md:flex items-center gap-4">
+    <!-- Desktop nav (centered) -->
+    <nav class="hidden md:flex items-center gap-4 flex-shrink-0">
       <router-link to="/about" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.about') }}
       </router-link>
@@ -18,10 +23,13 @@
       <router-link to="/spacetime" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.spacetime') }}
       </router-link>
+      <router-link to="/local-group" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.localGroup') }}
+      </router-link>
     </nav>
 
-    <!-- Desktop tools -->
-    <div class="hidden md:flex items-center gap-4">
+    <!-- Desktop tools (right) -->
+    <div class="hidden md:flex flex-1 items-center gap-4 justify-end">
       <span v-if="galaxyCount > 0" class="text-xs text-white/50">
         {{ t('app.loaded', { count: galaxyCount.toLocaleString() }) }}
       </span>
@@ -86,6 +94,9 @@
         </router-link>
         <router-link to="/spacetime" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.spacetime') }}
+        </router-link>
+        <router-link to="/local-group" class="mobile-link" @click="menuOpen = false">
+          {{ t('nav.localGroup') }}
         </router-link>
 
         <div class="mobile-menu-divider" />

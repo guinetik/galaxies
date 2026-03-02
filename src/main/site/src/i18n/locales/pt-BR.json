@@ -14,7 +14,8 @@
     "about": "Sobre",
     "map": "Mapa Cósmico",
     "cosmography": "Cosmografia",
-    "spacetime": "Espaço-Tempo"
+    "spacetime": "Espaço-Tempo",
+    "localGroup": "Grupo Local"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -191,11 +192,6 @@
         "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas — cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
         "rangeMpc": "Alcance (Mpc)"
       },
-      "cylinder": {
-        "title": "O Universo Local em 3D",
-        "intro": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico. O eixo vertical é SGZ — altura acima e abaixo do plano onde a maioria das estruturas se concentra. Arraste para girar, role para ampliar.",
-        "loading": "Carregando universo local..."
-      },
       "methods": {
         "sectionTitle": "Os Métodos",
         "ceph": {
@@ -325,6 +321,21 @@
         "groups": "Grupos no corte",
         "gridRes": "Resolução da grade",
         "slabThickness": "Espessura do corte"
+      }
+    },
+    "localGroup": {
+      "title": "Grupo Local",
+      "subtitle": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico — um atlas 3D do universo local.",
+      "backToSky": "Voltar ao Céu",
+      "loading": "Carregando universo local...",
+      "velocityLabel": "V_CMB (km/s)",
+      "infoTitle": "O Universo Local em 3D",
+      "infoBody": "Grupos de galáxias são plotados em coordenadas cartesianas supergalácticas dentro de um cilindro de raio 100 Mpc. O eixo vertical é SGZ — altura acima e abaixo do plano supergaláctico onde a maioria das estruturas em larga escala se concentra. As cores codificam a velocidade de recessão CMB. Arraste para girar, role para ampliar.",
+      "structures": "Estruturas",
+      "stats": {
+        "radius": "Raio do cilindro",
+        "coords": "Eixos de coordenadas",
+        "groups": "Grupos de galáxias"
       }
     }
   }

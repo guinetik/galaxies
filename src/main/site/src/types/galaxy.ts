@@ -41,6 +41,9 @@ export interface Galaxy {
   log_sfr_nuv: number | null
   e_log_sfr_nuv: number | null
   b_mag: number | null
+  diameter_arcsec: number | null
+  axial_ratio: number | null
+  ba: number | null
 }
 
 export type MorphologyClass =
@@ -90,6 +93,53 @@ export function assignMorphology(pgc: number, morphology?: string | null): Morph
   if (r < 0.85) return 'elliptical'
   if (r < 0.95) return 'lenticular'
   return 'irregular'
+}
+
+export type SizeSource = 'observed' | 'mass' | 'random'
+
+export interface GalaxySizeEstimate {
+  diameterKpc: number
+  source: SizeSource
+}
+
+/**
+ * Estimate a galaxy's physical diameter using a 3-tier priority:
+ *   1. Observed angular diameter + distance → physical size
+ *   2. Stellar mass (log_ms_t) → mass-size relation (Shen et al. 2003)
+ *   3. Seeded random fallback
+ */
+export function estimateGalaxySize(
+  galaxy: Galaxy,
+  morphClass: MorphologyClass,
+  rand: () => number,
+): GalaxySizeEstimate {
+  let diameterKpc: number
+  let source: SizeSource
+
+  if (galaxy.diameter_arcsec && galaxy.distance_mpc) {
+    // Tier 1: angular size → physical diameter
+    // diameter_kpc = (arcsec / 206265) × distance_mpc × 1000
+    // Simplified: arcsec / 206.265 × distance_mpc
+    diameterKpc = (galaxy.diameter_arcsec / 206.265) * galaxy.distance_mpc
+    source = 'observed'
+  } else if (galaxy.log_ms_t != null) {
+    // Tier 2: mass-size relation (Shen et al. 2003 approximation)
+    const isEarlyType = morphClass === 'elliptical' || morphClass === 'lenticular'
+    const logRhalf = isEarlyType
+      ? 0.56 * galaxy.log_ms_t - 5.54
+      : 0.14 * galaxy.log_ms_t - 0.66
+    diameterKpc = Math.pow(10, logRhalf) * 4 // half-light → total extent
+    source = 'mass'
+  } else {
+    // Tier 3: seeded random (12.5–37.5 kpc)
+    diameterKpc = 25 * (0.5 + rand() * 1.0)
+    source = 'random'
+  }
+
+  // Clamp to physical range: 1 kpc (dwarf) to 200 kpc (giant elliptical)
+  diameterKpc = Math.max(1, Math.min(200, diameterKpc))
+
+  return { diameterKpc, source }
 }
 
 /** Galaxy group with pre-computed supergalactic Cartesian coordinates */
