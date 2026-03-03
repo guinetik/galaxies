@@ -3,8 +3,6 @@
     <AboutBackground :current-section="currentSection" :scroll-progress="scrollProgress" />
     
     <div class="about-page">
-    <router-link to="/" class="back-button">&larr; {{ t('pages.about.backToSky') }}</router-link>
-
     <!-- Hero -->
     <section class="about-hero" data-section="0">
       <h1 class="about-hero-title">{{ t('pages.about.title') }}</h1>
@@ -145,7 +143,7 @@ onMounted(() => {
   max-width: 48rem;
   margin-left: auto;
   margin-right: auto;
-  padding: 4rem 1.5rem;
+  padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
   position: relative;
   z-index: 10; /* Ensure content is above background */
 }
@@ -346,28 +344,6 @@ onMounted(() => {
   content: '\00b7';
   margin-left: 1rem;
   color: rgba(255, 255, 255, 0.2);
-}
-
-/* Back button (matches GalaxyView) */
-.back-button {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 14px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  z-index: 20;
-  backdrop-filter: blur(8px);
-  transition: color 0.2s, background 0.2s;
-}
-
-.back-button:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.7);
 }
 
 /* Responsive */

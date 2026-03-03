@@ -3,8 +3,6 @@
     <CosmographyBackground :current-section="currentSection" :scroll-progress="scrollProgress" />
 
     <div class="cosmo-page">
-      <router-link to="/" class="back-button">&larr; {{ t('pages.cosmography.backToSky') }}</router-link>
-
       <!-- Hero -->
       <section class="cosmo-hero" data-section="0">
         <h1 class="cosmo-hero-title">{{ t('pages.cosmography.title') }}</h1>
@@ -198,7 +196,7 @@ onMounted(() => {
   max-width: 48rem;
   margin-left: auto;
   margin-right: auto;
-  padding: 4rem 1.5rem;
+  padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
   position: relative;
   z-index: 10;
 }
@@ -254,28 +252,6 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.625;
   margin-bottom: 1.5rem;
-}
-
-/* ── Back button (matches AboutView) ── */
-.back-button {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 14px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  z-index: 20;
-  backdrop-filter: blur(8px);
-  transition: color 0.2s, background 0.2s;
-}
-
-.back-button:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.7);
 }
 
 /* ── Distance Ladder ── */

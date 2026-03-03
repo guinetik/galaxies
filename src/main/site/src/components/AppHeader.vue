@@ -1,5 +1,5 @@
 <template>
-  <header class="fixed top-0 left-0 right-0 z-10 flex items-center px-4 py-2 bg-black/50 backdrop-blur-sm">
+  <header class="fixed top-0 left-0 right-0 z-20 flex items-center px-4 py-2 bg-black/50 backdrop-blur-sm">
     <div class="hidden md:flex flex-1 justify-start">
       <router-link to="/" class="text-lg font-light tracking-widest text-white/90 uppercase hover:text-white transition-colors">
         {{ t('header.siteName') }}
@@ -14,11 +14,11 @@
       <router-link to="/about" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.about') }}
       </router-link>
-      <router-link to="/map" class="text-xs text-white/50 hover:text-white/80 transition-colors">
-        {{ t('nav.map') }}
-      </router-link>
       <router-link to="/cosmography" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.cosmography') }}
+      </router-link>
+      <router-link to="/map" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.map') }}
       </router-link>
       <router-link to="/spacetime" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.spacetime') }}
@@ -30,9 +30,6 @@
 
     <!-- Desktop tools (right) -->
     <div class="hidden md:flex flex-1 items-center gap-4 justify-end">
-      <span v-if="galaxyCount > 0" class="text-xs text-white/50">
-        {{ t('app.loaded', { count: galaxyCount.toLocaleString() }) }}
-      </span>
       <select
         :value="currentLocation"
         class="bg-white/10 text-white/80 text-xs rounded px-2 py-1 border border-white/20 cursor-pointer"
@@ -52,11 +49,8 @@
       </select>
     </div>
 
-    <!-- Mobile: hamburger + dropdown -->
-    <div class="md:hidden flex items-center gap-2">
-      <span v-if="galaxyCount > 0" class="text-xs text-white/50 shrink-0">
-        {{ galaxyCount.toLocaleString() }}
-      </span>
+    <!-- Mobile: hamburger + dropdown (ml-auto pushes to right edge) -->
+    <div class="md:hidden flex items-center gap-2 ml-auto">
       <button
         type="button"
         class="hamburger p-2 -mr-2 text-white/80 hover:text-white transition-colors"
@@ -83,14 +77,14 @@
         <router-link to="/" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.home') }}
         </router-link>
+        <router-link to="/cosmography" class="mobile-link" @click="menuOpen = false">
+          {{ t('nav.cosmography') }}
+        </router-link>
         <router-link to="/about" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.about') }}
         </router-link>
         <router-link to="/map" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.map') }}
-        </router-link>
-        <router-link to="/cosmography" class="mobile-link" @click="menuOpen = false">
-          {{ t('nav.cosmography') }}
         </router-link>
         <router-link to="/spacetime" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.spacetime') }}
@@ -137,7 +131,6 @@ import { LOCATIONS } from '@/three/constants'
 const menuOpen = ref(false)
 
 defineProps<{
-  galaxyCount: number
   currentLocation: string
 }>()
 
@@ -188,7 +181,7 @@ function changeLocale(newLocale: string) {
 .mobile-menu-overlay {
   position: fixed;
   inset: 0;
-  top: 44px; /* below header */
+  top: var(--header-height, 52px);
   z-index: 25; /* above filter panel (z-20) */
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);

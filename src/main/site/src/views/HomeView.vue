@@ -1,11 +1,6 @@
 <template>
   <div class="w-full h-full">
     <GalaxyCanvas ref="canvasRef" @ready="onCanvasReady" @hover="onHover" @select="onSelect" />
-    <AppHeader
-      :galaxy-count="galaxyCount"
-      :current-location="canvasRef?.currentLocation ?? 'North Pole'"
-      @update:location="canvasRef?.setLocation($event)"
-    />
     
     <!-- HUD Indicators -->
     <div class="absolute top-16 left-0 right-0 z-0 pointer-events-none flex justify-center">
@@ -36,27 +31,38 @@
       @navigate="onTooltipNavigate"
     />
     <LoadingOverlay :is-loading="isLoading" />
+
+    <!-- Galaxy count badge (bottom right) -->
+    <div
+      v-if="canvasReady && filteredCount > 0"
+      class="galaxy-count-badge"
+    >
+      {{ t('app.loaded', { count: filteredCount.toLocaleString() }) }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import GalaxyCanvas from '@/components/GalaxyCanvas.vue'
 import type { HoverEvent } from '@/components/GalaxyCanvas.vue'
-import AppHeader from '@/components/AppHeader.vue'
 import SkyFilterPanel from '@/components/SkyFilterPanel.vue'
+import { useAppHeader } from '@/composables/useAppHeader'
 import GalaxyTooltip from '@/components/GalaxyTooltip.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import SpaceCompass from '@/components/SpaceCompass.vue'
 import DistanceIndicator from '@/components/DistanceIndicator.vue'
 import ElevationIndicator from '@/components/ElevationIndicator.vue'
+import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { redshiftToDistanceMLY } from '@/three/celestialMath'
 import type { Galaxy, MorphologyClass } from '@/types/galaxy'
 
 const router = useRouter()
-const { isLoading, galaxyCount } = useGalaxyData()
+const { t } = useI18n()
+const { isLoading } = useGalaxyData()
+const { currentLocation, locationSetter } = useAppHeader()
 const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 const canvasRef = ref<InstanceType<typeof GalaxyCanvas> | null>(null)
 const canvasReady = ref(false)
@@ -83,7 +89,15 @@ function onCanvasReady() {
   const total = canvasRef.value?.getAllGalaxiesCount() ?? 0
   totalGalaxyCount.value = total
   filteredCount.value = total
+  if (canvasRef.value) {
+    locationSetter.value = canvasRef.value.setLocation
+    currentLocation.value = canvasRef.value.currentLocation
+  }
 }
+
+onUnmounted(() => {
+  locationSetter.value = null
+})
 
 function onFilterChange(payload: { morphologies: Set<MorphologyClass>; sources: Set<string> }) {
   const count = canvasRef.value?.applyFilter(payload.morphologies, payload.sources) ?? 0
@@ -116,3 +130,20 @@ function onTooltipNavigate() {
   }
 }
 </script>
+
+<style scoped>
+.galaxy-count-badge {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+</style>

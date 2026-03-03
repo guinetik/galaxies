@@ -317,6 +317,7 @@
       "velocityLabel": "Velocidade (km/s)",
       "infoTitle": "O Que Você Está Vendo",
       "infoBody": "Esta grade representa o plano supergaláctico — um corte 2D pelo universo onde a maior parte da estrutura em larga escala existe. Cada vértice é deslocado para baixo proporcionalmente à densidade local de galáxias: aglomerados criam poços profundos, vazios permanecem planos. Os pontos de galáxias são coloridos por velocidade de recessão, a mesma escala do Mapa Cósmico.",
+      "structures": "Estruturas",
       "stats": {
         "groups": "Grupos no corte",
         "gridRes": "Resolução da grade",

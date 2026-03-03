@@ -1,7 +1,5 @@
 <template>
   <div class="spacetime-page">
-    <router-link to="/" class="back-button">&larr; {{ t('pages.localGroup.backToSky') }}</router-link>
-
     <!-- Title -->
     <div v-if="!loading" class="spacetime-title">
       <h1 class="spacetime-title-text">{{ t('pages.localGroup.title') }}</h1>
@@ -42,7 +40,7 @@
     </div>
 
     <!-- Structures nav -->
-    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '300px' : '68px' }">
+    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '300px' : 'calc(var(--header-height) + 130px)' }">
       <div class="structures-nav-title">{{ t('pages.localGroup.structures') }}</div>
       <button
         v-for="name in structureNames"
@@ -120,36 +118,16 @@ onUnmounted(() => {
   display: block;
 }
 
-.back-button {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 14px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  z-index: 20;
-  backdrop-filter: blur(8px);
-  transition: color 0.2s, background 0.2s;
-}
-
-.back-button:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.7);
-}
-
 /* Title */
 .spacetime-title {
   position: fixed;
-  top: 24px;
+  top: var(--header-height);
   left: 0;
   right: 0;
   z-index: 20;
   text-align: center;
   pointer-events: none;
+  padding: 12px 16px 0;
 }
 
 .spacetime-title-text {
@@ -234,7 +212,7 @@ onUnmounted(() => {
 /* Info toggle */
 .info-toggle {
   position: fixed;
-  top: 24px;
+  top: var(--header-height);
   left: 24px;
   z-index: 20;
   width: 32px;

@@ -207,10 +207,10 @@ const distanceMethods = computed(() => {
 <style scoped>
 .data-sidebar {
   position: fixed;
-  top: 0;
+  top: var(--header-height);
   right: 0;
   width: 340px;
-  height: 100%;
+  height: calc(100% - var(--header-height));
   background: rgba(0, 0, 0, 0.85);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 25;

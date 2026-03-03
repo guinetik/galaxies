@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  /** Height of fixed AppHeader; use for top offset of page content */
+  --header-height: 52px;
+}
+
 html,
 body {
   margin: 0;

@@ -1,7 +1,5 @@
 <template>
   <div class="spacetime-page">
-    <router-link to="/" class="back-button">&larr; {{ t('pages.spacetime.backToSky') }}</router-link>
-
     <!-- Title -->
     <div v-if="!loading" class="spacetime-title">
       <h1 class="spacetime-title-text">{{ t('pages.spacetime.title') }}</h1>
@@ -57,6 +55,20 @@
         <div><span class="info-stat-value">±2,000 Mpc</span> {{ t('pages.spacetime.stats.slabThickness') }}</div>
       </div>
     </div>
+
+    <!-- Structures nav -->
+    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '300px' : 'calc(var(--header-height) + 130px)' }">
+      <div class="structures-nav-title">{{ t('pages.spacetime.structures') }}</div>
+      <button
+        v-for="name in structureNames"
+        :key="name"
+        class="structure-btn"
+        :class="{ active: activeStructure === name }"
+        @click="focusStructure(name)"
+      >
+        {{ name }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -65,6 +77,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { SpacetimeScene } from '@/three/spacetime/SpacetimeScene'
+import { STRUCTURES } from '@/three/cosmography/CylinderScene'
 import { VELOCITY_COLOR_BINS } from '@/three/constants'
 
 const { t } = useI18n()
@@ -73,8 +86,10 @@ const { ready, getAllGroups } = useGalaxyData()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
 const showInfo = ref(false)
+const activeStructure = ref<string | null>(null)
 const slabCount = ref(0)
 const velocityBins = VELOCITY_COLOR_BINS
+const structureNames = STRUCTURES.map((s) => s.name)
 
 // Tooltip state
 const tooltip = ref<{ pgc: number; velocity: number; distance: number } | null>(null)
@@ -131,6 +146,17 @@ function onClick() {
   // Could navigate to galaxy detail in the future
 }
 
+function focusStructure(name: string) {
+  if (!scene) return
+  if (activeStructure.value === name) {
+    scene.resetView()
+    activeStructure.value = null
+  } else {
+    scene.focusOn(name)
+    activeStructure.value = name
+  }
+}
+
 onMounted(async () => {
   await ready
   if (!canvasRef.value) return
@@ -162,36 +188,16 @@ onUnmounted(() => {
   display: block;
 }
 
-.back-button {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 14px;
-  padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  z-index: 20;
-  backdrop-filter: blur(8px);
-  transition: color 0.2s, background 0.2s;
-}
-
-.back-button:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.7);
-}
-
 /* Title */
 .spacetime-title {
   position: fixed;
-  top: 24px;
+  top: var(--header-height);
   left: 0;
   right: 0;
   z-index: 20;
   text-align: center;
   pointer-events: none;
+  padding: 12px 16px 0;
 }
 
 .spacetime-title-text {
@@ -301,7 +307,7 @@ onUnmounted(() => {
 /* Info toggle */
 .info-toggle {
   position: fixed;
-  top: 24px;
+  top: var(--header-height);
   left: 24px;
   z-index: 20;
   width: 32px;
@@ -361,5 +367,53 @@ onUnmounted(() => {
   color: #22d3ee;
   font-family: ui-monospace, monospace;
   font-weight: 600;
+}
+
+/* Structures nav */
+.structures-nav {
+  position: fixed;
+  left: 24px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(8px);
+  transition: top 0.3s ease;
+}
+
+.structures-nav-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.structure-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.structure-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.structure-btn.active {
+  color: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.1);
 }
 </style>

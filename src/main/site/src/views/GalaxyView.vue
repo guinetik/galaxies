@@ -5,7 +5,6 @@
     <div class="top-header">
       <div class="top-buttons">
         <button class="data-button" @click="showData = !showData">{{ t('pages.galaxy.dataButton') }}</button>
-        <router-link to="/" class="back-button">&larr; Back</router-link>
       </div>
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
@@ -39,7 +38,7 @@ onMounted(async () => {
 <style scoped>
 .top-header {
   position: fixed;
-  top: 24px;
+  top: var(--header-height);
   left: 24px;
   right: 24px;
   z-index: 20;
@@ -54,7 +53,6 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.back-button,
 .data-button {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
@@ -68,7 +66,6 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.back-button:hover,
 .data-button:hover {
   color: #ffffff;
   background: rgba(0, 0, 0, 0.7);

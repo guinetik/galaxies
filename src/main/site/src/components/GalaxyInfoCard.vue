@@ -85,7 +85,7 @@ const methodEntries = computed(() => {
 <style scoped>
 .galaxy-info-card {
   position: fixed;
-  top: 24px;
+  top: calc(var(--header-height) + 12px);
   left: 24px;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.75);

@@ -317,6 +317,7 @@
       "velocityLabel": "Velocity (km/s)",
       "infoTitle": "What You're Seeing",
       "infoBody": "This grid represents the supergalactic plane — a 2D slice through the universe where most of the large-scale structure lives. Each vertex is displaced downward in proportion to the local galaxy density: clusters create deep wells, voids remain flat. The galaxy dots are color-coded by recession velocity, the same scale as the Cosmic Map.",
+      "structures": "Structures",
       "stats": {
         "groups": "Galaxy groups in slab",
         "gridRes": "Grid resolution",
