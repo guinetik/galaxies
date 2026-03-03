@@ -11,8 +11,10 @@ import type { DensityFieldResult } from './computeDensityField'
 const DISPLACE_SCALE = 6000
 /** Label floats this far above the fabric surface (matches SpacetimeLabels) */
 const LABEL_OFFSET_Y = 300
-/** Camera distance when zoomed to a structure — centers the label in view */
-const FOCUS_CAMERA_DISTANCE = 4500
+/** Base camera distance — Virgo (shallow) stays here; others zoom in more */
+const FOCUS_CAMERA_DISTANCE_BASE = 4200
+/** Min distance — deep wells (Centaurus, Great Attractor, etc.) zoom in close */
+const FOCUS_CAMERA_DISTANCE_MIN = 900
 
 export class SpacetimeScene {
   private renderer: THREE.WebGLRenderer
@@ -126,8 +128,13 @@ export class SpacetimeScene {
     const pos = this.getStructurePosition(name)
     if (!pos) return
     this.focusTarget = pos.clone()
-    // Position camera above and in front of the label for a centered view
-    const offset = new THREE.Vector3(0, FOCUS_CAMERA_DISTANCE, FOCUS_CAMERA_DISTANCE)
+    // Deeper wells (more negative Y) need closer zoom — others are too far otherwise
+    const depthFactor = Math.max(0, -pos.y / DISPLACE_SCALE)
+    const distance = Math.max(
+      FOCUS_CAMERA_DISTANCE_MIN,
+      FOCUS_CAMERA_DISTANCE_BASE - depthFactor * 3500,
+    )
+    const offset = new THREE.Vector3(0, distance, distance)
     this.focusCamPos = pos.clone().add(offset)
   }
 
