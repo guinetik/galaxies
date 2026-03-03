@@ -37,6 +37,7 @@ export class GalaxyField {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uMaxRedshift: { value: 0.01 },
+        uMinRedshift: { value: 0.0 },
         uFov: { value: 60.0 },
         uTexture: { value: atlasTexture },
       },
@@ -86,8 +87,8 @@ export class GalaxyField {
       colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightnessScale - coolWarmTilt * 0.6))
 
       // Size from distance — closer galaxies appear larger
-      const K = 8.0
-      sizes[i] = Math.max(1.5, Math.min(12.0, K / g.distance_mpc))
+      const K = 16.0
+      sizes[i] = Math.max(2.0, Math.min(64.0, K / g.distance_mpc))
 
       // Redshift derived from CMB velocity
       redshifts[i] = (g.vcmb ?? 0) / 299792.458
@@ -126,9 +127,10 @@ export class GalaxyField {
     attr.needsUpdate = true
   }
 
-  update(elapsed: number, maxRedshift: number, fov: number): void {
+  update(elapsed: number, maxRedshift: number, minRedshift: number, fov: number): void {
     this.material.uniforms.uTime.value = elapsed
     this.material.uniforms.uMaxRedshift.value = maxRedshift
+    this.material.uniforms.uMinRedshift.value = minRedshift
     this.material.uniforms.uFov.value = fov
   }
 
@@ -143,6 +145,7 @@ export class GalaxyField {
     viewportWidth: number,
     viewportHeight: number,
     maxRedshift: number,
+    minRedshift: number,
     fov: number
   ): Galaxy | null {
     this.points.updateWorldMatrix(true, false)
@@ -153,7 +156,7 @@ export class GalaxyField {
     const detailMix = this.smoothstep(0, 1, this.clamp01((52 - fov) / (52 - 20)))
 
     for (let i = 0; i < this.galaxies.length; i++) {
-      const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift)
+      const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift, minRedshift)
       if (alpha < 0.01) continue
 
       const i3 = i * 3
@@ -194,11 +197,24 @@ export class GalaxyField {
   }
 
   /** Match shader redshift visibility curve. */
-  private computeVisibilityAlpha(redshift: number, maxRedshift: number): number {
-    if (redshift < 0 || redshift > maxRedshift) return 0
+  private computeVisibilityAlpha(redshift: number, maxRedshift: number, minRedshift: number): number {
+    if (redshift < minRedshift || redshift > maxRedshift) return 0
+    
+    // Far fade
+    let farAlpha = 1.0
     const fadeStart = maxRedshift * 0.6
-    if (redshift < fadeStart) return 1
-    return this.smoothstep(maxRedshift, fadeStart, redshift)
+    if (redshift > fadeStart) {
+      farAlpha = this.smoothstep(maxRedshift, fadeStart, redshift)
+    }
+
+    // Near fade (steeper to clear foreground quickly)
+    let nearAlpha = 1.0
+    const nearFadeEnd = minRedshift * 1.5 // Fade in over 50% range
+    if (redshift < nearFadeEnd) {
+      nearAlpha = this.smoothstep(minRedshift, nearFadeEnd, redshift)
+    }
+
+    return Math.min(farAlpha, nearAlpha)
   }
 
   private clamp01(v: number): number {

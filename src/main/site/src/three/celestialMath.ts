@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { REDSHIFT_RANGES } from './constants'
+import { REDSHIFT_RANGES, MIN_REDSHIFT_RANGES } from './constants'
 
 const DEG2RAD = Math.PI / 180
 
@@ -47,6 +47,31 @@ export function fovToMaxRedshift(fov: number): number {
       const t = (fov0 - fov) / (fov0 - fov1)
       // Exponential interpolation for smoother transition
       return z0 * Math.pow(z1 / z0, t)
+    }
+  }
+
+  return ranges[ranges.length - 1][1]
+}
+
+/**
+ * Map current camera FOV to minimum visible redshift.
+ * Used to cull nearby galaxies when zooming in.
+ */
+export function fovToMinRedshift(fov: number): number {
+  const ranges = MIN_REDSHIFT_RANGES
+
+  // Clamp to range
+  if (fov >= ranges[0][0]) return ranges[0][1]
+  if (fov <= ranges[ranges.length - 1][0]) return ranges[ranges.length - 1][1]
+
+  // Find bracketing pair and interpolate
+  for (let i = 0; i < ranges.length - 1; i++) {
+    const [fov0, z0] = ranges[i]
+    const [fov1, z1] = ranges[i + 1]
+    if (fov <= fov0 && fov >= fov1) {
+      const t = (fov0 - fov) / (fov0 - fov1)
+      // Linear interpolation feels better for the "near plane" push
+      return z0 + (z1 - z0) * t
     }
   }
 

@@ -44,9 +44,32 @@ export const REDSHIFT_RANGES: [number, number][] = [
   [45, 0.025],
   [35, 0.040],
   [25, 0.060],
+  [20, 0.070],
   [15, 0.080],
+  [12, 0.090],
   [8,  0.100],
+  [5,  0.105],
   [3,  0.110],
+]
+
+/**
+ * Maps FOV brackets to minimum visible redshift.
+ * Used to fade out nearby galaxies when zooming in to deep fields.
+ * Lags behind REDSHIFT_RANGES to keep a "window" of visibility.
+ */
+export const MIN_REDSHIFT_RANGES: [number, number][] = [
+  [75, 0.0000], // Wide view: see everything from 0
+  [65, 0.0000],
+  [55, 0.0000],
+  [45, 0.0000],
+  [35, 0.0000], // Relaxed: keep local neighborhood visible longer
+  [25, 0.0001], // Start fading very slowly
+  [20, 0.0005],
+  [15, 0.0010],
+  [12, 0.0020],
+  [8,  0.0035],
+  [5,  0.0050],
+  [3,  0.0080], // Deep field: only see z > 0.008
 ]
 
 /** Observer location on Earth */
@@ -69,12 +92,12 @@ export const DEFAULT_LOCATION = 'North Pole'
 
 /** Base colors per morphology class — natural astrophotography-inspired palette */
 export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
-  elliptical: [0.96, 0.83, 0.68], // warm old stars
-  lenticular: [0.88, 0.82, 0.74], // creamy-beige
-  spiral:     [0.70, 0.81, 0.96], // cool blue disk
-  barred:     [0.78, 0.77, 0.90], // bluish-lilac
-  irregular:  [0.67, 0.83, 0.90], // young blue-white stars
-  unknown:    [0.82, 0.82, 0.85], // neutral silver-white
+  elliptical: [1.00, 0.85, 0.60], // warm golden old stars
+  lenticular: [0.95, 0.88, 0.78], // creamy-beige
+  spiral:     [0.60, 0.80, 1.00], // cool blue disk
+  barred:     [0.70, 0.75, 0.95], // bluish-lilac
+  irregular:  [0.60, 0.85, 1.00], // young blue-white stars
+  unknown:    [0.90, 0.90, 0.95], // neutral silver-white
 }
 
 /** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */

@@ -10,11 +10,12 @@ import {
   LOCATIONS,
   DEFAULT_LOCATION,
 } from '@/three/constants'
-import { fovToMaxRedshift } from '@/three/celestialMath'
+import { fovToMaxRedshift, fovToMinRedshift } from '@/three/celestialMath'
 
 export function useThreeScene() {
   const currentFov = ref(CAMERA_FOV_DEFAULT)
   const currentMaxRedshift = ref(fovToMaxRedshift(CAMERA_FOV_DEFAULT))
+  const currentMinRedshift = ref(fovToMinRedshift(CAMERA_FOV_DEFAULT))
   const currentLocation = ref(DEFAULT_LOCATION)
   const currentLookAt = ref({ azimuth: 0, elevation: 0 })
 
@@ -211,6 +212,7 @@ export function useThreeScene() {
     camera.updateProjectionMatrix()
     currentFov.value = camera.fov
     currentMaxRedshift.value = fovToMaxRedshift(camera.fov)
+    currentMinRedshift.value = fovToMinRedshift(camera.fov)
   }
 
   function onPointerDown(e: PointerEvent) {
@@ -349,6 +351,7 @@ export function useThreeScene() {
   return {
     currentFov,
     currentMaxRedshift,
+    currentMinRedshift,
     currentLocation,
     currentLookAt,
     init,

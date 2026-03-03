@@ -1,18 +1,18 @@
 import * as THREE from 'three'
 import type { MorphologyClass } from '@/types/galaxy'
 
-const TEX_SIZE = 128
+const TEX_SIZE = 256
 const TAU = Math.PI * 2
 const CENTER = TEX_SIZE / 2
 
 /** Stellar population hues — inner=warm, outer=cool */
 const STELLAR_HUES = [
-  { hue: 10,  spread: 8,  wInner: 0.35, wOuter: 0.05 },  // M red dwarfs
-  { hue: 25,  spread: 8,  wInner: 0.30, wOuter: 0.10 },  // K orange
-  { hue: 42,  spread: 6,  wInner: 0.25, wOuter: 0.15 },  // G yellow
-  { hue: 55,  spread: 5,  wInner: 0.08, wOuter: 0.20 },  // F yellow-white
-  { hue: 210, spread: 15, wInner: 0.02, wOuter: 0.35 },  // A/B blue-white
-  { hue: 225, spread: 10, wInner: 0.00, wOuter: 0.15 },  // O hot blue
+  { hue: 20,  spread: 10, wInner: 0.40, wOuter: 0.05 },  // M red/orange dwarfs
+  { hue: 35,  spread: 10, wInner: 0.30, wOuter: 0.10 },  // K orange
+  { hue: 48,  spread: 8,  wInner: 0.20, wOuter: 0.15 },  // G yellow
+  { hue: 60,  spread: 5,  wInner: 0.08, wOuter: 0.20 },  // F yellow-white
+  { hue: 210, spread: 20, wInner: 0.02, wOuter: 0.35 },  // A/B blue-white
+  { hue: 230, spread: 15, wInner: 0.00, wOuter: 0.15 },  // O hot blue
 ]
 
 function pickHue(distFactor: number): number {
@@ -25,32 +25,6 @@ function pickHue(distFactor: number): number {
     if (roll <= 0) return s.hue + (Math.random() - 0.5) * s.spread
   }
   return 42
-}
-
-function pickLayer(): { layer: string; size: number; brightness: number; alpha: number } {
-  const roll = Math.random()
-  if (roll < 0.65) {
-    return {
-      layer: 'dust',
-      size: 0.8 + Math.random() * 1.5,
-      brightness: 0.08 + Math.random() * 0.16,
-      alpha: 0.12 + Math.random() * 0.20,
-    }
-  } else if (roll < 0.97) {
-    return {
-      layer: 'star',
-      size: 1.5 + Math.random() * 3.0,
-      brightness: 0.32 + Math.random() * 0.40,
-      alpha: 0.40 + Math.random() * 0.40,
-    }
-  } else {
-    return {
-      layer: 'bright',
-      size: 4.0 + Math.random() * 6.0,
-      brightness: 0.64 + Math.random() * 0.16,
-      alpha: 0.56 + Math.random() * 0.24,
-    }
-  }
 }
 
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
@@ -72,15 +46,35 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   ]
 }
 
-function drawDot(
+function drawSoftDot(
   ctx: OffscreenCanvasRenderingContext2D,
   x: number, y: number,
   hue: number, brightness: number, alpha: number, size: number
 ) {
-  const [r, g, b] = hslToRgb(hue, 0.6, brightness)
-  ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`
+  const [r, g, b] = hslToRgb(hue, 0.7, brightness) // Increased saturation slightly
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, size)
+  grad.addColorStop(0, `rgba(${r},${g},${b},${alpha})`)
+  grad.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.4})`)
+  grad.addColorStop(1, `rgba(${r},${g},${b},0)`)
+  
+  ctx.fillStyle = grad
   ctx.beginPath()
-  ctx.arc(x, y, Math.max(0.5, size * 0.5), 0, TAU)
+  ctx.arc(x, y, size, 0, TAU)
+  ctx.fill()
+}
+
+function drawDust(
+  ctx: OffscreenCanvasRenderingContext2D,
+  x: number, y: number,
+  size: number, alpha: number
+) {
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, size)
+  grad.addColorStop(0, `rgba(10, 5, 0, ${alpha})`)
+  grad.addColorStop(1, `rgba(20, 10, 5, 0)`)
+  
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.arc(x, y, size, 0, TAU)
   ctx.fill()
 }
 
@@ -89,199 +83,204 @@ function gaussian(): number {
 }
 
 function renderSpiral(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 350
+  const numStars = 800
   const numArms = 2
-  const spiralTightness = 0.2
-  const spiralStart = 5
-  const armWidth = 8
+  const spiralTightness = 0.25
+  const spiralStart = 8
+  const armWidth = 12
   const galaxyRadius = CENTER * 0.85
-  const bulgeRadius = CENTER * 0.12
+  
+  // Core glow
+  drawSoftDot(ctx, CENTER, CENTER, 40, 0.9, 0.8, CENTER * 0.25)
+  drawSoftDot(ctx, CENTER, CENTER, 30, 1.0, 1.0, CENTER * 0.1)
 
   // Arms
-  const starsPerArm = Math.floor(numStars * 0.5 / numArms)
+  const starsPerArm = Math.floor(numStars * 0.6 / numArms)
   for (let arm = 0; arm < numArms; arm++) {
     const armOffset = (arm / numArms) * TAU
     for (let i = 0; i < starsPerArm; i++) {
       const t = i / starsPerArm
-      const theta = t * TAU * 2.5
+      const theta = t * TAU * 2.8
       const r = spiralStart * Math.exp(spiralTightness * theta)
       if (r > galaxyRadius) continue
+      
       const baseAngle = theta + armOffset
-      const scatter = gaussian() * armWidth
+      const scatter = gaussian() * armWidth * (1 + t) // More scatter further out
       const scatterAngle = baseAngle + Math.PI / 2
       const x = CENTER + Math.cos(baseAngle) * r + Math.cos(scatterAngle) * scatter
       const y = CENTER + Math.sin(baseAngle) * r + Math.sin(scatterAngle) * scatter
+      
       const distFactor = r / galaxyRadius
-      const { brightness, alpha, size } = pickLayer()
-      drawDot(ctx, x, y, pickHue(distFactor), brightness, alpha, size)
+      
+      // Dust lanes on the inside edge of arms
+      if (Math.random() < 0.3) {
+        const dustX = CENTER + Math.cos(baseAngle - 0.1) * (r - 5) + Math.cos(scatterAngle) * scatter
+        const dustY = CENTER + Math.sin(baseAngle - 0.1) * (r - 5) + Math.sin(scatterAngle) * scatter
+        drawDust(ctx, dustX, dustY, 8 + Math.random() * 8, 0.15)
+      }
+
+      const hue = pickHue(distFactor)
+      const size = 2 + Math.random() * 4
+      const alpha = 0.3 + Math.random() * 0.5
+      const brightness = 0.5 + Math.random() * 0.5
+      
+      drawSoftDot(ctx, x, y, hue, brightness, alpha, size)
     }
   }
 
-  // Bulge
+  // Field stars / Halo
   for (let i = 0; i < numStars * 0.3; i++) {
-    const r = Math.pow(Math.random(), 0.3) * bulgeRadius
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(r / galaxyRadius), brightness * 1.2, alpha, size)
-  }
-
-  // Field stars
-  for (let i = 0; i < numStars * 0.2; i++) {
-    const r = Math.sqrt(Math.random()) * galaxyRadius
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(r / galaxyRadius), brightness * 0.5, alpha * 0.5, size * 0.7)
-  }
-}
-
-function renderBarred(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 350
-  const barLength = CENTER * 0.35
-  const barWidth = CENTER * 0.08
-  const spiralTightness = 0.28
-  const spiralStart = 5
-  const galaxyRadius = CENTER * 0.85
-
-  // Bar
-  for (let i = 0; i < numStars * 0.25; i++) {
-    const along = (Math.random() - 0.5) * 2 * barLength
-    const across = (Math.random() - 0.5) * barWidth
-    const x = CENTER + along
-    const y = CENTER + across
-    const distFactor = Math.abs(along) / galaxyRadius
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(distFactor * 0.3), brightness * 1.1, alpha, size)
-  }
-
-  // Arms from bar endpoints
-  const numArms = 2
-  const starsPerArm = Math.floor(numStars * 0.45 / numArms)
-  for (let arm = 0; arm < numArms; arm++) {
-    const armOffset = arm * Math.PI
-    const startX = (arm === 0 ? 1 : -1) * barLength
-    for (let i = 0; i < starsPerArm; i++) {
-      const t = i / starsPerArm
-      const theta = t * TAU * 2.0
-      const r = spiralStart * Math.exp(spiralTightness * theta)
-      if (r > galaxyRadius) continue
-      const baseAngle = theta + armOffset
-      const scatter = gaussian() * 7
-      const scatterAngle = baseAngle + Math.PI / 2
-      const x = CENTER + startX + Math.cos(baseAngle) * r + Math.cos(scatterAngle) * scatter
-      const y = CENTER + Math.sin(baseAngle) * r + Math.sin(scatterAngle) * scatter
-      const distFactor = Math.sqrt((x - CENTER) ** 2 + (y - CENTER) ** 2) / galaxyRadius
-      const { brightness, alpha, size } = pickLayer()
-      drawDot(ctx, x, y, pickHue(distFactor), brightness, alpha, size)
-    }
-  }
-
-  // Bulge
-  for (let i = 0; i < numStars * 0.2; i++) {
-    const r = Math.pow(Math.random(), 0.3) * CENTER * 0.1
-    const theta = Math.random() * TAU
-    drawDot(ctx, CENTER + Math.cos(theta) * r, CENTER + Math.sin(theta) * r,
-      pickHue(0.1), 0.5, 0.6, 2)
-  }
-}
-
-function renderElliptical(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 400
-  const galaxyRadius = CENTER * 0.7
-  const axisRatio = 0.7
-
-  for (let i = 0; i < numStars; i++) {
-    const r = Math.pow(Math.random(), 0.4) * galaxyRadius
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r * axisRatio
-    const distFactor = r / galaxyRadius
-    const { brightness, alpha, size } = pickLayer()
-    // Ellipticals are warm throughout
-    drawDot(ctx, x, y, pickHue(distFactor * 0.3), brightness, alpha, size)
-  }
-}
-
-function renderLenticular(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 380
-  const galaxyRadius = CENTER * 0.8
-  const bulgeRadius = CENTER * 0.25
-  const scaleLength = galaxyRadius / 3
-
-  // Bulge (40% of stars)
-  for (let i = 0; i < numStars * 0.4; i++) {
-    const r = Math.pow(Math.random(), 0.3) * bulgeRadius
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(r / galaxyRadius * 0.3), brightness * 1.1, alpha, size)
-  }
-
-  // Exponential disk (60% of stars)
-  for (let i = 0; i < numStars * 0.6; i++) {
-    const u = Math.random()
-    const r = -Math.log(1 - u * 0.95) * scaleLength
-    if (r > galaxyRadius) continue
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r * 0.35 // thin disk
-    const distFactor = r / galaxyRadius
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(distFactor * 0.5), brightness * 0.8, alpha, size * 0.8)
-  }
-}
-
-function renderIrregular(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 300
-  const galaxyRadius = CENTER * 0.65
-
-  // Random clumps
-  const clumpCount = 3 + Math.floor(Math.random() * 3)
-  const clumps = Array.from({ length: clumpCount }, () => ({
-    x: CENTER + (Math.random() - 0.5) * galaxyRadius * 1.2,
-    y: CENTER + (Math.random() - 0.5) * galaxyRadius * 1.2,
-    sigma: 5 + Math.random() * 15,
-  }))
-
-  for (let i = 0; i < numStars; i++) {
-    let x: number, y: number
-    if (Math.random() < 0.7) {
-      // Clumped
-      const clump = clumps[Math.floor(Math.random() * clumps.length)]
-      x = clump.x + gaussian() * clump.sigma
-      y = clump.y + gaussian() * clump.sigma
-    } else {
-      // Field
-      const r = Math.sqrt(Math.random()) * galaxyRadius
-      const theta = Math.random() * TAU
-      x = CENTER + Math.cos(theta) * r + (Math.random() - 0.5) * 10
-      y = CENTER + Math.sin(theta) * r + (Math.random() - 0.5) * 10
-    }
-    const dist = Math.sqrt((x - CENTER) ** 2 + (y - CENTER) ** 2)
-    const distFactor = dist / galaxyRadius
-    const { brightness, alpha, size } = pickLayer()
-    // Irregulars are blue-dominant (young stars)
-    drawDot(ctx, x, y, pickHue(Math.max(0.5, distFactor)), brightness, alpha, size)
-  }
-}
-
-function renderUnknown(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 200
-  const galaxyRadius = CENTER * 0.5
-
-  // Simple circular glow
-  for (let i = 0; i < numStars; i++) {
     const r = Math.pow(Math.random(), 0.5) * galaxyRadius
     const theta = Math.random() * TAU
     const x = CENTER + Math.cos(theta) * r
     const y = CENTER + Math.sin(theta) * r
     const distFactor = r / galaxyRadius
-    const { brightness, alpha, size } = pickLayer()
-    drawDot(ctx, x, y, pickHue(distFactor * 0.4), brightness * 0.7, alpha * 0.8, size * 0.7)
+    drawSoftDot(ctx, x, y, pickHue(distFactor), 0.6, 0.3, 1.5 + Math.random() * 2)
+  }
+}
+
+function renderBarred(ctx: OffscreenCanvasRenderingContext2D) {
+  const numStars = 700
+  const barLength = CENTER * 0.4
+  const barWidth = CENTER * 0.12
+  const spiralTightness = 0.35
+  const spiralStart = 8
+  const galaxyRadius = CENTER * 0.85
+
+  // Core
+  drawSoftDot(ctx, CENTER, CENTER, 40, 1.0, 0.9, CENTER * 0.15)
+
+  // Bar
+  for (let i = 0; i < numStars * 0.25; i++) {
+    const along = (Math.random() - 0.5) * 2 * barLength
+    const across = gaussian() * barWidth * 0.5
+    const x = CENTER + along
+    const y = CENTER + across
+    const distFactor = Math.abs(along) / galaxyRadius
+    drawSoftDot(ctx, x, y, pickHue(distFactor * 0.3), 0.8, 0.4, 2 + Math.random() * 3)
+  }
+
+  // Arms
+  const numArms = 2
+  const starsPerArm = Math.floor(numStars * 0.5 / numArms)
+  for (let arm = 0; arm < numArms; arm++) {
+    const armOffset = arm * Math.PI
+    const startX = (arm === 0 ? 1 : -1) * barLength
+    for (let i = 0; i < starsPerArm; i++) {
+      const t = i / starsPerArm
+      const theta = t * TAU * 1.8
+      const r = spiralStart * Math.exp(spiralTightness * theta)
+      if (r > galaxyRadius) continue
+      
+      const baseAngle = theta + armOffset
+      const scatter = gaussian() * 10
+      const scatterAngle = baseAngle + Math.PI / 2
+      
+      // Offset arms to start from ends of bar
+      const x = CENTER + startX + Math.cos(baseAngle) * r + Math.cos(scatterAngle) * scatter
+      const y = CENTER + Math.sin(baseAngle) * r + Math.sin(scatterAngle) * scatter
+      
+      const distFactor = Math.sqrt((x-CENTER)**2 + (y-CENTER)**2) / galaxyRadius
+      drawSoftDot(ctx, x, y, pickHue(distFactor), 0.7, 0.4, 2 + Math.random() * 4)
+    }
+  }
+}
+
+function renderElliptical(ctx: OffscreenCanvasRenderingContext2D) {
+  const numStars = 1000
+  const galaxyRadius = CENTER * 0.75
+  const axisRatio = 0.75
+
+  // Strong central glow
+  drawSoftDot(ctx, CENTER, CENTER, 45, 0.9, 0.8, CENTER * 0.4)
+  drawSoftDot(ctx, CENTER, CENTER, 40, 1.0, 1.0, CENTER * 0.15)
+
+  for (let i = 0; i < numStars; i++) {
+    // Concentration towards center (inverse power law)
+    const r = Math.pow(Math.random(), 2.5) * galaxyRadius // More concentrated
+    const theta = Math.random() * TAU
+    const x = CENTER + Math.cos(theta) * r
+    const y = CENTER + Math.sin(theta) * r * axisRatio
+    const distFactor = r / galaxyRadius
+    
+    // Ellipticals are old, yellow/red
+    const hue = 35 + (Math.random() - 0.5) * 15
+    drawSoftDot(ctx, x, y, hue, 0.7, 0.3, 2 + Math.random() * 4)
+  }
+}
+
+function renderLenticular(ctx: OffscreenCanvasRenderingContext2D) {
+  const numStars = 800
+  const galaxyRadius = CENTER * 0.8
+  
+  // Bright core
+  drawSoftDot(ctx, CENTER, CENTER, 45, 1.0, 0.9, CENTER * 0.2)
+  
+  // Disk
+  for (let i = 0; i < numStars * 0.7; i++) {
+    const r = Math.pow(Math.random(), 0.8) * galaxyRadius
+    const theta = Math.random() * TAU
+    const x = CENTER + Math.cos(theta) * r
+    const y = CENTER + Math.sin(theta) * r * 0.4 // Flattened disk
+    const distFactor = r / galaxyRadius
+    
+    drawSoftDot(ctx, x, y, pickHue(distFactor * 0.5), 0.7, 0.3, 2 + Math.random() * 3)
+  }
+  
+  // Halo
+  for (let i = 0; i < numStars * 0.3; i++) {
+    const r = Math.pow(Math.random(), 1.5) * galaxyRadius * 0.6
+    const theta = Math.random() * TAU
+    const x = CENTER + Math.cos(theta) * r
+    const y = CENTER + Math.sin(theta) * r
+    drawSoftDot(ctx, x, y, 40, 0.5, 0.2, 2 + Math.random() * 2)
+  }
+}
+
+function renderIrregular(ctx: OffscreenCanvasRenderingContext2D) {
+  const numStars = 600
+  const galaxyRadius = CENTER * 0.7
+
+  // Random clumps of star formation
+  const clumpCount = 4 + Math.floor(Math.random() * 4)
+  const clumps = Array.from({ length: clumpCount }, () => ({
+    x: CENTER + (Math.random() - 0.5) * galaxyRadius * 1.4,
+    y: CENTER + (Math.random() - 0.5) * galaxyRadius * 1.4,
+    sigma: 15 + Math.random() * 25,
+    hue: 210 + (Math.random() - 0.5) * 30 // Blue/Young
+  }))
+
+  for (let i = 0; i < numStars; i++) {
+    let x: number, y: number, hue: number
+    if (Math.random() < 0.8) {
+      // Clumped
+      const clump = clumps[Math.floor(Math.random() * clumps.length)]
+      x = clump.x + gaussian() * clump.sigma
+      y = clump.y + gaussian() * clump.sigma
+      hue = clump.hue
+    } else {
+      // Field
+      const r = Math.sqrt(Math.random()) * galaxyRadius
+      const theta = Math.random() * TAU
+      x = CENTER + Math.cos(theta) * r + (Math.random() - 0.5) * 20
+      y = CENTER + Math.sin(theta) * r + (Math.random() - 0.5) * 20
+      hue = 200 + Math.random() * 40
+    }
+    
+    drawSoftDot(ctx, x, y, hue, 0.8, 0.4, 3 + Math.random() * 5)
+  }
+}
+
+function renderUnknown(ctx: OffscreenCanvasRenderingContext2D) {
+  // Generic faint fuzz
+  drawSoftDot(ctx, CENTER, CENTER, 220, 0.6, 0.5, CENTER * 0.3)
+  
+  for (let i = 0; i < 300; i++) {
+    const r = Math.pow(Math.random(), 0.5) * CENTER * 0.6
+    const theta = Math.random() * TAU
+    const x = CENTER + Math.cos(theta) * r
+    const y = CENTER + Math.sin(theta) * r
+    drawSoftDot(ctx, x, y, 210, 0.5, 0.2, 2 + Math.random() * 3)
   }
 }
 
@@ -313,7 +312,7 @@ export function morphologyToAtlasIndex(morphClass: MorphologyClass): number {
 
 /**
  * Generate a texture atlas containing all galaxy type textures.
- * Layout: 2x3 grid of 128x128 = 256x384 atlas.
+ * Layout: 2x3 grid of 256x256 = 512x768 atlas.
  */
 export function generateGalaxyTextureAtlas(): THREE.CanvasTexture {
   const atlasWidth = ATLAS_COLS * TEX_SIZE
@@ -332,6 +331,13 @@ export function generateGalaxyTextureAtlas(): THREE.CanvasTexture {
     const tileCanvas = new OffscreenCanvas(TEX_SIZE, TEX_SIZE)
     const tileCtx = tileCanvas.getContext('2d', { alpha: true })!
     tileCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE)
+    
+    // Add subtle background glow to everything to avoid stark blackness
+    const glow = tileCtx.createRadialGradient(CENTER, CENTER, 0, CENTER, CENTER, CENTER * 0.9)
+    glow.addColorStop(0, 'rgba(20, 20, 30, 0.2)')
+    glow.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    tileCtx.fillStyle = glow
+    tileCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE)
 
     RENDERERS[morphClass](tileCtx)
 

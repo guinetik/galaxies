@@ -32,7 +32,7 @@ const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: c
 
 const router = useRouter()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const { currentFov, currentMaxRedshift, currentLocation, currentLookAt, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
+const { currentFov, currentMaxRedshift, currentMinRedshift, currentLocation, currentLookAt, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
 const { ready, getAllGalaxies } = useGalaxyData()
 
 function setLocation(name: string) {
@@ -91,6 +91,7 @@ function pickGalaxyFromPointer(e: PointerEvent): Galaxy | null {
     rect.width,
     rect.height,
     currentMaxRedshift.value,
+    currentMinRedshift.value,
     currentFov.value
   )
 }
@@ -200,7 +201,7 @@ onMounted(async () => {
 
   // 5. Start animation loop
   startLoop((elapsed) => {
-    galaxyField?.update(elapsed, currentMaxRedshift.value, currentFov.value)
+    galaxyField?.update(elapsed, currentMaxRedshift.value, currentMinRedshift.value, currentFov.value)
     backgroundStars?.update(elapsed)
     earthHorizon?.update()
   })
