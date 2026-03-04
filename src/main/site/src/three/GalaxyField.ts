@@ -36,7 +36,7 @@ export class GalaxyField {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uMaxRedshift: { value: 0.01 },
+        uMaxRedshift: { value: 0.0 },
         uMinRedshift: { value: 0.0 },
         uFov: { value: 60.0 },
         uTexture: { value: atlasTexture },
