@@ -12,7 +12,7 @@ export const EARTH_Y_OFFSET = -600
 /** Camera field-of-view limits (degrees) */
 export const CAMERA_FOV_MIN = 3
 export const CAMERA_FOV_MAX = 75
-export const CAMERA_FOV_DEFAULT = 60
+export const CAMERA_FOV_DEFAULT = 75
 
 /** Camera clipping planes */
 export const CAMERA_NEAR = 0.1
@@ -38,7 +38,8 @@ export const CAMERA_POSITION: [number, number, number] = [0, 50, 0]
  *    3° →  55,877 galaxies (full deep field)
  */
 export const REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.003],
+  [75, 0.00001], // Start at ~0 MLY
+  [70, 0.003],   // 42 MLY
   [65, 0.007],
   [55, 0.015],
   [45, 0.025],
@@ -59,6 +60,7 @@ export const REDSHIFT_RANGES: [number, number][] = [
  */
 export const MIN_REDSHIFT_RANGES: [number, number][] = [
   [75, 0.0000], // Wide view: see everything from 0
+  [70, 0.0000],
   [65, 0.0000],
   [55, 0.0000],
   [45, 0.0000],
