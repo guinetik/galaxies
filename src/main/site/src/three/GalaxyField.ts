@@ -36,10 +36,11 @@ export class GalaxyField {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uMaxRedshift: { value: 0.0 },
+        uMaxRedshift: { value: 0.01 },
         uMinRedshift: { value: 0.0 },
         uFov: { value: 60.0 },
         uTexture: { value: atlasTexture },
+        uCameraLogLevel: { value: 0.0 },
       },
       transparent: true,
       depthWrite: false,
@@ -127,11 +128,61 @@ export class GalaxyField {
     attr.needsUpdate = true
   }
 
-  update(elapsed: number, maxRedshift: number, minRedshift: number, fov: number): void {
+  update(elapsed: number, maxRedshift: number, minRedshift: number, fov: number, zoomTickCount: number = 0, currentLevel: number = 0, levelProgress: number = 0): void {
     this.material.uniforms.uTime.value = elapsed
     this.material.uniforms.uMaxRedshift.value = maxRedshift
     this.material.uniforms.uMinRedshift.value = minRedshift
     this.material.uniforms.uFov.value = fov
+
+    // Update per-galaxy alpha and size based on camera distance (derived from FOV)
+    // Galaxies grow larger as camera approaches their distance
+    if (this.alphas.length === this.galaxies.length) {
+      const maxRedshift = fovToMaxRedshift(fov)
+      const cameraDistanceMly = redshiftToDistanceMLY(maxRedshift)
+      const cameraDistanceMpc = cameraDistanceMly / 3.26
+      const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
+
+      // Update shader uniform
+      this.material.uniforms.uCameraLogLevel.value = cameraLogLevel
+
+      const sizeMultiplierAttr = this.geometry.attributes.aSizeMultiplier as THREE.BufferAttribute
+      const sizeMultArray = sizeMultiplierAttr?.array as Float32Array
+
+      for (let i = 0; i < this.galaxies.length; i++) {
+        const galaxy = this.galaxies[i]
+        const alpha = this.computeDistanceBasedAlpha(i, fov)
+        this.alphas[i] = alpha
+
+        // Calculate size multiplier based on proximity to camera distance (in log-space)
+        const galaxyLogLevel = Math.log2(Math.max(1, galaxy.distance_mpc))
+        
+        // Asymmetric scaling:
+        // Background (galaxy > camera): shrink rapidly so they don't clutter
+        // Foreground (galaxy < camera): grow larger to simulate fly-by
+        const diff = galaxyLogLevel - cameraLogLevel
+        let sizeMultiplier = 1.0
+        
+        if (diff > 0) {
+          // Background: shrink rapidly
+          sizeMultiplier = Math.pow(2, -diff * 2.0)
+        } else {
+          // Foreground: grow!
+          // diff is negative. -diff is positive.
+          // Grow by 1.5x per log level difference
+          // Cap at 12.0x (increased from 8.0x) to allow them to get huge before fading
+          sizeMultiplier = Math.min(12.0, Math.pow(1.5, -diff))
+        }
+        
+        sizeMultArray[i] = sizeMultiplier
+      }
+      const alphaAttr = this.geometry.attributes.aAlpha as THREE.BufferAttribute
+      if (alphaAttr) {
+        alphaAttr.needsUpdate = true
+      }
+      if (sizeMultiplierAttr) {
+        sizeMultiplierAttr.needsUpdate = true
+      }
+    }
   }
 
   /**
