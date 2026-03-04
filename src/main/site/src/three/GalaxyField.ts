@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Galaxy } from '@/types/galaxy'
 import { assignMorphology } from '@/types/galaxy'
-import { raDecToPosition } from './celestialMath'
+import { raDecToPosition, fovToMaxRedshift, redshiftToDistanceMLY } from './celestialMath'
 import { SPHERE_RADIUS, MORPHOLOGY_COLORS } from './constants'
 import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
@@ -18,6 +18,8 @@ export class GalaxyField {
   private redshifts: Float32Array
   private selected: Float32Array = new Float32Array(0)
   private selectedPgc: number | null = null
+  private alphas: Float32Array = new Float32Array(0)
+  private sizeMultipliers: Float32Array = new Float32Array(0)
   private readonly tempLocal = new THREE.Vector3()
   private readonly tempWorld = new THREE.Vector3()
 
@@ -27,6 +29,8 @@ export class GalaxyField {
     this.positions = new Float32Array(0)
     this.sizes = new Float32Array(0)
     this.redshifts = new Float32Array(0)
+    this.alphas = new Float32Array(0)
+    this.sizeMultipliers = new Float32Array(0)
 
     this.geometry = new THREE.BufferGeometry()
 
@@ -63,6 +67,8 @@ export class GalaxyField {
     const redshifts = new Float32Array(count)
     const texIndices = new Float32Array(count)
     const selected = new Float32Array(count)
+    const alphas = new Float32Array(count)
+    const sizeMultipliers = new Float32Array(count).fill(1.0) // Initialize to 1.0, not 0!
 
     for (let i = 0; i < count; i++) {
       const g = galaxies[i]
@@ -102,6 +108,8 @@ export class GalaxyField {
     this.selected = selected
     this.sizes = sizes
     this.redshifts = redshifts
+    this.alphas = alphas
+    this.sizeMultipliers = sizeMultipliers
 
     this.geometry.dispose()
     this.geometry = new THREE.BufferGeometry()
@@ -111,6 +119,8 @@ export class GalaxyField {
     this.geometry.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
     this.geometry.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
     this.geometry.setAttribute('aSelected', new THREE.BufferAttribute(selected, 1))
+    this.geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
+    this.geometry.setAttribute('aSizeMultiplier', new THREE.BufferAttribute(sizeMultipliers, 1))
 
     this.points.geometry = this.geometry
   }
@@ -266,6 +276,68 @@ export class GalaxyField {
     }
 
     return Math.min(farAlpha, nearAlpha)
+  }
+
+  /**
+   * Calculate galaxy visibility based on logarithmic zoom levels.
+   * Uses log2(distance) to create ~50+ zoom levels spanning 1-500 Mpc.
+   * Each level = 2x zoom deeper into space, creating vast cosmic scale.
+   */
+  private computeDistanceBasedAlpha(
+    galaxyIndex: number,
+    fov: number
+  ): number {
+    const galaxy = this.galaxies[galaxyIndex]
+    if (!galaxy.distance_mpc) return 0.0
+
+    // Calculate camera distance from FOV
+    const maxRedshift = fovToMaxRedshift(fov)
+    const cameraDistanceMly = redshiftToDistanceMLY(maxRedshift)
+    const cameraDistanceMpc = cameraDistanceMly / 3.26
+
+    // Logarithmic level system: log2(distance in Mpc)
+    // Level -4 ≈ 1 Mpc, Level 0 ≈ 1 Mpc, Level 8 ≈ 256 Mpc, Level 9 ≈ 500 Mpc
+    const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
+    const galaxyLogLevel = Math.log2(Math.max(1, galaxy.distance_mpc))
+
+    // Visibility window: Thinner slice for "more levels" and fewer galaxies per level
+    // At each zoom depth, see galaxies within ±0.15 log-levels
+    const logWindow = 0.15
+
+    // Fade in: start seeing galaxies 4.0 levels below camera (long trail for fly-by)
+    // This ensures galaxies stay visible as we zoom past them, growing huge
+    const fadeInStart = cameraLogLevel - logWindow - 4.0
+    // Full visibility: galaxies ±logWindow from camera
+    const fullVisStart = cameraLogLevel - logWindow
+    const fullVisEnd = cameraLogLevel + logWindow
+    // Fade out: stop seeing galaxies 0.1 levels above camera (don't show background too soon)
+    const fadeOutEnd = cameraLogLevel + logWindow + 0.1
+
+    // Outside visibility range: invisible
+    if (galaxyLogLevel < fadeInStart || galaxyLogLevel > fadeOutEnd) {
+      return 0.0
+    }
+
+    // Fade in zone: gentle appearance as you zoom toward distance
+    if (galaxyLogLevel < fullVisStart) {
+      const fadeInRange = fullVisStart - fadeInStart
+      const distFromStart = galaxyLogLevel - fadeInStart
+      return Math.max(0.0, distFromStart / fadeInRange)
+    }
+
+    // Full visibility zone: galaxies at this distance are fully visible
+    if (galaxyLogLevel >= fullVisStart && galaxyLogLevel <= fullVisEnd) {
+      return 1.0
+    }
+
+    // Fade out zone: gentle departure as you zoom past distance
+    if (galaxyLogLevel > fullVisEnd) {
+      const fadeOutRange = fadeOutEnd - fullVisEnd
+      const distFromFullVis = galaxyLogLevel - fullVisEnd
+      return Math.max(0.0, 1.0 - (distFromFullVis / fadeOutRange))
+    }
+
+    return 1.0
   }
 
   private clamp01(v: number): number {
