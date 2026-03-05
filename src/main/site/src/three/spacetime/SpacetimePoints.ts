@@ -5,12 +5,17 @@ import type { DensityFieldResult } from './computeDensityField'
 import vertexShader from '../cosmic-map/shaders/cosmicmap.vert.glsl?raw'
 import fragmentShader from '../cosmic-map/shaders/cosmicmap.frag.glsl?raw'
 
+/** PGC number for Andromeda (M31) — highlighted as a landmark galaxy */
+const ANDROMEDA_PGC = 2557
+
 /**
  * Galaxy group dots positioned on the warped fabric surface.
  * Reuses the cosmic map point shaders for consistent visual style.
  */
 export class SpacetimePoints {
   readonly points: THREE.Points
+  /** World position of the Andromeda dot (null if not in slab) */
+  andromedaPosition: THREE.Vector3 | null = null
   private material: THREE.ShaderMaterial
   private geometry: THREE.BufferGeometry
 
@@ -49,12 +54,20 @@ export class SpacetimePoints {
       positions[i * 3 + 1] = y
       positions[i * 3 + 2] = z
 
-      const c = velocityToColor(g.vh ?? 0)
-      colors[i * 3] = c[0]
-      colors[i * 3 + 1] = c[1]
-      colors[i * 3 + 2] = c[2]
-
-      sizes[i] = 3.0
+      const isAndromeda = g.group_pgc === ANDROMEDA_PGC
+      if (isAndromeda) {
+        this.andromedaPosition = new THREE.Vector3(x, y, z)
+        colors[i * 3] = 1.0
+        colors[i * 3 + 1] = 0.85
+        colors[i * 3 + 2] = 0.4
+        sizes[i] = 18.0
+      } else {
+        const c = velocityToColor(g.vh ?? 0)
+        colors[i * 3] = c[0]
+        colors[i * 3 + 1] = c[1]
+        colors[i * 3 + 2] = c[2]
+        sizes[i] = 3.0
+      }
     }
 
     this.positions = positions
@@ -77,6 +90,21 @@ export class SpacetimePoints {
 
     this.points = new THREE.Points(this.geometry, this.material)
     this.points.frustumCulled = false
+  }
+
+  /** Reads the exact rendered position for a given group_pgc from the positions buffer */
+  getPositionByPGC(pgc: number): THREE.Vector3 | null {
+    for (let i = 0; i < this.groupData.length; i++) {
+      if (this.groupData[i].group_pgc === pgc) {
+        const i3 = i * 3
+        return new THREE.Vector3(
+          this.positions[i3],
+          this.positions[i3 + 1],
+          this.positions[i3 + 2],
+        )
+      }
+    }
+    return null
   }
 
   update(elapsed: number): void {

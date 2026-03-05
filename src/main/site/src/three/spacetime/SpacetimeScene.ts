@@ -9,12 +9,10 @@ import type { GalaxyGroup } from '@/types/galaxy'
 import type { DensityFieldResult } from './computeDensityField'
 
 const DISPLACE_SCALE = 6000
-/** Label floats this far above the fabric surface (matches SpacetimeLabels) */
 const LABEL_OFFSET_Y = 300
-/** Base camera distance — Virgo (shallow) stays here; others zoom in more */
 const FOCUS_CAMERA_DISTANCE_BASE = 4200
-/** Min distance — deep wells (Centaurus, Great Attractor, etc.) zoom in close */
 const FOCUS_CAMERA_DISTANCE_MIN = 900
+const ANDROMEDA_PGC = 2557
 
 export class SpacetimeScene {
   private renderer: THREE.WebGLRenderer
@@ -29,6 +27,8 @@ export class SpacetimeScene {
   private groupPoints: SpacetimePoints | null = null
   private labels: SpacetimeLabels | null = null
   private densityField: DensityFieldResult | null = null
+  /** Runtime-resolved positions for PGC-based structures (e.g. Andromeda) */
+  private resolvedPositions = new Map<string, { sgx: number; sgy: number }>()
 
   private focusTarget: THREE.Vector3 | null = null
   private focusCamPos: THREE.Vector3 | null = null
@@ -95,6 +95,18 @@ export class SpacetimeScene {
     // Build labels
     this.labels = new SpacetimeLabels(densityField)
     this.scene.add(this.labels.group)
+
+    // Read Andromeda's position directly from the rendered Float32Array buffer
+    const andromedaPos = this.groupPoints.getPositionByPGC(ANDROMEDA_PGC)
+    if (andromedaPos) {
+      this.resolvedPositions.set('Andromeda (M31)', {
+        sgx: andromedaPos.x,
+        sgy: andromedaPos.z,
+      })
+      const sprite = this.makeHighlightLabel('Andromeda (M31)')
+      sprite.position.set(andromedaPos.x, andromedaPos.y + 50, andromedaPos.z)
+      this.scene.add(sprite)
+    }
   }
 
   /** Start the animation loop */
@@ -149,16 +161,49 @@ export class SpacetimeScene {
     const structure = STRUCTURES.find((s) => s.name === name)
     if (!structure || !this.densityField) return null
 
+    // Prefer runtime-resolved position (PGC-based entries like Andromeda)
+    const resolved = this.resolvedPositions.get(name)
+    const sgx = resolved?.sgx ?? structure.sgx
+    const sgy = resolved?.sgy ?? structure.sgy
+
     const { grid, resolution, extent } = this.densityField
-    const gx = Math.floor(((structure.sgx + extent) / (extent * 2)) * resolution)
-    const gy = Math.floor(((structure.sgy + extent) / (extent * 2)) * resolution)
+    const gx = Math.floor(((sgx + extent) / (extent * 2)) * resolution)
+    const gy = Math.floor(((sgy + extent) / (extent * 2)) * resolution)
     const cx = Math.min(Math.max(gx, 0), resolution - 1)
     const cy = Math.min(Math.max(gy, 0), resolution - 1)
     const density = grid[cy * resolution + cx]
     const fabricY = -(Math.pow(density, 0.7) * DISPLACE_SCALE)
     const labelY = fabricY + LABEL_OFFSET_Y
 
-    return new THREE.Vector3(structure.sgx, labelY, structure.sgy)
+    return new THREE.Vector3(sgx, labelY, sgy)
+  }
+
+  /** Creates a highlighted label sprite for landmark galaxies */
+  private makeHighlightLabel(text: string): THREE.Sprite {
+    const canvas = document.createElement('canvas')
+    const scale = 2
+    canvas.width = 256 * scale
+    canvas.height = 48 * scale
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(scale, scale)
+    ctx.font = '700 16px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.shadowColor = 'rgba(255, 200, 100, 0.8)'
+    ctx.shadowBlur = 12
+    ctx.fillStyle = 'rgba(255, 220, 130, 1.0)'
+    ctx.fillText(text, 128, 24)
+    ctx.shadowBlur = 0
+    ctx.fillText(text, 128, 24)
+    const texture = new THREE.CanvasTexture(canvas)
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+    })
+    const sprite = new THREE.Sprite(material)
+    sprite.scale.set(1000, 200, 1)
+    return sprite
   }
 
   /** Hit-test for tooltip */

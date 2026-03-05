@@ -5,9 +5,15 @@ import { velocityToColor } from '@/types/galaxy'
 import vertexShader from '../cosmic-map/shaders/cosmicmap.vert.glsl?raw'
 import fragmentShader from '../cosmic-map/shaders/cosmicmap.frag.glsl?raw'
 
+/** PGC number for Andromeda (M31) */
+const ANDROMEDA_PGC = 2557
+
 /** Labeled cosmic structures within ~100 Mpc */
-export const STRUCTURES = [
+export const STRUCTURES: {
+  name: string; sgx: number; sgy: number; sgz: number; pgc?: number
+}[] = [
   { name: 'Milky Way',        sgx: 0,     sgy: 0,    sgz: 0 },
+  { name: 'Andromeda (M31)',  sgx: 0,     sgy: 0,    sgz: 0, pgc: ANDROMEDA_PGC },
   { name: 'Virgo',            sgx: -200,  sgy: 1100, sgz: 0 },
   { name: 'Centaurus',        sgx: -3200, sgy: 3200, sgz: 0 },
   { name: 'Hydra',            sgx: -2800, sgy: 3800, sgz: 0 },
@@ -244,13 +250,24 @@ export class CylinderScene {
 
   private buildLabels(groups: GalaxyGroup[]): void {
     for (const structure of STRUCTURES) {
-      // Find real SGZ from closest galaxy group (don't mutate the shared constant)
+      let { sgx, sgy } = structure
+
+      // Resolve real coordinates from group data for PGC-based entries
+      if (structure.pgc != null) {
+        const match = groups.find((g) => g.group_pgc === structure.pgc)
+        if (match) {
+          sgx = match.sgx
+          sgy = match.sgy
+        }
+      }
+
+      // Find real SGZ from closest galaxy group
       let sgz = 0
       if (structure.name !== 'Milky Way') {
         let bestDist = Infinity
         for (const g of groups) {
-          const dx = g.sgx - structure.sgx
-          const dz = g.sgy - structure.sgy
+          const dx = g.sgx - sgx
+          const dz = g.sgy - sgy
           const d = dx * dx + dz * dz
           if (d < bestDist) {
             bestDist = d
@@ -261,18 +278,18 @@ export class CylinderScene {
 
       this.structurePositions.set(
         structure.name,
-        new THREE.Vector3(structure.sgx, sgz, structure.sgy),
+        new THREE.Vector3(sgx, sgz, sgy),
       )
 
       const isMW = structure.name === 'Milky Way'
       const sprite = this.makeLabel(structure.name, isMW)
-      sprite.position.set(structure.sgx, sgz + 300, structure.sgy)
+      sprite.position.set(sgx, sgz + 300, sgy)
       this.scene.add(sprite)
 
       if (!isMW) {
         const lineGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(structure.sgx, sgz, structure.sgy),
-          new THREE.Vector3(structure.sgx, 0, structure.sgy),
+          new THREE.Vector3(sgx, sgz, sgy),
+          new THREE.Vector3(sgx, 0, sgy),
         ])
         const lineMat = new THREE.LineBasicMaterial({
           color: 0x22d3ee,

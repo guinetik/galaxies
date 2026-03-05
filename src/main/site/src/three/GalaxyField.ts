@@ -190,8 +190,8 @@ export class GalaxyField {
         const galaxyLogLevel = Math.log2(Math.max(1, galaxy.distance_mpc))
         const logOffset = galaxyLogLevel - cameraLogLevel
 
-        const depthAlpha = this.computeDepthWindowAlpha(logOffset)
-        const foregroundFade = this.computeForegroundFade(logOffset)
+        const depthAlpha = this.computeDepthWindowAlpha(logOffset, fov)
+        const foregroundFade = this.computeForegroundFade(logOffset, fov)
         this.alphas[i] = depthAlpha * foregroundFade
         sizeMultArray[i] = this.computeGrowthMultiplier(logOffset)
       }
@@ -239,7 +239,7 @@ export class GalaxyField {
 
       const galaxyLogLevel = Math.log2(Math.max(1, this.galaxies[i].distance_mpc))
       const logOffset = galaxyLogLevel - cameraLogLevel
-      const depthAlpha = this.computeDepthWindowAlpha(logOffset) * this.computeForegroundFade(logOffset)
+      const depthAlpha = this.computeDepthWindowAlpha(logOffset, fov) * this.computeForegroundFade(logOffset, fov)
       if (depthAlpha < 0.01) continue
 
       // Outside clip volume.
@@ -308,11 +308,13 @@ export class GalaxyField {
    * Compute alpha from a narrow logarithmic depth window around camera focus.
    * Positive offsets are farther than the current focus; negative are foreground.
    */
-  private computeDepthWindowAlpha(logOffset: number): number {
-    const farFadeStart = 0.34
-    const farFadeEnd = 0.72
-    const nearFadeStart = -0.36
-    const nearFadeEnd = -1.24
+  private computeDepthWindowAlpha(logOffset: number, fov: number): number {
+    // As we zoom in, narrow the active depth slice to avoid dense overlap.
+    const zoomMix = this.smoothstep(72, 12, fov)
+    const farFadeStart = this.mix(0.34, 0.18, zoomMix)
+    const farFadeEnd = this.mix(0.72, 0.42, zoomMix)
+    const nearFadeStart = this.mix(-0.36, -0.18, zoomMix)
+    const nearFadeEnd = this.mix(-1.24, -0.62, zoomMix)
 
     if (logOffset < nearFadeEnd || logOffset > farFadeEnd) return 0.0
     if (logOffset < nearFadeStart) return this.smoothstep(nearFadeEnd, nearFadeStart, logOffset)
@@ -336,10 +338,13 @@ export class GalaxyField {
   /**
    * Fade foreground earlier so nearby galaxies do not dominate the frame.
    */
-  private computeForegroundFade(logOffset: number): number {
-    if (logOffset >= -0.44) return 1.0
-    if (logOffset <= -1.42) return 0.0
-    return this.smoothstep(-1.42, -0.44, logOffset)
+  private computeForegroundFade(logOffset: number, fov: number): number {
+    const zoomMix = this.smoothstep(72, 12, fov)
+    const fadeStart = this.mix(-0.44, -0.24, zoomMix)
+    const fadeEnd = this.mix(-1.42, -0.78, zoomMix)
+    if (logOffset >= fadeStart) return 1.0
+    if (logOffset <= fadeEnd) return 0.0
+    return this.smoothstep(fadeEnd, fadeStart, logOffset)
   }
 
   /**
@@ -353,9 +358,11 @@ export class GalaxyField {
     camera: THREE.PerspectiveCamera,
     viewZ: number
   ): number {
-    const parallaxMix = this.smoothstep(72, 16, fov)
+    const parallaxZoomMix = this.smoothstep(75, 16, fov)
+    const parallaxMix = this.mix(0.32, 1.0, parallaxZoomMix)
     const nearFactor = 1.0 - this.smoothstep(minRedshift, maxRedshift, redshift)
-    const viewShiftX = this.latestPointerParallaxX * parallaxMix * nearFactor * 26.0
+    const depthMix = this.mix(0.45, 1.0, nearFactor)
+    const viewShiftX = this.latestPointerParallaxX * parallaxMix * depthMix * 29.0
     const proj00 = camera.projectionMatrix.elements[0]
     const safeDepth = Math.max(0.001, -viewZ)
     return (viewShiftX * proj00) / safeDepth
@@ -372,9 +379,11 @@ export class GalaxyField {
     camera: THREE.PerspectiveCamera,
     viewZ: number
   ): number {
-    const parallaxMix = this.smoothstep(72, 16, fov)
+    const parallaxZoomMix = this.smoothstep(75, 16, fov)
+    const parallaxMix = this.mix(0.32, 1.0, parallaxZoomMix)
     const nearFactor = 1.0 - this.smoothstep(minRedshift, maxRedshift, redshift)
-    const viewShiftY = this.latestPointerParallaxY * parallaxMix * nearFactor * 18.0
+    const depthMix = this.mix(0.45, 1.0, nearFactor)
+    const viewShiftY = this.latestPointerParallaxY * parallaxMix * depthMix * 21.0
     const proj11 = camera.projectionMatrix.elements[5]
     const safeDepth = Math.max(0.001, -viewZ)
     return (viewShiftY * proj11) / safeDepth
@@ -394,6 +403,13 @@ export class GalaxyField {
   private smoothstep(edge0: number, edge1: number, x: number): number {
     const t = this.clamp01((x - edge0) / (edge1 - edge0))
     return t * t * (3 - 2 * t)
+  }
+
+  /**
+   * Linear interpolation helper.
+   */
+  private mix(a: number, b: number, t: number): number {
+    return a + (b - a) * t
   }
 
   dispose(): void {

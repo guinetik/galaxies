@@ -118,18 +118,12 @@
     <!-- Tooltip -->
     <div
       v-if="tooltip"
-      class="map-tooltip"
+      class="tooltip"
       :style="{ left: tooltipX + 'px', top: tooltipY + 'px' }"
     >
-      <div class="map-tooltip-name">PGC {{ tooltip.pgc }}</div>
-      <div class="map-tooltip-row">
-        <span class="map-tooltip-label">Distance</span>
-        {{ Math.round(tooltip.distance * 3.26).toLocaleString() }} Mly
-      </div>
-      <div class="map-tooltip-row">
-        <span class="map-tooltip-label">Velocity</span>
-        {{ tooltip.velocity.toLocaleString() }} km/s
-      </div>
+      <div class="tooltip-pgc">PGC {{ tooltip.pgc }}</div>
+      <div class="tooltip-detail">{{ tooltip.velocity.toLocaleString() }} km/s</div>
+      <div class="tooltip-detail">{{ tooltip.distance.toFixed(1) }} Mpc</div>
     </div>
   </div>
 </template>
@@ -230,8 +224,8 @@ function onPointerDown(e: PointerEvent) {
 
 let hoverThrottleId = 0
 function onPointerMove(e: PointerEvent) {
-  tooltipX.value = e.clientX
-  tooltipY.value = e.clientY
+  tooltipX.value = e.clientX + 12
+  tooltipY.value = e.clientY - 10
 
   const dx = e.clientX - pointerDownX
   const dy = e.clientY - pointerDownY
@@ -669,35 +663,28 @@ onUnmounted(() => {
 }
 
 /* ── Tooltip ── */
-.map-tooltip {
+.tooltip {
   position: fixed;
   pointer-events: none;
-  transform: translate(12px, -50%);
   background: rgba(0, 0, 0, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 8px 12px;
-  font-size: 12px;
-  color: #e0e0e0;
-  white-space: nowrap;
-  z-index: 100;
+  z-index: 30;
   backdrop-filter: blur(8px);
 }
 
-.map-tooltip-name {
-  font-weight: 600;
+.tooltip-pgc {
   font-size: 13px;
-  color: #ffffff;
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: #22d3ee;
+  margin-bottom: 2px;
 }
 
-.map-tooltip-row {
-  line-height: 1.5;
-}
-
-.map-tooltip-label {
-  color: rgba(255, 255, 255, 0.5);
-  margin-right: 6px;
+.tooltip-detail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: ui-monospace, monospace;
 }
 
 /* ── Responsive ── */

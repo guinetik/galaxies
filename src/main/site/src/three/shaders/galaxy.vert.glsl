@@ -95,12 +95,15 @@ void main() {
   gl_PointSize = max(1.1 * uPixelRatio, basePx * detailBoost * farBoost);
   
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  float parallaxMix = smoothstep(72.0, 16.0, uFov);
+  // Keep a baseline parallax even when zoomed far out.
+  float parallaxZoomMix = smoothstep(75.0, 16.0, uFov);
+  float parallaxMix = mix(0.32, 1.0, parallaxZoomMix);
   float nearFactor = 1.0;
   if (uMaxRedshift > uMinRedshift + 0.000001) {
     nearFactor = 1.0 - smoothstep(uMinRedshift, uMaxRedshift, aRedshift);
   }
-  mvPosition.x += uParallaxX * parallaxMix * nearFactor * 26.0;
-  mvPosition.y += uParallaxY * parallaxMix * nearFactor * 18.0;
+  float depthMix = mix(0.45, 1.0, nearFactor);
+  mvPosition.x += uParallaxX * parallaxMix * depthMix * 29.0;
+  mvPosition.y += uParallaxY * parallaxMix * depthMix * 21.0;
   gl_Position = projectionMatrix * mvPosition;
 }
