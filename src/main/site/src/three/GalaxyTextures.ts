@@ -7,12 +7,12 @@ const CENTER = TEX_SIZE / 2
 
 /** Stellar population hues — inner=warm, outer=cool */
 const STELLAR_HUES = [
-  { hue: 20,  spread: 10, wInner: 0.40, wOuter: 0.05 },  // M red/orange dwarfs
-  { hue: 35,  spread: 10, wInner: 0.30, wOuter: 0.10 },  // K orange
-  { hue: 48,  spread: 8,  wInner: 0.20, wOuter: 0.15 },  // G yellow
-  { hue: 60,  spread: 5,  wInner: 0.08, wOuter: 0.20 },  // F yellow-white
-  { hue: 210, spread: 20, wInner: 0.02, wOuter: 0.35 },  // A/B blue-white
-  { hue: 230, spread: 15, wInner: 0.00, wOuter: 0.15 },  // O hot blue
+  { hue: 12,  spread: 10, wInner: 0.35, wOuter: 0.12 },  // deep orange-red
+  { hue: 26,  spread: 10, wInner: 0.31, wOuter: 0.18 },  // orange
+  { hue: 40,  spread: 8,  wInner: 0.18, wOuter: 0.16 },  // yellow-orange
+  { hue: 58,  spread: 6,  wInner: 0.07, wOuter: 0.14 },  // yellow-white
+  { hue: 214, spread: 9,  wInner: 0.03, wOuter: 0.14 },  // blue-white
+  { hue: 282, spread: 12, wInner: 0.06, wOuter: 0.22 },  // violet/magenta accents
 ]
 
 function pickHue(distFactor: number): number {
@@ -46,15 +46,18 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   ]
 }
 
+/**
+ * Draw a compact stellar speck with soft falloff.
+ */
 function drawSoftDot(
   ctx: OffscreenCanvasRenderingContext2D,
   x: number, y: number,
   hue: number, brightness: number, alpha: number, size: number
 ) {
-  const [r, g, b] = hslToRgb(hue, 0.7, brightness) // Increased saturation slightly
+  const [r, g, b] = hslToRgb(hue, 0.42, Math.min(0.9, brightness))
   const grad = ctx.createRadialGradient(x, y, 0, x, y, size)
   grad.addColorStop(0, `rgba(${r},${g},${b},${alpha})`)
-  grad.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.4})`)
+  grad.addColorStop(0.33, `rgba(${r},${g},${b},${alpha * 0.42})`)
   grad.addColorStop(1, `rgba(${r},${g},${b},0)`)
   
   ctx.fillStyle = grad
@@ -63,6 +66,9 @@ function drawSoftDot(
   ctx.fill()
 }
 
+/**
+ * Draw a dust patch with warm-brown extinction.
+ */
 function drawDust(
   ctx: OffscreenCanvasRenderingContext2D,
   x: number, y: number,
@@ -82,164 +88,232 @@ function gaussian(): number {
   return (Math.random() - 0.5 + Math.random() - 0.5) * 2
 }
 
-function renderSpiral(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 800
-  const numArms = 2
-  const spiralTightness = 0.25
-  const spiralStart = 8
-  const armWidth = 12
-  const galaxyRadius = CENTER * 0.85
-  
-  // Core glow
-  drawSoftDot(ctx, CENTER, CENTER, 40, 0.9, 0.8, CENTER * 0.25)
-  drawSoftDot(ctx, CENTER, CENTER, 30, 1.0, 1.0, CENTER * 0.1)
+/**
+ * Avoid green-dominant hues since integrated galaxy light is not green.
+ */
+function avoidGreenHue(h: number): number {
+  const hue = ((h % 360) + 360) % 360
+  if (hue >= 72 && hue <= 186) {
+    return hue < 129 ? 66 : 260
+  }
+  return hue
+}
 
-  // Arms
-  const starsPerArm = Math.floor(numStars * 0.6 / numArms)
-  for (let arm = 0; arm < numArms; arm++) {
-    const armOffset = (arm / numArms) * TAU
-    for (let i = 0; i < starsPerArm; i++) {
-      const t = i / starsPerArm
-      const theta = t * TAU * 2.8
-      const r = spiralStart * Math.exp(spiralTightness * theta)
-      if (r > galaxyRadius) continue
-      
-      const baseAngle = theta + armOffset
-      const scatter = gaussian() * armWidth * (1 + t) // More scatter further out
-      const scatterAngle = baseAngle + Math.PI / 2
-      const x = CENTER + Math.cos(baseAngle) * r + Math.cos(scatterAngle) * scatter
-      const y = CENTER + Math.sin(baseAngle) * r + Math.sin(scatterAngle) * scatter
-      
-      const distFactor = r / galaxyRadius
-      
-      // Dust lanes on the inside edge of arms
-      if (Math.random() < 0.3) {
-        const dustX = CENTER + Math.cos(baseAngle - 0.1) * (r - 5) + Math.cos(scatterAngle) * scatter
-        const dustY = CENTER + Math.sin(baseAngle - 0.1) * (r - 5) + Math.sin(scatterAngle) * scatter
-        drawDust(ctx, dustX, dustY, 8 + Math.random() * 8, 0.15)
-      }
+/**
+ * Draw a smooth diffuse galaxy component with optional ellipticity and rotation.
+ */
+function drawDiffuseGlow(
+  ctx: OffscreenCanvasRenderingContext2D,
+  hue: number,
+  brightness: number,
+  alpha: number,
+  radius: number,
+  axisRatio: number = 1.0,
+  rotationRad: number = 0
+) {
+  ctx.save()
+  ctx.translate(CENTER, CENTER)
+  ctx.rotate(rotationRad)
+  ctx.scale(1.0, axisRatio)
 
-      const hue = pickHue(distFactor)
-      const size = 2 + Math.random() * 4
-      const alpha = 0.3 + Math.random() * 0.5
-      const brightness = 0.5 + Math.random() * 0.5
-      
-      drawSoftDot(ctx, x, y, hue, brightness, alpha, size)
+  const [r, g, b] = hslToRgb(hue, 0.28, brightness)
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+  grad.addColorStop(0, `rgba(${r},${g},${b},${alpha})`)
+  grad.addColorStop(0.45, `rgba(${r},${g},${b},${alpha * 0.32})`)
+  grad.addColorStop(1, `rgba(${r},${g},${b},0)`)
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, TAU)
+  ctx.fill()
+  ctx.restore()
+}
+
+/**
+ * Add subtle luminance grain to avoid overly smooth synthetic blobs.
+ */
+function addFilmGrain(ctx: OffscreenCanvasRenderingContext2D, amount: number): void {
+  const img = ctx.getImageData(0, 0, TEX_SIZE, TEX_SIZE)
+  const data = img.data
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue
+    const n = (Math.random() - 0.5) * amount
+    data[i] = Math.max(0, Math.min(255, data[i] + n))
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n))
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n))
+  }
+  ctx.putImageData(img, 0, 0)
+}
+
+/**
+ * Render a photometric galaxy body with diffuse profile and angular structure.
+ */
+function renderPhotometricBody(
+  ctx: OffscreenCanvasRenderingContext2D,
+  options: {
+    majorRadius: number
+    axisRatio: number
+    rotation: number
+    centerHue: number
+    outerHue: number
+    concentration: number
+    irregularity: number
+    dustStrength: number
+    armCount: number
+  }
+): void {
+  const img = ctx.getImageData(0, 0, TEX_SIZE, TEX_SIZE)
+  const data = img.data
+  const cosR = Math.cos(options.rotation)
+  const sinR = Math.sin(options.rotation)
+  const minorRadius = options.majorRadius * options.axisRatio
+
+  for (let py = 0; py < TEX_SIZE; py++) {
+    for (let px = 0; px < TEX_SIZE; px++) {
+      const x = px + 0.5 - CENTER
+      const y = py + 0.5 - CENTER
+      const xr = x * cosR - y * sinR
+      const yr = x * sinR + y * cosR
+      const nx = xr / options.majorRadius
+      const ny = yr / minorRadius
+      const r = Math.sqrt(nx * nx + ny * ny)
+      if (r > 1.2) continue
+
+      const theta = Math.atan2(ny, nx)
+      const armWave = Math.sin(theta * options.armCount + r * 13.0)
+      const asymWave = Math.sin(theta * 1.7 + r * 6.0)
+      const irregular = 1.0 + options.irregularity * (armWave * 0.35 + asymWave * 0.22)
+      const bulge = Math.exp(-Math.pow(Math.max(0, r * options.concentration), 1.2))
+      const disk = Math.exp(-Math.pow(Math.max(0, r * 1.35), 1.55))
+      const dustBand = Math.exp(-Math.pow(Math.abs(ny) * 12.0, 1.35)) * (1.0 - r)
+      const luminance = Math.max(0, (bulge * 0.72 + disk * 0.46) * irregular)
+      const dust = 1.0 - options.dustStrength * dustBand
+      const lit = luminance * dust
+      if (lit < 0.01) continue
+
+      const hueMix = Math.min(1, Math.max(0, Math.pow(r, 0.85)))
+      const hueRaw = options.centerHue + (options.outerHue - options.centerHue) * hueMix + (Math.random() - 0.5) * 2.5
+      const hue = avoidGreenHue(hueRaw)
+      const lightness = Math.min(0.86, 0.14 + lit * 0.72)
+      const [r8, g8, b8] = hslToRgb(hue, 0.28, lightness)
+      const alpha = Math.min(1, lit * 0.72)
+      const idx = (py * TEX_SIZE + px) * 4
+
+      data[idx] = Math.max(data[idx], r8)
+      data[idx + 1] = Math.max(data[idx + 1], g8)
+      data[idx + 2] = Math.max(data[idx + 2], b8)
+      data[idx + 3] = Math.min(255, Math.max(data[idx + 3], Math.floor(alpha * 255)))
     }
   }
 
-  // Field stars / Halo
-  for (let i = 0; i < numStars * 0.3; i++) {
-    const r = Math.pow(Math.random(), 0.5) * galaxyRadius
+  ctx.putImageData(img, 0, 0)
+}
+
+function renderSpiral(ctx: OffscreenCanvasRenderingContext2D) {
+  const rotation = Math.random() * TAU
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.84,
+    axisRatio: 0.68 + Math.random() * 0.2,
+    rotation,
+    centerHue: 24,
+    outerHue: 284,
+    concentration: 1.22,
+    irregularity: 0.8,
+    dustStrength: 0.28,
+    armCount: 2,
+  })
+
+  drawDiffuseGlow(ctx, 39, 0.82, 0.6, CENTER * 0.11, 0.8, rotation)
+  for (let i = 0; i < 260; i++) {
+    const r = Math.pow(Math.random(), 0.55) * CENTER * 0.86
     const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    const distFactor = r / galaxyRadius
-    drawSoftDot(ctx, x, y, pickHue(distFactor), 0.6, 0.3, 1.5 + Math.random() * 2)
+    drawSoftDot(
+      ctx,
+      CENTER + Math.cos(theta) * r,
+      CENTER + Math.sin(theta) * r * 0.8,
+      pickHue(r / (CENTER * 0.86)),
+      0.42 + Math.random() * 0.28,
+      0.07 + Math.random() * 0.13,
+      0.45 + Math.random() * 1.4
+    )
   }
+  addFilmGrain(ctx, 6)
 }
 
 function renderBarred(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 700
-  const barLength = CENTER * 0.4
-  const barWidth = CENTER * 0.12
-  const spiralTightness = 0.35
-  const spiralStart = 8
-  const galaxyRadius = CENTER * 0.85
+  const rotation = Math.random() * TAU
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.83,
+    axisRatio: 0.62 + Math.random() * 0.22,
+    rotation,
+    centerHue: 20,
+    outerHue: 276,
+    concentration: 1.18,
+    irregularity: 0.7,
+    dustStrength: 0.24,
+    armCount: 2,
+  })
 
-  // Core
-  drawSoftDot(ctx, CENTER, CENTER, 40, 1.0, 0.9, CENTER * 0.15)
-
-  // Bar
-  for (let i = 0; i < numStars * 0.25; i++) {
-    const along = (Math.random() - 0.5) * 2 * barLength
-    const across = gaussian() * barWidth * 0.5
-    const x = CENTER + along
-    const y = CENTER + across
-    const distFactor = Math.abs(along) / galaxyRadius
-    drawSoftDot(ctx, x, y, pickHue(distFactor * 0.3), 0.8, 0.4, 2 + Math.random() * 3)
+  ctx.save()
+  ctx.translate(CENTER, CENTER)
+  ctx.rotate(rotation)
+  for (let i = 0; i < 260; i++) {
+    const along = (Math.random() - 0.5) * CENTER * 0.75
+    const across = gaussian() * CENTER * 0.03
+    drawSoftDot(ctx, along, across, 42 + (Math.random() - 0.5) * 8, 0.66, 0.15, 0.45 + Math.random() * 1.2)
   }
-
-  // Arms
-  const numArms = 2
-  const starsPerArm = Math.floor(numStars * 0.5 / numArms)
-  for (let arm = 0; arm < numArms; arm++) {
-    const armOffset = arm * Math.PI
-    const startX = (arm === 0 ? 1 : -1) * barLength
-    for (let i = 0; i < starsPerArm; i++) {
-      const t = i / starsPerArm
-      const theta = t * TAU * 1.8
-      const r = spiralStart * Math.exp(spiralTightness * theta)
-      if (r > galaxyRadius) continue
-      
-      const baseAngle = theta + armOffset
-      const scatter = gaussian() * 10
-      const scatterAngle = baseAngle + Math.PI / 2
-      
-      // Offset arms to start from ends of bar
-      const x = CENTER + startX + Math.cos(baseAngle) * r + Math.cos(scatterAngle) * scatter
-      const y = CENTER + Math.sin(baseAngle) * r + Math.sin(scatterAngle) * scatter
-      
-      const distFactor = Math.sqrt((x-CENTER)**2 + (y-CENTER)**2) / galaxyRadius
-      drawSoftDot(ctx, x, y, pickHue(distFactor), 0.7, 0.4, 2 + Math.random() * 4)
-    }
-  }
+  ctx.restore()
+  addFilmGrain(ctx, 6)
 }
 
 function renderElliptical(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 1000
-  const galaxyRadius = CENTER * 0.75
-  const axisRatio = 0.75
-
-  // Strong central glow
-  drawSoftDot(ctx, CENTER, CENTER, 45, 0.9, 0.8, CENTER * 0.4)
-  drawSoftDot(ctx, CENTER, CENTER, 40, 1.0, 1.0, CENTER * 0.15)
-
-  for (let i = 0; i < numStars; i++) {
-    // Concentration towards center (inverse power law)
-    const r = Math.pow(Math.random(), 2.5) * galaxyRadius // More concentrated
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r * axisRatio
-    const distFactor = r / galaxyRadius
-    
-    // Ellipticals are old, yellow/red
-    const hue = 35 + (Math.random() - 0.5) * 15
-    drawSoftDot(ctx, x, y, hue, 0.7, 0.3, 2 + Math.random() * 4)
-  }
+  const rotation = Math.random() * TAU
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.78,
+    axisRatio: 0.6 + Math.random() * 0.25,
+    rotation,
+    centerHue: 32,
+    outerHue: 352,
+    concentration: 1.55,
+    irregularity: 0.24,
+    dustStrength: 0.1,
+    armCount: 1,
+  })
+  drawDiffuseGlow(ctx, 37, 0.92, 0.55, CENTER * 0.12, 0.78, rotation)
+  addFilmGrain(ctx, 6)
 }
 
 function renderLenticular(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 800
-  const galaxyRadius = CENTER * 0.8
-  
-  // Bright core
-  drawSoftDot(ctx, CENTER, CENTER, 45, 1.0, 0.9, CENTER * 0.2)
-  
-  // Disk
-  for (let i = 0; i < numStars * 0.7; i++) {
-    const r = Math.pow(Math.random(), 0.8) * galaxyRadius
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r * 0.4 // Flattened disk
-    const distFactor = r / galaxyRadius
-    
-    drawSoftDot(ctx, x, y, pickHue(distFactor * 0.5), 0.7, 0.3, 2 + Math.random() * 3)
-  }
-  
-  // Halo
-  for (let i = 0; i < numStars * 0.3; i++) {
-    const r = Math.pow(Math.random(), 1.5) * galaxyRadius * 0.6
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    drawSoftDot(ctx, x, y, 40, 0.5, 0.2, 2 + Math.random() * 2)
-  }
+  const rotation = Math.random() * TAU
+
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.8,
+    axisRatio: 0.35 + Math.random() * 0.16,
+    rotation,
+    centerHue: 28,
+    outerHue: 350,
+    concentration: 1.35,
+    irregularity: 0.18,
+    dustStrength: 0.2,
+    armCount: 1,
+  })
+  drawDiffuseGlow(ctx, 36, 0.9, 0.5, CENTER * 0.09, 0.48, rotation)
+  addFilmGrain(ctx, 6)
 }
 
 function renderIrregular(ctx: OffscreenCanvasRenderingContext2D) {
-  const numStars = 600
+  const numStars = 900
   const galaxyRadius = CENTER * 0.7
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.74,
+    axisRatio: 0.7 + Math.random() * 0.25,
+    rotation: Math.random() * TAU,
+    centerHue: 18,
+    outerHue: 286,
+    concentration: 0.95,
+    irregularity: 1.0,
+    dustStrength: 0.14,
+    armCount: 3,
+  })
 
   // Random clumps of star formation
   const clumpCount = 4 + Math.floor(Math.random() * 4)
@@ -267,21 +341,34 @@ function renderIrregular(ctx: OffscreenCanvasRenderingContext2D) {
       hue = 200 + Math.random() * 40
     }
     
-    drawSoftDot(ctx, x, y, hue, 0.8, 0.4, 3 + Math.random() * 5)
+    drawSoftDot(ctx, x, y, hue, 0.58, 0.22, 0.7 + Math.random() * 1.7)
   }
+  drawDiffuseGlow(ctx, 208, 0.45, 0.2, CENTER * 0.5)
+  addFilmGrain(ctx, 8)
 }
 
 function renderUnknown(ctx: OffscreenCanvasRenderingContext2D) {
-  // Generic faint fuzz
-  drawSoftDot(ctx, CENTER, CENTER, 220, 0.6, 0.5, CENTER * 0.3)
+  // Generic faint fuzz.
+  renderPhotometricBody(ctx, {
+    majorRadius: CENTER * 0.5,
+    axisRatio: 0.7 + Math.random() * 0.3,
+    rotation: Math.random() * TAU,
+    centerHue: 26,
+    outerHue: 286,
+    concentration: 1.05,
+    irregularity: 0.3,
+    dustStrength: 0.08,
+    armCount: 1,
+  })
   
   for (let i = 0; i < 300; i++) {
     const r = Math.pow(Math.random(), 0.5) * CENTER * 0.6
     const theta = Math.random() * TAU
     const x = CENTER + Math.cos(theta) * r
     const y = CENTER + Math.sin(theta) * r
-    drawSoftDot(ctx, x, y, 210, 0.5, 0.2, 2 + Math.random() * 3)
+    drawSoftDot(ctx, x, y, 210, 0.42, 0.12, 0.5 + Math.random() * 1.3)
   }
+  addFilmGrain(ctx, 5)
 }
 
 const RENDERERS: Record<MorphologyClass, (ctx: OffscreenCanvasRenderingContext2D) => void> = {
@@ -293,9 +380,9 @@ const RENDERERS: Record<MorphologyClass, (ctx: OffscreenCanvasRenderingContext2D
   unknown: renderUnknown,
 }
 
-/** Texture atlas layout: 2 columns x 3 rows */
-const ATLAS_COLS = 2
-const ATLAS_ROWS = 3
+/** Texture atlas layout: 4 columns x 2 rows (power-of-two for mipmaps) */
+const ATLAS_COLS = 4
+const ATLAS_ROWS = 2
 
 /** Order of morphology classes in the atlas */
 export const ATLAS_ORDER: MorphologyClass[] = [
@@ -346,8 +433,12 @@ export function generateGalaxyTextureAtlas(): THREE.CanvasTexture {
   }
 
   const texture = new THREE.CanvasTexture(canvas as unknown as HTMLCanvasElement)
+  texture.generateMipmaps = true
   texture.magFilter = THREE.LinearFilter
-  texture.minFilter = THREE.LinearFilter
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  if ('colorSpace' in texture) {
+    texture.colorSpace = THREE.SRGBColorSpace
+  }
   texture.needsUpdate = true
   return texture
 }

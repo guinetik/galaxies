@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 
-const STAR_COUNT = 14000
+const STAR_COUNT = 5200
 const SPHERE_RADIUS = 800
-const POINT_SIZE = 1.15
+const POINT_SIZE = 0.9
 
 /**
  * Decorative background stars — tiny white dots on a larger sphere
@@ -29,24 +29,24 @@ export class BackgroundStars {
       // Vary sizes slightly
       sizes[i] = POINT_SIZE * (0.35 + Math.random() * 0.85)
 
-      // Keep background stars softer so galaxies stand out.
-      opacities[i] = 0.18 + Math.random() * 0.42
+      // Keep background stars subtle so galaxies remain dominant.
+      opacities[i] = 0.06 + Math.random() * 0.16
       phases[i] = Math.random() * Math.PI * 2
 
       // Subtle full-sky color variation (cool whites + warm whites).
       const t = Math.random()
       if (t < 0.55) {
-        colors[i * 3] = 0.80 + Math.random() * 0.12
-        colors[i * 3 + 1] = 0.85 + Math.random() * 0.10
-        colors[i * 3 + 2] = 0.95 + Math.random() * 0.05
+        colors[i * 3] = 0.72 + Math.random() * 0.10
+        colors[i * 3 + 1] = 0.79 + Math.random() * 0.09
+        colors[i * 3 + 2] = 0.89 + Math.random() * 0.05
       } else if (t < 0.88) {
-        colors[i * 3] = 0.95 + Math.random() * 0.05
-        colors[i * 3 + 1] = 0.92 + Math.random() * 0.07
-        colors[i * 3 + 2] = 0.82 + Math.random() * 0.12
+        colors[i * 3] = 0.82 + Math.random() * 0.07
+        colors[i * 3 + 1] = 0.80 + Math.random() * 0.09
+        colors[i * 3 + 2] = 0.72 + Math.random() * 0.10
       } else {
-        colors[i * 3] = 0.75 + Math.random() * 0.20
-        colors[i * 3 + 1] = 0.82 + Math.random() * 0.14
-        colors[i * 3 + 2] = 0.95 + Math.random() * 0.05
+        colors[i * 3] = 0.70 + Math.random() * 0.14
+        colors[i * 3 + 1] = 0.78 + Math.random() * 0.10
+        colors[i * 3 + 2] = 0.89 + Math.random() * 0.05
       }
     }
 
@@ -57,12 +57,16 @@ export class BackgroundStars {
     geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3))
     geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1))
 
-    const material = new THREE.ShaderMaterial({
+    const material = new THREE.RawShaderMaterial({
       vertexShader: /* glsl */ `
+        precision mediump float;
         attribute float aSize;
         attribute float aOpacity;
         attribute vec3 aColor;
         attribute float aPhase;
+        attribute vec3 position;
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
         uniform float uTime;
         varying float vOpacity;
         varying vec3 vColor;
@@ -72,11 +76,11 @@ export class BackgroundStars {
           vColor = aColor;
 
           // Subtle twinkle
-          float twinkle = sin(uTime * 1.5 + aPhase) * 0.2 + 0.8;
+          float twinkle = sin(uTime * 1.2 + aPhase) * 0.08 + 0.92;
           vOpacity *= twinkle;
 
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = aSize * (800.0 / -mvPosition.z);
+          gl_PointSize = aSize * (620.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
@@ -96,7 +100,7 @@ export class BackgroundStars {
       `,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       uniforms: {
         uTime: { value: 0 },
       },

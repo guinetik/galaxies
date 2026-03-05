@@ -3,17 +3,17 @@
     <GalaxyCanvas ref="canvasRef" @ready="onCanvasReady" @hover="onHover" @select="onSelect" />
     
     <!-- HUD Indicators -->
-    <div class="absolute top-16 left-0 right-0 z-0 pointer-events-none flex justify-center">
+    <div class="absolute top-16 left-0 right-0 z-0 pointer-events-none flex justify-center hud-soft">
       <div class="w-full max-w-3xl">
         <SpaceCompass :azimuth="currentAzimuth" />
       </div>
     </div>
     
-    <div class="absolute right-4 top-1/2 -translate-y-1/2 z-0 pointer-events-none">
+    <div class="absolute right-4 top-1/2 -translate-y-1/2 z-0 pointer-events-none hud-soft hud-telemetry">
       <DistanceIndicator :distance="currentDistance" />
     </div>
 
-    <div class="absolute left-4 top-1/2 -translate-y-1/2 z-0 pointer-events-none">
+    <div class="absolute left-4 top-1/2 -translate-y-1/2 z-0 pointer-events-none hud-soft hud-telemetry">
       <ElevationIndicator :elevation="currentElevation" />
     </div>
 
@@ -76,7 +76,6 @@ const tooltipY = ref(0)
 const tooltipGalaxy = computed(() =>
   isMobile ? selectedGalaxy.value : hoveredGalaxy.value
 )
-
 const currentAzimuth = computed(() => canvasRef.value?.currentLookAt?.azimuth ?? 0)
 const currentElevation = computed(() => canvasRef.value?.currentLookAt?.elevation ?? 0)
 const currentDistance = computed(() => {
@@ -137,13 +136,26 @@ function onTooltipNavigate() {
   bottom: 24px;
   right: 24px;
   z-index: 10;
-  padding: 8px 14px;
+  padding: 7px 12px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(6px);
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: none;
+}
+
+.hud-soft {
+  opacity: 0.42;
+  transition: opacity 220ms ease;
+}
+
+.hud-soft:hover {
+  opacity: 0.72;
+}
+
+.hud-telemetry {
+  opacity: 0.36;
 }
 </style>

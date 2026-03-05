@@ -87,11 +87,16 @@ export class GalaxyField {
       // Per-galaxy variation stays subtle to keep a realistic palette.
       const t1 = ((seed >>> 8) % 1024) / 1023
       const t2 = ((seed >>> 18) % 1024) / 1023
+      const t3 = ((seed >>> 3) % 1024) / 1023
       const brightnessScale = 0.9 + t1 * 0.22
       const coolWarmTilt = (t2 - 0.5) * 0.08
-      colors[i * 3] = Math.min(1, Math.max(0, baseColor[0] * brightnessScale + coolWarmTilt * 0.5))
-      colors[i * 3 + 1] = Math.min(1, Math.max(0, baseColor[1] * brightnessScale))
-      colors[i * 3 + 2] = Math.min(1, Math.max(0, baseColor[2] * brightnessScale - coolWarmTilt * 0.6))
+      const magentaTilt = (t3 - 0.5) * 0.1
+      const r = baseColor[0] * brightnessScale + coolWarmTilt * 0.45 + magentaTilt * 0.35
+      const gChannel = baseColor[1] * brightnessScale * 0.92 - Math.abs(magentaTilt) * 0.18
+      const b = baseColor[2] * brightnessScale - coolWarmTilt * 0.45 + magentaTilt * 0.45
+      colors[i * 3] = Math.min(1, Math.max(0, r))
+      colors[i * 3 + 1] = Math.min(1, Math.max(0, gChannel))
+      colors[i * 3 + 2] = Math.min(1, Math.max(0, b))
 
       // Size from distance — closer galaxies appear larger
       const K = 16.0
@@ -160,30 +165,13 @@ export class GalaxyField {
 
       for (let i = 0; i < this.galaxies.length; i++) {
         const galaxy = this.galaxies[i]
-        const alpha = this.computeDistanceBasedAlpha(i, fov)
-        this.alphas[i] = alpha
-
-        // Calculate size multiplier based on proximity to camera distance (in log-space)
         const galaxyLogLevel = Math.log2(Math.max(1, galaxy.distance_mpc))
-        
-        // Asymmetric scaling:
-        // Background (galaxy > camera): shrink rapidly so they don't clutter
-        // Foreground (galaxy < camera): grow larger to simulate fly-by
-        const diff = galaxyLogLevel - cameraLogLevel
-        let sizeMultiplier = 1.0
-        
-        if (diff > 0) {
-          // Background: shrink rapidly
-          sizeMultiplier = Math.pow(2, -diff * 2.0)
-        } else {
-          // Foreground: grow!
-          // diff is negative. -diff is positive.
-          // Grow by 1.5x per log level difference
-          // Cap at 12.0x (increased from 8.0x) to allow them to get huge before fading
-          sizeMultiplier = Math.min(12.0, Math.pow(1.5, -diff))
-        }
-        
-        sizeMultArray[i] = sizeMultiplier
+        const logOffset = galaxyLogLevel - cameraLogLevel
+
+        const depthAlpha = this.computeDepthWindowAlpha(logOffset)
+        const foregroundFade = this.computeForegroundFade(logOffset)
+        this.alphas[i] = depthAlpha * foregroundFade
+        sizeMultArray[i] = this.computeGrowthMultiplier(logOffset)
       }
       const alphaAttr = this.geometry.attributes.aAlpha as THREE.BufferAttribute
       if (alphaAttr) {
@@ -251,10 +239,10 @@ export class GalaxyField {
   private estimatePointSizePx(size: number, alpha: number, pixelRatio: number, fov: number, detailMix: number): number {
     const sizeScale = 0.5 + 0.5 * alpha
     const fovScale = 60 / fov
-    const basePx = size * pixelRatio * fovScale * sizeScale * 3.0
-    const detailBoost = 1 + 0.35 * detailMix
-    const farBoost = 1.75 - 0.75 * detailMix
-    return Math.max(2.8 * pixelRatio, basePx * detailBoost * farBoost)
+    const basePx = size * pixelRatio * fovScale * sizeScale * 2.35
+    const detailBoost = 1 + 0.18 * detailMix
+    const farBoost = 1.15 - 0.15 * detailMix
+    return Math.max(1.1 * pixelRatio, basePx * detailBoost * farBoost)
   }
 
   /** Match shader redshift visibility curve. */
@@ -279,65 +267,41 @@ export class GalaxyField {
   }
 
   /**
-   * Calculate galaxy visibility based on logarithmic zoom levels.
-   * Uses log2(distance) to create ~50+ zoom levels spanning 1-500 Mpc.
-   * Each level = 2x zoom deeper into space, creating vast cosmic scale.
+   * Compute alpha from a narrow logarithmic depth window around camera focus.
+   * Positive offsets are farther than the current focus; negative are foreground.
    */
-  private computeDistanceBasedAlpha(
-    galaxyIndex: number,
-    fov: number
-  ): number {
-    const galaxy = this.galaxies[galaxyIndex]
-    if (!galaxy.distance_mpc) return 0.0
+  private computeDepthWindowAlpha(logOffset: number): number {
+    const farFadeStart = 0.34
+    const farFadeEnd = 0.72
+    const nearFadeStart = -0.36
+    const nearFadeEnd = -1.24
 
-    // Calculate camera distance from FOV
-    const maxRedshift = fovToMaxRedshift(fov)
-    const cameraDistanceMly = redshiftToDistanceMLY(maxRedshift)
-    const cameraDistanceMpc = cameraDistanceMly / 3.26
-
-    // Logarithmic level system: log2(distance in Mpc)
-    // Level -4 ≈ 1 Mpc, Level 0 ≈ 1 Mpc, Level 8 ≈ 256 Mpc, Level 9 ≈ 500 Mpc
-    const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
-    const galaxyLogLevel = Math.log2(Math.max(1, galaxy.distance_mpc))
-
-    // Visibility window: Thinner slice for "more levels" and fewer galaxies per level
-    // At each zoom depth, see galaxies within ±0.15 log-levels
-    const logWindow = 0.15
-
-    // Fade in: start seeing galaxies 4.0 levels below camera (long trail for fly-by)
-    // This ensures galaxies stay visible as we zoom past them, growing huge
-    const fadeInStart = cameraLogLevel - logWindow - 4.0
-    // Full visibility: galaxies ±logWindow from camera
-    const fullVisStart = cameraLogLevel - logWindow
-    const fullVisEnd = cameraLogLevel + logWindow
-    // Fade out: stop seeing galaxies 0.1 levels above camera (don't show background too soon)
-    const fadeOutEnd = cameraLogLevel + logWindow + 0.1
-
-    // Outside visibility range: invisible
-    if (galaxyLogLevel < fadeInStart || galaxyLogLevel > fadeOutEnd) {
-      return 0.0
-    }
-
-    // Fade in zone: gentle appearance as you zoom toward distance
-    if (galaxyLogLevel < fullVisStart) {
-      const fadeInRange = fullVisStart - fadeInStart
-      const distFromStart = galaxyLogLevel - fadeInStart
-      return Math.max(0.0, distFromStart / fadeInRange)
-    }
-
-    // Full visibility zone: galaxies at this distance are fully visible
-    if (galaxyLogLevel >= fullVisStart && galaxyLogLevel <= fullVisEnd) {
-      return 1.0
-    }
-
-    // Fade out zone: gentle departure as you zoom past distance
-    if (galaxyLogLevel > fullVisEnd) {
-      const fadeOutRange = fadeOutEnd - fullVisEnd
-      const distFromFullVis = galaxyLogLevel - fullVisEnd
-      return Math.max(0.0, 1.0 - (distFromFullVis / fadeOutRange))
-    }
-
+    if (logOffset < nearFadeEnd || logOffset > farFadeEnd) return 0.0
+    if (logOffset < nearFadeStart) return this.smoothstep(nearFadeEnd, nearFadeStart, logOffset)
+    if (logOffset > farFadeStart) return 1.0 - this.smoothstep(farFadeStart, farFadeEnd, logOffset)
     return 1.0
+  }
+
+  /**
+   * Compute size growth while keeping deep-field rendering conservative.
+   * Foreground objects can grow modestly, while background objects shrink.
+   */
+  private computeGrowthMultiplier(logOffset: number): number {
+    if (logOffset >= 0) {
+      return 1.0 - 0.38 * this.smoothstep(0.0, 1.0, logOffset)
+    }
+
+    const foregroundProximity = this.smoothstep(-0.78, -0.05, logOffset)
+    return 1.15 + 2.7 * foregroundProximity
+  }
+
+  /**
+   * Fade foreground earlier so nearby galaxies do not dominate the frame.
+   */
+  private computeForegroundFade(logOffset: number): number {
+    if (logOffset >= -0.44) return 1.0
+    if (logOffset <= -1.42) return 0.0
+    return this.smoothstep(-1.42, -0.44, logOffset)
   }
 
   private clamp01(v: number): number {

@@ -26,29 +26,26 @@ export const CAMERA_POSITION: [number, number, number] = [0, 50, 0]
  * Wider FOV = nearby only; narrower FOV = deeper field.
  * Interpolated smoothly (exponential) in fovToMaxRedshift().
  *
- * Tuned for CF4 dataset (55,877 galaxies, max z ≈ 0.11):
- *   75° →   ~560 galaxies (local neighborhood)
- *   65° → ~2,500 galaxies
- *   55° → ~5,600 galaxies
- *   45° → ~11,200 galaxies
- *   35° → ~22,000 galaxies
- *   25° → ~33,500 galaxies
- *   15° → ~44,700 galaxies
- *    8° → ~55,300 galaxies
+ * Tuned for deep-field readability on CF4 (55,877 galaxies, max z ≈ 0.11):
+ *   75° → very local neighborhood only
+ *   55° → sparse nearby shells
+ *   35° → moderate mid-depth population
+ *   15° → dense but still readable deep field
+ *    3° → full dataset
  *    3° →  55,877 galaxies (full deep field)
  */
 export const REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.00001], // Start at ~0 MLY
-  [70, 0.003],   // 42 MLY
-  [65, 0.007],
-  [55, 0.015],
-  [45, 0.025],
-  [35, 0.040],
-  [25, 0.060],
-  [20, 0.070],
-  [15, 0.080],
-  [12, 0.090],
-  [8,  0.100],
+  [75, 0.000005],
+  [70, 0.0010],
+  [65, 0.0023],
+  [55, 0.0054],
+  [45, 0.0101],
+  [35, 0.0172],
+  [25, 0.0275],
+  [20, 0.0355],
+  [15, 0.0465],
+  [12, 0.0585],
+  [8,  0.0870],
   [5,  0.105],
   [3,  0.110],
 ]
@@ -59,19 +56,19 @@ export const REDSHIFT_RANGES: [number, number][] = [
  * Lags behind REDSHIFT_RANGES to keep a "window" of visibility.
  */
 export const MIN_REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.0000], // Wide view: see everything from 0
+  [75, 0.0000], // Wide view: retain local anchors
   [70, 0.0000],
   [65, 0.0000],
   [55, 0.0000],
   [45, 0.0000],
-  [35, 0.0000], // Relaxed: keep local neighborhood visible longer
-  [25, 0.0001], // Start fading very slowly
-  [20, 0.0005],
-  [15, 0.0010],
-  [12, 0.0020],
-  [8,  0.0035],
-  [5,  0.0050],
-  [3,  0.0080], // Deep field: only see z > 0.008
+  [35, 0.0001],
+  [25, 0.0008],
+  [20, 0.0015],
+  [15, 0.0028],
+  [12, 0.0042],
+  [8,  0.0060],
+  [5,  0.0080],
+  [3,  0.0125], // Deep field: trim local foreground haze
 ]
 
 /** Observer location on Earth */
@@ -94,12 +91,12 @@ export const DEFAULT_LOCATION = 'North Pole'
 
 /** Base colors per morphology class — natural astrophotography-inspired palette */
 export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
-  elliptical: [1.00, 0.85, 0.60], // warm golden old stars
-  lenticular: [0.95, 0.88, 0.78], // creamy-beige
-  spiral:     [0.60, 0.80, 1.00], // cool blue disk
-  barred:     [0.70, 0.75, 0.95], // bluish-lilac
-  irregular:  [0.60, 0.85, 1.00], // young blue-white stars
-  unknown:    [0.90, 0.90, 0.95], // neutral silver-white
+  elliptical: [1.00, 0.84, 0.62], // warm golden old stars
+  lenticular: [0.95, 0.86, 0.74], // creamy-beige
+  spiral:     [0.94, 0.80, 0.74], // warm disk with muted cool outskirts
+  barred:     [0.95, 0.79, 0.72], // amber-neutral barred disk
+  irregular:  [0.88, 0.76, 0.90], // magenta-leaning irregulars
+  unknown:    [0.92, 0.80, 0.90], // warm-neutral unknowns
 }
 
 /** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */

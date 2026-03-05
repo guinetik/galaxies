@@ -56,6 +56,8 @@ export function useThreeScene() {
   // Smooth zoom — target FOV that we lerp toward each frame
   let targetFov = CAMERA_FOV_DEFAULT
   const ZOOM_LERP = 0.08
+  const WHEEL_ZOOM_SPEED = 0.032
+  const PINCH_ZOOM_SPEED = 0.065
 
   // Location animation — smooth scene rotation
   let currentSceneRotationX = 0
@@ -264,7 +266,7 @@ export function useThreeScene() {
   function onWheel(e: WheelEvent) {
     e.preventDefault()
     // Set target FOV — actual FOV lerps toward it each frame
-    const delta = e.deltaY * 0.05
+    const delta = e.deltaY * WHEEL_ZOOM_SPEED
     targetFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, targetFov + delta))
   }
 
@@ -288,7 +290,7 @@ export function useThreeScene() {
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const delta = (lastPinchDist - dist) * 0.1
+      const delta = (lastPinchDist - dist) * PINCH_ZOOM_SPEED
       lastPinchDist = dist
       targetFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, targetFov + delta))
     }
