@@ -1,3 +1,4 @@
+// Existing attributes
 attribute float aSize;
 attribute vec3 aColor;
 attribute float aRedshift;
@@ -5,6 +6,13 @@ attribute float aTexIndex;
 attribute float aSelected;
 attribute float aAlpha;
 attribute float aSizeMultiplier;
+
+// Galaxy struct attributes (packed for efficiency)
+attribute float aType;           // Galaxy type (0-4)
+attribute float aSeed;           // Randomness seed
+attribute vec3 aAngles;          // angleX, angleY, angleZ
+attribute vec3 aPhysicalParams;  // axialRatio, mass_log10, velocity_kmps
+attribute float aDistance_mpc;   // Distance in megaparsecs
 
 uniform float uTime;
 uniform float uPixelRatio;
@@ -14,16 +22,31 @@ uniform float uFov;
 uniform float uParallaxX;
 uniform float uParallaxY;
 
+// Existing varyings
 varying vec3 vColor;
 varying float vAlpha;
 varying float vTexIndex;
 varying float vDetailMix;
 varying float vSelected;
 
+// Galaxy struct varyings (packed)
+varying float vType;
+varying float vSeed;
+varying vec3 vAngles;          // angleX, angleY, angleZ
+varying vec3 vPhysicalParams;  // axialRatio, mass_log10, velocity_kmps
+varying float vDistance_mpc;
+
 void main() {
   vColor = aColor;
   vTexIndex = aTexIndex;
   vSelected = aSelected;
+
+  // Pass Galaxy struct data (packed)
+  vType = aType;
+  vSeed = aSeed;
+  vAngles = aAngles;
+  vPhysicalParams = aPhysicalParams;
+  vDistance_mpc = aDistance_mpc;
 
   float sizeScale = 0.0;
 
