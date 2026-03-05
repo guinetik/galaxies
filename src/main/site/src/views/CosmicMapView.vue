@@ -115,6 +115,20 @@
       </div>
     </div>
 
+    <!-- Structures nav -->
+    <div v-if="!loading" class="structures-nav">
+      <div class="structures-nav-title">{{ t('pages.spacetime.structures') }}</div>
+      <button
+        v-for="name in structureNames"
+        :key="name"
+        class="structure-btn"
+        :class="{ active: activeStructure === name }"
+        @click="focusStructure(name)"
+      >
+        {{ name }}
+      </button>
+    </div>
+
     <!-- Tooltip -->
     <div
       v-if="tooltip"
@@ -134,6 +148,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { CosmicMapScene } from '@/three/cosmic-map/CosmicMapScene'
+import { STRUCTURES } from '@/three/cosmography/CylinderScene'
 import { VELOCITY_COLOR_BINS } from '@/three/constants'
 import type { MapDataMode } from '@/three/cosmic-map/CosmicMapField'
 import type { GalaxyGroup } from '@/types/galaxy'
@@ -148,6 +163,8 @@ const dataMode = ref<MapDataMode>('groups')
 const showAxes = ref(true)
 const showInfo = ref(false)
 const velocityBins = VELOCITY_COLOR_BINS
+const structureNames = STRUCTURES.map((s) => s.name)
+const activeStructure = ref<string | null>(null)
 
 // Tooltip state
 const tooltip = ref<{ pgc: number; velocity: number; distance: number } | null>(null)
@@ -197,6 +214,17 @@ const DRAG_THRESHOLD = 5
 
 function binToCSS(color: [number, number, number]): string {
   return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`
+}
+
+function focusStructure(name: string) {
+  if (!scene) return
+  if (activeStructure.value === name) {
+    scene.resetView()
+    activeStructure.value = null
+  } else {
+    scene.focusOn(name)
+    activeStructure.value = name
+  }
 }
 
 function switchMode(mode: MapDataMode) {
@@ -685,6 +713,54 @@ onUnmounted(() => {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.6);
   font-family: ui-monospace, monospace;
+}
+
+/* ── Structures nav ── */
+.structures-nav {
+  position: fixed;
+  right: 24px;
+  top: var(--header-height);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.structures-nav-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.structure-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.structure-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.structure-btn.active {
+  color: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.1);
 }
 
 /* ── Responsive ── */
