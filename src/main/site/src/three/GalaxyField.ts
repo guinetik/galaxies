@@ -22,6 +22,9 @@ export class GalaxyField {
   private sizeMultipliers: Float32Array = new Float32Array(0)
   private readonly tempLocal = new THREE.Vector3()
   private readonly tempWorld = new THREE.Vector3()
+  private readonly tempView = new THREE.Vector3()
+  private latestPointerParallaxX = 0
+  private latestPointerParallaxY = 0
 
   constructor(galaxies: Galaxy[], atlasTexture: THREE.Texture) {
     this.galaxies = galaxies
@@ -43,6 +46,8 @@ export class GalaxyField {
         uMaxRedshift: { value: 0.01 },
         uMinRedshift: { value: 0.0 },
         uFov: { value: 60.0 },
+        uParallaxX: { value: 0.0 },
+        uParallaxY: { value: 0.0 },
         uTexture: { value: atlasTexture },
         uCameraLogLevel: { value: 0.0 },
       },
@@ -143,11 +148,28 @@ export class GalaxyField {
     attr.needsUpdate = true
   }
 
-  update(elapsed: number, maxRedshift: number, minRedshift: number, fov: number, zoomTickCount: number = 0, currentLevel: number = 0, levelProgress: number = 0): void {
+  /**
+   * Update galaxy sprite appearance from zoom depth and viewing direction.
+   */
+  update(
+    elapsed: number,
+    maxRedshift: number,
+    minRedshift: number,
+    fov: number,
+    pointerParallaxX: number = 0,
+    pointerParallaxY: number = 0,
+    zoomTickCount: number = 0,
+    currentLevel: number = 0,
+    levelProgress: number = 0
+  ): void {
     this.material.uniforms.uTime.value = elapsed
     this.material.uniforms.uMaxRedshift.value = maxRedshift
     this.material.uniforms.uMinRedshift.value = minRedshift
     this.material.uniforms.uFov.value = fov
+    this.latestPointerParallaxX = this.clamp(pointerParallaxX, -1, 1)
+    this.latestPointerParallaxY = this.clamp(pointerParallaxY, -1, 1)
+    this.material.uniforms.uParallaxX.value = this.latestPointerParallaxX
+    this.material.uniforms.uParallaxY.value = this.latestPointerParallaxY
 
     // Update per-galaxy alpha and size based on camera distance (derived from FOV)
     // Galaxies grow larger as camera approaches their distance
@@ -203,6 +225,9 @@ export class GalaxyField {
     let bestDistanceSq = Number.POSITIVE_INFINITY
     const pixelRatio = Math.min(window.devicePixelRatio, 2)
     const detailMix = this.smoothstep(0, 1, this.clamp01((52 - fov) / (52 - 20)))
+    const cameraDistanceMly = redshiftToDistanceMLY(fovToMaxRedshift(fov))
+    const cameraDistanceMpc = cameraDistanceMly / 3.26
+    const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
 
     for (let i = 0; i < this.galaxies.length; i++) {
       const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift, minRedshift)
@@ -212,17 +237,30 @@ export class GalaxyField {
       this.tempLocal.set(this.positions[i3], this.positions[i3 + 1], this.positions[i3 + 2])
       this.tempWorld.copy(this.tempLocal).applyMatrix4(this.points.matrixWorld).project(camera)
 
+      const galaxyLogLevel = Math.log2(Math.max(1, this.galaxies[i].distance_mpc))
+      const logOffset = galaxyLogLevel - cameraLogLevel
+      const depthAlpha = this.computeDepthWindowAlpha(logOffset) * this.computeForegroundFade(logOffset)
+      if (depthAlpha < 0.01) continue
+
       // Outside clip volume.
       if (this.tempWorld.z < -1 || this.tempWorld.z > 1) continue
 
       const px = (this.tempWorld.x * 0.5 + 0.5) * viewportWidth
       const py = (-this.tempWorld.y * 0.5 + 0.5) * viewportHeight
+      this.tempView
+        .set(this.positions[i3], this.positions[i3 + 1], this.positions[i3 + 2])
+        .applyMatrix4(this.points.matrixWorld)
+        .applyMatrix4(camera.matrixWorldInverse)
+      const ndcShiftX = this.computeParallaxNdcShiftX(this.redshifts[i], maxRedshift, minRedshift, fov, camera, this.tempView.z)
+      const ndcShiftY = this.computeParallaxNdcShiftY(this.redshifts[i], maxRedshift, minRedshift, fov, camera, this.tempView.z)
+      const shiftedPx = px + ndcShiftX * 0.5 * viewportWidth
+      const shiftedPy = py - ndcShiftY * 0.5 * viewportHeight
 
       const pointSizePx = this.estimatePointSizePx(this.sizes[i], alpha, pixelRatio, fov, detailMix)
       const half = pointSizePx * 0.5
 
-      const dx = screenX - px
-      const dy = screenY - py
+      const dx = screenX - shiftedPx
+      const dy = screenY - shiftedPy
       if (Math.abs(dx) > half || Math.abs(dy) > half) continue
 
       const distSq = dx * dx + dy * dy
@@ -304,8 +342,53 @@ export class GalaxyField {
     return this.smoothstep(-1.42, -0.44, logOffset)
   }
 
+  /**
+   * Reproduce vertex parallax shift in NDC for hit-testing.
+   */
+  private computeParallaxNdcShiftX(
+    redshift: number,
+    maxRedshift: number,
+    minRedshift: number,
+    fov: number,
+    camera: THREE.PerspectiveCamera,
+    viewZ: number
+  ): number {
+    const parallaxMix = this.smoothstep(72, 16, fov)
+    const nearFactor = 1.0 - this.smoothstep(minRedshift, maxRedshift, redshift)
+    const viewShiftX = this.latestPointerParallaxX * parallaxMix * nearFactor * 26.0
+    const proj00 = camera.projectionMatrix.elements[0]
+    const safeDepth = Math.max(0.001, -viewZ)
+    return (viewShiftX * proj00) / safeDepth
+  }
+
+  /**
+   * Reproduce vertex vertical parallax shift in NDC for hit-testing.
+   */
+  private computeParallaxNdcShiftY(
+    redshift: number,
+    maxRedshift: number,
+    minRedshift: number,
+    fov: number,
+    camera: THREE.PerspectiveCamera,
+    viewZ: number
+  ): number {
+    const parallaxMix = this.smoothstep(72, 16, fov)
+    const nearFactor = 1.0 - this.smoothstep(minRedshift, maxRedshift, redshift)
+    const viewShiftY = this.latestPointerParallaxY * parallaxMix * nearFactor * 18.0
+    const proj11 = camera.projectionMatrix.elements[5]
+    const safeDepth = Math.max(0.001, -viewZ)
+    return (viewShiftY * proj11) / safeDepth
+  }
+
   private clamp01(v: number): number {
     return Math.max(0, Math.min(1, v))
+  }
+
+  /**
+   * Clamp a scalar into the provided range.
+   */
+  private clamp(v: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, v))
   }
 
   private smoothstep(edge0: number, edge1: number, x: number): number {

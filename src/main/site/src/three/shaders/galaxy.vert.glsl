@@ -11,6 +11,8 @@ uniform float uPixelRatio;
 uniform float uMaxRedshift;
 uniform float uMinRedshift;
 uniform float uFov;
+uniform float uParallaxX;
+uniform float uParallaxY;
 
 varying vec3 vColor;
 varying float vAlpha;
@@ -93,5 +95,12 @@ void main() {
   gl_PointSize = max(1.1 * uPixelRatio, basePx * detailBoost * farBoost);
   
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  float parallaxMix = smoothstep(72.0, 16.0, uFov);
+  float nearFactor = 1.0;
+  if (uMaxRedshift > uMinRedshift + 0.000001) {
+    nearFactor = 1.0 - smoothstep(uMinRedshift, uMaxRedshift, aRedshift);
+  }
+  mvPosition.x += uParallaxX * parallaxMix * nearFactor * 26.0;
+  mvPosition.y += uParallaxY * parallaxMix * nearFactor * 18.0;
   gl_Position = projectionMatrix * mvPosition;
 }

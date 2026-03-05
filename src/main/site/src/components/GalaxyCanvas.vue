@@ -71,6 +71,10 @@ let pointerDownY = 0
 let pointerMovedDuringGesture = false
 let suppressNextClick = false
 let selectedGalaxy: Galaxy | null = null
+let pointerParallaxTargetX = 0
+let pointerParallaxTargetY = 0
+let pointerParallaxX = 0
+let pointerParallaxY = 0
 
 /**
  * Perform pointer hit detection against square galaxy sprite bounds.
@@ -97,6 +101,8 @@ function pickGalaxyFromPointer(e: PointerEvent): Galaxy | null {
 }
 
 function onPointerMoveHover(e: PointerEvent) {
+  updatePointerParallaxTarget(e.clientX, e.clientY)
+
   if (pointerIsDown) {
     const dx = e.clientX - pointerDownX
     const dy = e.clientY - pointerDownY
@@ -120,6 +126,19 @@ function onPointerMoveHover(e: PointerEvent) {
   }
 }
 
+/**
+ * Convert viewport coordinates into normalized parallax range [-1, 1].
+ */
+function updatePointerParallaxTarget(clientX: number, clientY: number) {
+  if (!canvasRef.value) return
+  const rect = canvasRef.value.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return
+  const x = (clientX - rect.left) / rect.width
+  const y = (clientY - rect.top) / rect.height
+  pointerParallaxTargetX = Math.max(-1, Math.min(1, x * 2 - 1))
+  pointerParallaxTargetY = Math.max(-1, Math.min(1, 1 - y * 2))
+}
+
 function setSelection(payload: HoverEvent | null) {
   selectedGalaxy = payload?.galaxy ?? null
   galaxyField?.setSelectedPgc(selectedGalaxy?.pgc ?? null)
@@ -129,6 +148,8 @@ function setSelection(payload: HoverEvent | null) {
 function onPointerLeave() {
   pointerIsDown = false
   pointerMovedDuringGesture = false
+  pointerParallaxTargetX = 0
+  pointerParallaxTargetY = 0
   emit('hover', null)
   if (!isMobile) return
   setSelection(null)
@@ -141,6 +162,7 @@ function onPointerDownCapture(e: PointerEvent) {
   pointerIsDown = true
   pointerDownX = e.clientX
   pointerDownY = e.clientY
+  updatePointerParallaxTarget(e.clientX, e.clientY)
   pointerMovedDuringGesture = false
 }
 
@@ -201,7 +223,17 @@ onMounted(async () => {
 
   // 5. Start animation loop
   startLoop((elapsed) => {
-    galaxyField?.update(elapsed, currentMaxRedshift.value, currentMinRedshift.value, currentFov.value)
+    // Smooth pointer-driven parallax so reveal lanes glide while dragging.
+    pointerParallaxX += (pointerParallaxTargetX - pointerParallaxX) * 0.18
+    pointerParallaxY += (pointerParallaxTargetY - pointerParallaxY) * 0.18
+    galaxyField?.update(
+      elapsed,
+      currentMaxRedshift.value,
+      currentMinRedshift.value,
+      currentFov.value,
+      pointerParallaxX,
+      pointerParallaxY
+    )
     backgroundStars?.update(elapsed)
     earthHorizon?.update()
   })
