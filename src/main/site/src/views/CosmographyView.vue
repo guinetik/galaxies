@@ -45,7 +45,7 @@
       </section>
 
       <!-- Method Cards -->
-      <section class="cosmo-section" data-section="2">
+      <section class="cosmo-section methods-section" data-section="2">
         <h2 class="cosmo-section-title">{{ t('pages.cosmography.methods.sectionTitle') }}</h2>
         <div
           v-for="key in methodKeys"
@@ -53,26 +53,29 @@
           :id="'method-' + key"
           class="method-card"
         >
-          <div class="method-card-visual">
-            <TelescopeLens
-              :telescope-src="`/cosmography/telescopes/${key}.jpg`"
-              :telescope-alt="t(`pages.cosmography.methods.${key}.telescopeAlt`)"
-              :observation-src="`/cosmography/observations/${key}.jpg`"
-              :observation-alt="t(`pages.cosmography.methods.${key}.observationAlt`)"
-            />
-          </div>
-          <div class="method-card-content">
-            <h3 class="method-name">{{ t(`pages.cosmography.methods.${key}.name`) }}</h3>
-            <div class="method-badge">
-              <span class="badge" :class="badgeClass(key)">{{ t(`pages.cosmography.methods.${key}.location`) }}</span>
-              <span class="badge-instruments">{{ t(`pages.cosmography.methods.${key}.instruments`) }}</span>
+          <div class="method-card-header">
+            <div class="method-card-visual">
+              <TelescopeLens
+                :telescope-src="telescopeSrc(key)"
+                :telescope-alt="t(`pages.cosmography.methods.${key}.telescopeAlt`)"
+                :observation-src="observationSrc(key)"
+                :observation-alt="t(`pages.cosmography.methods.${key}.observationAlt`)"
+              />
             </div>
-            <p class="cosmo-body">{{ t(`pages.cosmography.methods.${key}.desc`) }}</p>
-            <div class="method-stats">
-              <span>{{ t(`pages.cosmography.methods.${key}.range`) }} Mpc</span>
-              <span>{{ t(`pages.cosmography.methods.${key}.count`) }} galaxies</span>
+            <div class="method-card-content">
+              <h3 class="method-name">{{ t(`pages.cosmography.methods.${key}.name`) }}</h3>
+              <div class="method-badge">
+                <span class="badge" :class="badgeClass(key)">{{ t(`pages.cosmography.methods.${key}.location`) }}</span>
+                <span class="badge-instruments">{{ t(`pages.cosmography.methods.${key}.instruments`) }}</span>
+              </div>
+              <p class="cosmo-body">{{ t(`pages.cosmography.methods.${key}.desc`) }}</p>
+              <div class="method-stats">
+                <span>{{ t(`pages.cosmography.methods.${key}.range`) }} Mpc</span>
+                <span>{{ t(`pages.cosmography.methods.${key}.count`) }} galaxies</span>
+              </div>
             </div>
           </div>
+          <MethodExperiment :method-key="key" />
         </div>
       </section>
 
@@ -109,6 +112,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CosmographyBackground from '@/components/CosmographyBackground.vue'
 import TelescopeLens from '@/components/TelescopeLens.vue'
+import MethodExperiment from '@/components/cosmography/MethodExperiment.vue'
 
 const { t } = useI18n()
 
@@ -148,6 +152,38 @@ function onScroll() {
 function scrollToMethod(key: string) {
   const el = document.getElementById(`method-${key}`)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+/** Telescope images (instrument/location, often Earth-based) */
+const TELESCOPE_SRC: Record<string, string> = {
+  ceph: '/hubble.webp',
+  trgb: '/jwt.webp',
+  mas: '/alma.webp',
+  sbf: '/gemni.webp',
+  snii: '/telescope.webp',
+  tf: '/arecibo.webp',
+  fp: '/sdss.webp',
+  snia: '/ctio.webp',
+}
+
+/** Observation images (what we see through the telescope) */
+const OBSERVATION_SRC: Record<string, string> = {
+  ceph: '/cepheid.webp',
+  trgb: '/trgb.webp',
+  mas: '/masers.webp',
+  sbf: '/sbf.webp',
+  snii: '/supernova.webp',
+  tf: '/tullyfisher.webp',
+  fp: '/sdss_experiment.webp',
+  snia: '/supernovaIa.webp',
+}
+
+function telescopeSrc(key: string): string {
+  return TELESCOPE_SRC[key] ?? `/cosmography/telescopes/${key}.jpg`
+}
+
+function observationSrc(key: string): string {
+  return OBSERVATION_SRC[key] ?? `/cosmography/observations/${key}.jpg`
 }
 
 function badgeClass(key: string): string {
@@ -199,6 +235,19 @@ onMounted(() => {
   padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
   position: relative;
   z-index: 10;
+}
+
+.cosmo-section.methods-section {
+  /* Wider for full-width experiments */
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 56rem) {
+  .cosmo-page {
+    max-width: 56rem;
+  }
 }
 
 /* ── Hero ── */
@@ -326,6 +375,9 @@ onMounted(() => {
 /* ── Method Cards ── */
 .method-card {
   margin-bottom: 3rem;
+}
+
+.method-card-header {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -476,7 +528,7 @@ onMounted(() => {
     font-size: 2.25rem;
   }
 
-  .method-card {
+  .method-card-header {
     flex-direction: row;
   }
 

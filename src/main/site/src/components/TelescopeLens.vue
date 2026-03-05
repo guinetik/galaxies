@@ -1,10 +1,11 @@
 <template>
-  <div class="lens-container" @click="toggle" role="button" tabindex="0" @keydown.enter="toggle">
+  <div class="lens-container" @click="toggle" role="button" tabindex="0" @keydown.enter.prevent="toggle">
     <!-- Telescope image (always visible as base layer) -->
     <img
       v-if="telescopeLoaded"
       :src="telescopeSrc"
       :alt="telescopeAlt"
+      :title="telescopeAlt"
       class="lens-img lens-telescope"
     />
     <div v-else class="lens-placeholder">
@@ -21,6 +22,7 @@
         v-if="observationLoaded"
         :src="observationSrc"
         :alt="observationAlt"
+        :title="observationAlt"
         class="lens-img lens-observation"
       />
       <div v-else class="lens-placeholder lens-placeholder-dark">
@@ -51,8 +53,6 @@ const props = defineProps<{
 }>()
 
 const open = ref(false)
-const clickX = ref(50)
-const clickY = ref(50)
 
 const telescopeLoaded = ref(false)
 const observationLoaded = ref(false)
@@ -66,18 +66,14 @@ const imgObservation = new Image()
 imgObservation.onload = () => { observationLoaded.value = true }
 imgObservation.src = props.observationSrc
 
+/** Circle always expands from center */
 const apertureStyle = computed(() => ({
   clipPath: open.value
-    ? `circle(75% at ${clickX.value}% ${clickY.value}%)`
-    : `circle(0% at ${clickX.value}% ${clickY.value}%)`,
+    ? 'circle(75% at 50% 50%)'
+    : 'circle(0% at 50% 50%)',
 }))
 
-function toggle(e: MouseEvent | KeyboardEvent) {
-  if (!open.value && e instanceof MouseEvent) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    clickX.value = ((e.clientX - rect.left) / rect.width) * 100
-    clickY.value = ((e.clientY - rect.top) / rect.height) * 100
-  }
+function toggle() {
   open.value = !open.value
 }
 </script>

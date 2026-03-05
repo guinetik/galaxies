@@ -21,6 +21,26 @@
     "ugc": "Catálogo Geral de Uppsala",
     "fss": "Pesquisa de Galáxias Planas"
   },
+  "propertyExplanations": {
+    "cosmography": {
+      "periodLuminosity": {
+        "title": "Relação Período-Luminosidade",
+        "description": "Estrelas variáveis Cefeidas pulsam com um período diretamente proporcional à sua luminosidade intrínseca. Henrietta Leavitt descobriu isso em 1912: meça o período, conheça o brilho verdadeiro, compare ao brilho aparente e você tem a distância.",
+        "example": "Uma Cefeida com período de 10 dias tem M_V ≈ -5. Uma Cefeida de 30 dias é mais brilhante com M_V ≈ -6.",
+        "technicalNote": "M_V ≈ -3.43 log₁₀(P) - 2.76 para Cefeidas clássicas na banda V."
+      },
+      "standardCandle": {
+        "title": "Vela Padrão",
+        "description": "Uma vela padrão é um objeto astronômico com luminosidade intrínseca conhecida. Comparando o quão brilhante parece com o quão brilhante realmente é, os astrônomos podem calcular a distância. Cefeidas, TRGB e supernovas Tipo Ia são velas padrão.",
+        "example": "Se uma vela tem brilho conhecido e parece fraca, deve estar longe."
+      },
+      "distanceModulus": {
+        "title": "Módulo de Distância",
+        "description": "O módulo de distância (m - M) é a diferença entre magnitude aparente e absoluta. Relaciona-se diretamente à distância: m - M = 5 log₁₀(d/10 pc). Um módulo de 25 corresponde a 1 Mpc.",
+        "technicalNote": "d (pc) = 10^((m - M + 5) / 5)"
+      }
+    }
+  },
   "morphology": {
     "elliptical": "Elíptica",
     "lenticular": "Lenticular",
@@ -191,6 +211,59 @@
         "title": "A Escada de Distâncias",
         "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas — cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
         "rangeMpc": "Alcance (Mpc)"
+      },
+      "experimentTitle": "Explorar: Como funciona",
+      "experiments": {
+        "ceph": {
+          "intro": "Apontamos um telescópio para uma galáxia distante e encontramos uma estrela que brilha e escurece em um ritmo constante. Esse ritmo — quantos dias entre cada pulso — nos diz o quão brilhante a estrela realmente é. Compare com o quão fraca ela parece daqui, e sabemos a distância.",
+          "earth": "Terra",
+          "weObserve": "Observamos daqui",
+          "distantGalaxy": "Galáxia distante",
+          "pulsingStar": "Estrela que brilha e escurece",
+          "periodLabel": "Ritmo do pulso (dias entre brilhos)",
+          "periodHint": "Ritmo mais longo = estrela mais brilhante = podemos medir mais longe",
+          "howBright": "Brilho verdadeiro",
+          "howDim": "Quão fraca parece",
+          "distance": "Distância"
+        },
+        "sbf": {
+          "intro": "Olhe uma galáxia próxima pelo telescópio — você vê estrelas individuais, então a imagem parece granulada. Agora olhe uma galáxia distante: essas estrelas se misturam em um brilho suave. Quanto mais granulação vemos, mais próxima a galáxia. Arraste o controle para comparar.",
+          "chartTitle": "Brilho Superficial: Próximo vs Distante",
+          "nearby": "Próxima (granulada)",
+          "distant": "Distante (suave)",
+          "distanceLabel": "Distância simulada",
+          "grainLevel": "Nível de granulação",
+          "interpretation": "Interpretação",
+          "interpretNearby": "Resolvida — estrelas individuais visíveis",
+          "interpretMid": "Parcialmente resolvida",
+          "interpretFar": "Suave — estrelas misturadas",
+          "note": "SBF mede a amplitude das flutuações pixel a pixel para derivar a distância."
+        },
+        "tf": {
+          "intro": "Apontamos um radiotelescópio para uma galáxia espiral e medimos a largura do sinal de hidrogênio. Galáxias que giram mais rápido são mais brilhantes. Então: sinal mais largo significa galáxia mais brilhante. Compare esse brilho com o quão fraca ela parece, e obtemos a distância.",
+          "chartTitle": "Curva de Rotação: v vs R",
+          "observed": "observada",
+          "expectedLuminous": "esperada do disco luminoso",
+          "rotationLabel": "Velocidade de rotação plana W",
+          "predictedLum": "Luminosidade prevista",
+          "distance": "Distância",
+          "note": "A curva observada permanece plana; só o disco luminoso cairia. Essa diferença é matéria escura. Tully-Fisher usa a velocidade plana: L ∝ W^3.5."
+        },
+        "snia": {
+          "intro": "Uma anã branca explode em uma galáxia distante — vemos brilhar e depois escurecer. Essas explosões são quase idênticas. A rapidez com que escurecem nos diz o brilho de pico verdadeiro. Compare com o quão fracas parecem, e medimos distâncias a bilhões de anos-luz.",
+          "chartTitle": "Curva de Luz com Correção de Stretch",
+          "magLabel": "Magnitude",
+          "daysLabel": "Dias desde B-max",
+          "observed": "observada",
+          "reference": "referência (s=1)",
+          "explosionCaption": "Escala da explosão ∝ stretch s",
+          "dimnessCaption": "Arraste 'Quão fraca parece' para ver o efeito da distância",
+          "stretchLabel": "Fator de stretch s",
+          "apparentMagLabel": "Quão fraca parece (magnitude aparente)",
+          "peakMagnitude": "Magnitude de pico corrigida",
+          "distanceMpc": "Distância",
+          "note": "Relação de Phillips: declínio mais lento → pico mais brilhante. A correção de stretch padroniza a vela. Permite cosmologia até z ~ 1."
+        }
       },
       "methods": {
         "sectionTitle": "Os Métodos",

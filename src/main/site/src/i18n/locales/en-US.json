@@ -21,6 +21,26 @@
     "ugc": "Uppsala General Catalogue",
     "fss": "Flat Galaxy Survey"
   },
+  "propertyExplanations": {
+    "cosmography": {
+      "periodLuminosity": {
+        "title": "Period-Luminosity Relation",
+        "description": "Cepheid variable stars pulsate with a period that is directly proportional to their intrinsic luminosity. Henrietta Leavitt discovered this in 1912: measure the period, know the true brightness, compare to apparent brightness, and you have the distance.",
+        "example": "A Cepheid with a 10-day period has M_V ≈ -5. A 30-day Cepheid is brighter at M_V ≈ -6.",
+        "technicalNote": "M_V ≈ -3.43 log₁₀(P) - 2.76 for classical Cepheids in the V band."
+      },
+      "standardCandle": {
+        "title": "Standard Candle",
+        "description": "A standard candle is an astronomical object with a known intrinsic luminosity. By comparing how bright it appears to how bright it truly is, astronomers can calculate the distance. Cepheids, TRGB, and Type Ia supernovae are all standard candles.",
+        "example": "If a candle has known brightness and appears dim, it must be far away."
+      },
+      "distanceModulus": {
+        "title": "Distance Modulus",
+        "description": "The distance modulus (m - M) is the difference between apparent and absolute magnitude. It relates directly to distance: m - M = 5 log₁₀(d/10 pc). A modulus of 25 corresponds to 1 Mpc.",
+        "technicalNote": "d (pc) = 10^((m - M + 5) / 5)"
+      }
+    }
+  },
   "morphology": {
     "elliptical": "Elliptical",
     "lenticular": "Lenticular",
@@ -191,6 +211,59 @@
         "title": "The Distance Ladder",
         "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together — each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
         "rangeMpc": "Range (Mpc)"
+      },
+      "experimentTitle": "Explore: How it works",
+      "experiments": {
+        "ceph": {
+          "intro": "We point a telescope at a distant galaxy and spot a star that brightens and dims in a steady rhythm. That rhythm — how many days between each pulse — tells us how bright the star truly is. Compare that to how dim it looks from here, and we know the distance.",
+          "earth": "Earth",
+          "weObserve": "We observe from here",
+          "distantGalaxy": "Distant galaxy",
+          "pulsingStar": "Star that brightens and dims",
+          "periodLabel": "Pulse rhythm (days between brightenings)",
+          "periodHint": "Longer rhythm = brighter star = farther away we can measure",
+          "howBright": "True brightness",
+          "howDim": "How dim it looks",
+          "distance": "Distance"
+        },
+        "sbf": {
+          "intro": "Look at a nearby galaxy through a telescope — you can see individual stars, so the image looks grainy. Now look at a faraway galaxy: those stars blur into a smooth glow. The more grain we see, the closer the galaxy. Drag the slider to compare.",
+          "chartTitle": "Surface Brightness: Nearby vs Distant",
+          "nearby": "Nearby (grainy)",
+          "distant": "Distant (smooth)",
+          "distanceLabel": "Simulated distance",
+          "grainLevel": "Grain level",
+          "interpretation": "Interpretation",
+          "interpretNearby": "Resolved — individual stars visible",
+          "interpretMid": "Partially resolved",
+          "interpretFar": "Smooth — stars blended",
+          "note": "SBF measures the amplitude of pixel-to-pixel fluctuations to derive distance."
+        },
+        "tf": {
+          "intro": "We point a radio telescope at a spiral galaxy and measure the width of its hydrogen signal. Faster-spinning galaxies are brighter. So: wider signal means brighter galaxy. Compare that brightness to how dim it looks, and we get the distance.",
+          "chartTitle": "Rotation Curve: v vs R",
+          "observed": "observed",
+          "expectedLuminous": "expected from luminous disk",
+          "rotationLabel": "Flat rotation velocity W",
+          "predictedLum": "Predicted luminosity",
+          "distance": "Distance",
+          "note": "The observed curve stays flat; the luminous disk alone would fall. That gap is dark matter. Tully-Fisher uses the flat velocity: L ∝ W^3.5."
+        },
+        "snia": {
+          "intro": "A white dwarf explodes in a distant galaxy — we see it brighten, then fade. These explosions are nearly identical. How fast they fade tells us their true peak brightness. Compare to how dim they look, and we measure distances across billions of light-years.",
+          "chartTitle": "Light Curve with Stretch Correction",
+          "magLabel": "Magnitude",
+          "daysLabel": "Days from B-max",
+          "observed": "observed",
+          "reference": "reference (s=1)",
+          "explosionCaption": "Explosion scale ∝ stretch s",
+          "dimnessCaption": "Drag 'How dim it looks' to see the effect of distance",
+          "stretchLabel": "Stretch factor s",
+          "apparentMagLabel": "How dim it looks (apparent mag)",
+          "peakMagnitude": "Corrected peak magnitude",
+          "distanceMpc": "Distance",
+          "note": "Phillips relation: slower decline → brighter peak. Stretch correction standardizes the candle. Enables cosmology to z ~ 1."
+        }
       },
       "methods": {
         "sectionTitle": "The Methods",
