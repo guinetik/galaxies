@@ -1,12 +1,12 @@
 import * as THREE from 'three'
 
-const STAR_COUNT = 5200
+const STAR_COUNT = 14000
 const SPHERE_RADIUS = 800
-const POINT_SIZE = 0.9
+const POINT_SIZE = 1.4
 
 /**
- * Decorative background stars — tiny white dots on a larger sphere
- * behind the galaxy field, giving the night sky depth at every location.
+ * Decorative background stars — simple dots on a larger sphere behind the galaxy
+ * field, giving the night sky depth. Stars tinkle (twinkle) for a living sky feel.
  */
 export class BackgroundStars {
   readonly points: THREE.Points
@@ -26,27 +26,27 @@ export class BackgroundStars {
       positions[i * 3 + 1] = SPHERE_RADIUS * Math.cos(phi)
       positions[i * 3 + 2] = SPHERE_RADIUS * Math.sin(phi) * Math.sin(theta)
 
-      // Vary sizes slightly
-      sizes[i] = POINT_SIZE * (0.35 + Math.random() * 0.85)
+      // Simple dots: slight size variation for natural look
+      sizes[i] = POINT_SIZE * (0.5 + Math.random() * 0.8)
 
-      // Keep background stars subtle so galaxies remain dominant.
-      opacities[i] = 0.06 + Math.random() * 0.16
+      // Visible base opacity with variation for depth
+      opacities[i] = 0.35 + Math.random() * 0.45
       phases[i] = Math.random() * Math.PI * 2
 
-      // Subtle full-sky color variation (cool whites + warm whites).
+      // Color variation: cool whites, warm whites, occasional yellow/orange
       const t = Math.random()
-      if (t < 0.55) {
-        colors[i * 3] = 0.72 + Math.random() * 0.10
-        colors[i * 3 + 1] = 0.79 + Math.random() * 0.09
-        colors[i * 3 + 2] = 0.89 + Math.random() * 0.05
-      } else if (t < 0.88) {
-        colors[i * 3] = 0.82 + Math.random() * 0.07
-        colors[i * 3 + 1] = 0.80 + Math.random() * 0.09
-        colors[i * 3 + 2] = 0.72 + Math.random() * 0.10
+      if (t < 0.5) {
+        colors[i * 3] = 0.85 + Math.random() * 0.12
+        colors[i * 3 + 1] = 0.88 + Math.random() * 0.10
+        colors[i * 3 + 2] = 0.95 + Math.random() * 0.05
+      } else if (t < 0.85) {
+        colors[i * 3] = 0.95 + Math.random() * 0.05
+        colors[i * 3 + 1] = 0.90 + Math.random() * 0.08
+        colors[i * 3 + 2] = 0.80 + Math.random() * 0.12
       } else {
-        colors[i * 3] = 0.70 + Math.random() * 0.14
-        colors[i * 3 + 1] = 0.78 + Math.random() * 0.10
-        colors[i * 3 + 2] = 0.89 + Math.random() * 0.05
+        colors[i * 3] = 0.98 + Math.random() * 0.02
+        colors[i * 3 + 1] = 0.92 + Math.random() * 0.06
+        colors[i * 3 + 2] = 0.75 + Math.random() * 0.15
       }
     }
 
@@ -75,8 +75,8 @@ export class BackgroundStars {
           vOpacity = aOpacity;
           vColor = aColor;
 
-          // Subtle twinkle
-          float twinkle = sin(uTime * 1.2 + aPhase) * 0.08 + 0.92;
+          // Tinkle: stars pulse in brightness (each has its own phase)
+          float twinkle = sin(uTime * 1.8 + aPhase) * 0.32 + 0.68;
           vOpacity *= twinkle;
 
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
