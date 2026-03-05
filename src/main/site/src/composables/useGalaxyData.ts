@@ -93,7 +93,7 @@ export function useGalaxyData() {
   function getAllGroups(): GalaxyGroup[] {
     if (!db) return []
     const stmt = db.prepare(
-      'SELECT group_pgc, sgx, sgy, sgz, dist_mpc, vh, sgl, sgb FROM galaxy_groups WHERE sgx IS NOT NULL'
+      'SELECT group_pgc, sgx, sgy, sgz, dist_mpc, vh, sgl, sgb, hi, log_hi FROM galaxy_groups WHERE sgx IS NOT NULL'
     )
     const groups: GalaxyGroup[] = []
     const columns = stmt.getColumnNames()

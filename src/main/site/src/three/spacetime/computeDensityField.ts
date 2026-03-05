@@ -42,7 +42,7 @@ export function computeDensityField(
     }
   }
 
-  // Splat each group onto the grid
+  // Splat each group onto the grid, weighted by HI mass
   let slabCount = 0
   for (const g of groups) {
     if (Math.abs(g.sgz) > slabHalf) continue
@@ -52,14 +52,19 @@ export function computeDensityField(
     const gx = Math.floor(((g.sgx + extent) / (extent * 2)) * resolution)
     const gy = Math.floor(((g.sgy + extent) / (extent * 2)) * resolution)
 
-    // Splat kernel
+    // Weight contribution by HI mass (linear scale)
+    // Using log_hi to convert back to linear mass, then normalize by average ~100
+    const hiMass = Math.pow(10, g.log_hi) / 100
+    const weight = Math.max(0.1, Math.min(10, hiMass)) // Clamp to reasonable range
+
+    // Splat kernel with mass weighting
     for (let ky = -kernelRadius; ky <= kernelRadius; ky++) {
       for (let kx = -kernelRadius; kx <= kernelRadius; kx++) {
         const cx = gx + kx
         const cy = gy + ky
         if (cx < 0 || cx >= resolution || cy < 0 || cy >= resolution) continue
         grid[cy * resolution + cx] +=
-          kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)]
+          weight * kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)]
       }
     }
   }

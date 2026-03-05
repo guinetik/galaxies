@@ -282,8 +282,10 @@ export class CylinderScene {
       )
 
       const isMW = structure.name === 'Milky Way'
-      const sprite = this.makeLabel(structure.name, isMW)
-      sprite.position.set(sgx, sgz + 300, sgy)
+      const isAndromeda = structure.pgc === ANDROMEDA_PGC
+      const labelY = sgz + 300 + (isAndromeda ? -600 : 0)
+      const sprite = this.makeLabel(structure.name, isMW || isAndromeda)
+      sprite.position.set(sgx, labelY, sgy)
       this.scene.add(sprite)
 
       if (!isMW) {

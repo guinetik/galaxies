@@ -90,7 +90,6 @@
             text-anchor="middle"
             fill="rgba(255,255,255,0.7)"
             font-size="11"
-            transform="rotate(-90, 0, 0)"
             :transform="`rotate(-90, ${margin.left - 8}, ${margin.top + innerHeight / 2})`"
           >
             v (km/s)

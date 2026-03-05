@@ -152,6 +152,8 @@ export interface GalaxyGroup {
   vh: number | null
   sgl: number
   sgb: number
+  hi: number
+  log_hi: number
 }
 
 /**
