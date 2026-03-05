@@ -7,6 +7,22 @@ import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
 import fragmentShader from './shaders/galaxy.frag.glsl?raw'
 
+/**
+ * Convert MorphologyClass to Galaxy struct type enum.
+ * 0=spiral, 1=barred, 2=elliptical, 3=lenticular, 4=irregular, 5+=unknown
+ */
+function morphologyToGalaxyType(morphClass: MorphologyClass): number {
+  const typeMap: Record<MorphologyClass, number> = {
+    spiral: 0,
+    barred: 1,
+    elliptical: 2,
+    lenticular: 3,
+    irregular: 4,
+    unknown: 5,
+  }
+  return typeMap[morphClass] ?? 5
+}
+
 export class GalaxyField {
   readonly points: THREE.Points
   galaxies: Galaxy[]
@@ -75,6 +91,13 @@ export class GalaxyField {
     const alphas = new Float32Array(count)
     const sizeMultipliers = new Float32Array(count).fill(1.0) // Initialize to 1.0, not 0!
 
+    // New Galaxy struct attributes (packed for efficiency)
+    const types = new Float32Array(count)
+    const seeds = new Float32Array(count)
+    const angles = new Float32Array(count * 3)      // angleX, angleY, angleZ
+    const physicalParams = new Float32Array(count * 3) // axialRatio, mass_log10, velocity_kmps
+    const distances_mpc = new Float32Array(count)
+
     for (let i = 0; i < count; i++) {
       const g = galaxies[i]
 
@@ -113,6 +136,22 @@ export class GalaxyField {
       // Texture atlas index from morphology
       texIndices[i] = morphologyToAtlasIndex(morphClass)
       selected[i] = this.selectedPgc != null && g.pgc === this.selectedPgc ? 1 : 0
+
+      // Galaxy struct attributes (packed)
+      types[i] = morphologyToGalaxyType(morphClass)
+      seeds[i] = g.pgc * 73856093 ^ ((g.pgc >> 16) * 19349663) // Simple hash for seeding
+
+      // Pack angles (angleX, angleY, angleZ)
+      angles[i * 3] = 0.0     // angleX (TODO: derive from galaxy properties)
+      angles[i * 3 + 1] = 0.0 // angleY (TODO: derive from galaxy properties)
+      angles[i * 3 + 2] = 0.0 // angleZ (TODO: derive from galaxy properties)
+
+      // Pack physical params (axialRatio, mass_log10, velocity_kmps)
+      physicalParams[i * 3] = g.axial_ratio ?? 0.7
+      physicalParams[i * 3 + 1] = g.log_ms_t ?? 10.0
+      physicalParams[i * 3 + 2] = g.vcmb ?? 0.0
+
+      distances_mpc[i] = g.distance_mpc
     }
     this.positions = positions
     this.selected = selected
@@ -131,6 +170,13 @@ export class GalaxyField {
     this.geometry.setAttribute('aSelected', new THREE.BufferAttribute(selected, 1))
     this.geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
     this.geometry.setAttribute('aSizeMultiplier', new THREE.BufferAttribute(sizeMultipliers, 1))
+
+    // Galaxy struct attributes (packed)
+    this.geometry.setAttribute('aType', new THREE.BufferAttribute(types, 1))
+    this.geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1))
+    this.geometry.setAttribute('aAngles', new THREE.BufferAttribute(angles, 3))
+    this.geometry.setAttribute('aPhysicalParams', new THREE.BufferAttribute(physicalParams, 3))
+    this.geometry.setAttribute('aDistance_mpc', new THREE.BufferAttribute(distances_mpc, 1))
 
     this.points.geometry = this.geometry
   }

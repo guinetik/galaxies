@@ -55,7 +55,13 @@
       "filter": "Filter",
       "morphologyLabel": "Morphology",
       "catalogLabel": "Catalog",
-      "showing": "Showing {count} / {total}"
+      "showing": "Showing {count} / {total}",
+      "hero": {
+        "subtitle": "Journey through billions of light-years",
+        "cta": "Look Deeper",
+        "hint": "Scroll to zoom",
+        "hintMobile": "Pinch to zoom"
+      }
     },
     "about": {
       "title": "Galaxies",

@@ -55,7 +55,13 @@
       "filter": "Filtrar",
       "morphologyLabel": "Morfologia",
       "catalogLabel": "Catálogo",
-      "showing": "Mostrando {count} / {total}"
+      "showing": "Mostrando {count} / {total}",
+      "hero": {
+        "subtitle": "Uma jornada por bilhões de anos-luz",
+        "cta": "Olhe Mais Fundo",
+        "hint": "Role para ampliar",
+        "hintMobile": "Deslize para ampliar"
+      }
     },
     "about": {
       "title": "Galáxias",
