@@ -10,6 +10,12 @@ const siteRoot = resolve(__dirname, '../../..')
 const stubsPath = resolve(__dirname, '../shaders/threejs-stubs.vert.glsl')
 const vertexStubs = readFileSync(stubsPath, 'utf-8')
 
+/** Fragment shader library deps — prepend these before compiling */
+const shaderDeps: Record<string, string[]> = {
+  'galaxy-render.glsl': ['noise-value.glsl'],
+  'galaxy.frag.glsl': ['noise-value.glsl', 'galaxy-render.glsl'],
+}
+
 const shaderDirs = [
   'src/three/shaders',
   'src/three/galaxy-detail/shaders',
@@ -39,6 +45,11 @@ function expandDefines(source: string): string {
   const output: string[] = []
 
   for (const line of lines) {
+    const trimmed = line.trim()
+    // Strip preprocessor guard directives (#ifndef, #ifdef, #endif)
+    if (/^\s*#(ifndef|ifdef|endif)\b/.test(trimmed)) {
+      continue
+    }
     const match = line.match(/^\s*#define\s+(\w+)\s+(.+)$/)
     if (match) {
       defines.push([new RegExp(`\\b${match[1]}\\b`, 'g'), match[2].trim()])
@@ -63,6 +74,15 @@ describe('GLSL shader compilation', () => {
       // Prepend vertex stubs for vertex shaders
       if (filePath.endsWith('.vert.glsl')) {
         source = vertexStubs + '\n' + source
+      }
+
+      // Prepend library dependencies for shaders that need them
+      const fileName = filePath.replace(/\\/g, '/').split('/').pop()!
+      const deps = shaderDeps[fileName]
+      if (deps) {
+        const dir = dirname(filePath)
+        const depSources = deps.map((dep) => readFileSync(resolve(dir, dep), 'utf-8'))
+        source = depSources.join('\n') + '\n' + source
       }
 
       // Expand #define macros for glslx compatibility
