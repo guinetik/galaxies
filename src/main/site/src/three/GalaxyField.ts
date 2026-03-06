@@ -5,7 +5,11 @@ import { raDecToPosition, fovToMaxRedshift, redshiftToDistanceMLY } from './cele
 import { SPHERE_RADIUS, MORPHOLOGY_COLORS } from './constants'
 import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
-import fragmentShader from './shaders/galaxy.frag.glsl?raw'
+import noiseLib from './shaders/noise-value.glsl?raw'
+import renderLib from './shaders/galaxy-render.glsl?raw'
+import fragMain from './shaders/galaxy.frag.glsl?raw'
+
+const fragmentShader = noiseLib + '\n' + renderLib + '\n' + fragMain
 
 /**
  * Convert MorphologyClass to Galaxy struct type enum.
@@ -21,6 +25,13 @@ function morphologyToGalaxyType(morphClass: MorphologyClass): number {
     unknown: 5,
   }
   return typeMap[morphClass] ?? 5
+}
+
+/** Deterministic per-galaxy random from PGC + offset. Returns [0, 1). */
+function seededRandom(pgc: number, offset: number): number {
+  let n = ((pgc * 2654435761 + offset * 284517) >>> 0)
+  n = (((n >> 16) ^ n) * 0x45d9f3b) >>> 0
+  return (n & 0x7fffffff) / 0x7fffffff
 }
 
 export class GalaxyField {
@@ -64,8 +75,6 @@ export class GalaxyField {
         uFov: { value: 60.0 },
         uParallaxX: { value: 0.0 },
         uParallaxY: { value: 0.0 },
-        uTexture: { value: atlasTexture },
-        uCameraLogLevel: { value: 0.0 },
       },
       transparent: true,
       depthWrite: false,
@@ -142,9 +151,9 @@ export class GalaxyField {
       seeds[i] = g.pgc * 73856093 ^ ((g.pgc >> 16) * 19349663) // Simple hash for seeding
 
       // Pack angles (angleX, angleY, angleZ)
-      angles[i * 3] = 0.0     // angleX (TODO: derive from galaxy properties)
-      angles[i * 3 + 1] = 0.0 // angleY (TODO: derive from galaxy properties)
-      angles[i * 3 + 2] = 0.0 // angleZ (TODO: derive from galaxy properties)
+      angles[i * 3] = seededRandom(g.pgc, 1) * Math.PI * 2      // angleX (tilt)
+      angles[i * 3 + 1] = 0.0                                     // angleY (reserved)
+      angles[i * 3 + 2] = seededRandom(g.pgc, 3) * Math.PI * 2   // angleZ (rotation)
 
       // Pack physical params (axialRatio, mass_log10, velocity_kmps)
       physicalParams[i * 3] = g.axial_ratio ?? 0.7
