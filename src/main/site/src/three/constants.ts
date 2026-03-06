@@ -35,11 +35,16 @@ export const CAMERA_POSITION: [number, number, number] = [0, 50, 0]
  *    3° →  55,877 galaxies (full deep field)
  */
 export const REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.0010],  // ~4 Mpc — local neighborhood always visible
-  [72, 0.0016],  // ~1.6x step — gentle ramp
-  [68, 0.0024],  // ~1.5x
-  [64, 0.0033],  // ~1.4x
-  [60, 0.0043],  // ~1.3x — converging with old curve
+  [75, 0.0000],  // Start at 0 MLY — no galaxies visible
+  [74, 0.0003],  // First scroll tick: ~1 MLY, first galaxies appear
+  [73, 0.0006],  // ~2 MLY
+  [72, 0.0010],  // ~3 MLY — gentle ramp into local neighborhood
+  [70, 0.0016],  // ~5 MLY
+  [68, 0.0024],  // ~8 MLY
+  [66, 0.0030],  // ~10 MLY
+  [64, 0.0037],  // ~12 MLY
+  [62, 0.0043],  // ~14 MLY
+  [60, 0.0050],  // ~16 MLY — smooth transition into mid-range
   [58, 0.0052],
   [55, 0.0062],
   [52, 0.0074],
@@ -81,9 +86,14 @@ export const REDSHIFT_RANGES: [number, number][] = [
  */
 export const MIN_REDSHIFT_RANGES: [number, number][] = [
   [75, 0.0000], // Wide view: retain local anchors
+  [74, 0.0000],
+  [73, 0.0000],
   [72, 0.0000],
+  [70, 0.0000],
   [68, 0.0000],
+  [66, 0.0000],
   [64, 0.0000],
+  [62, 0.0000],
   [60, 0.0000],
   [58, 0.0000],
   [55, 0.0001],
