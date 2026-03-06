@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Galaxy } from '@/types/galaxy'
 import { assignMorphology } from '@/types/galaxy'
 import { raDecToPosition, fovToMaxRedshift, redshiftToDistanceMLY } from './celestialMath'
-import { SPHERE_RADIUS, MORPHOLOGY_COLORS } from './constants'
+import { SPHERE_RADIUS } from './constants'
 import { morphologyToAtlasIndex } from './GalaxyTextures'
 import vertexShader from './shaders/galaxy.vert.glsl?raw'
 import noiseLib from './shaders/noise-value.glsl?raw'
@@ -116,24 +116,51 @@ export class GalaxyField {
       positions[i * 3 + 1] = pos.y
       positions[i * 3 + 2] = pos.z
 
-      // Color from assigned morphology with per-galaxy variation
+      // Color: fully seed-driven, independent of morphology type.
+      // Each galaxy picks a random point on the stellar color spectrum.
       const morphClass = assignMorphology(g.pgc)
-      const baseColor: [number, number, number] = MORPHOLOGY_COLORS[morphClass]
       const seed = (g.pgc * 2654435761) >>> 0
+      const t1 = ((seed >>> 8) % 1024) / 1023   // hue position
+      const t2 = ((seed >>> 18) % 1024) / 1023  // saturation
+      const t3 = ((seed >>> 3) % 1024) / 1023   // brightness
 
-      // Per-galaxy variation on the blackbody sequence (no green).
-      const t1 = ((seed >>> 8) % 1024) / 1023
-      const t2 = ((seed >>> 18) % 1024) / 1023
-      const t3 = ((seed >>> 3) % 1024) / 1023
-      const brightnessScale = 0.8 + t1 * 0.4
-      const coolWarmTilt = (t2 - 0.5) * 0.2
-      const magentaTilt = (t3 - 0.5) * 0.2
-      const r = baseColor[0] * brightnessScale + coolWarmTilt * 0.5 + magentaTilt * 0.3
-      const gChannel = baseColor[1] * brightnessScale * 0.88 - Math.abs(magentaTilt) * 0.2
-      const b = baseColor[2] * brightnessScale - coolWarmTilt * 0.5 + magentaTilt * 0.5
-      colors[i * 3] = Math.min(1, Math.max(0, r))
-      colors[i * 3 + 1] = Math.min(1, Math.max(0, gChannel))
-      colors[i * 3 + 2] = Math.min(1, Math.max(0, b))
+      // Stellar color palette: blue → white → yellow → orange → red → purple
+      // Spread across the full range so same-type galaxies get wildly different hues
+      const hue = t1 * 6.0
+      let r: number, gC: number, b: number
+      if (hue < 1.0) {
+        // blue → cyan
+        r = 0.3; gC = 0.4 + hue * 0.5; b = 1.0
+      } else if (hue < 2.0) {
+        // cyan → white
+        const f = hue - 1.0
+        r = 0.3 + f * 0.7; gC = 0.9 + f * 0.1; b = 1.0
+      } else if (hue < 3.0) {
+        // white → yellow
+        const f = hue - 2.0
+        r = 1.0; gC = 1.0 - f * 0.15; b = 1.0 - f * 0.7
+      } else if (hue < 4.0) {
+        // yellow → orange
+        const f = hue - 3.0
+        r = 1.0; gC = 0.85 - f * 0.35; b = 0.3 - f * 0.15
+      } else if (hue < 5.0) {
+        // orange → red
+        const f = hue - 4.0
+        r = 1.0 - f * 0.15; gC = 0.5 - f * 0.3; b = 0.15 + f * 0.05
+      } else {
+        // red → purple/magenta
+        const f = hue - 5.0
+        r = 0.85 - f * 0.1; gC = 0.2 + f * 0.1; b = 0.2 + f * 0.6
+      }
+      const brightness = 0.7 + t3 * 0.5
+      const saturation = 0.5 + t2 * 0.5
+      // Desaturate toward white by saturation factor
+      r = r * saturation + (1.0 - saturation) * 0.9
+      gC = gC * saturation + (1.0 - saturation) * 0.9
+      b = b * saturation + (1.0 - saturation) * 0.9
+      colors[i * 3] = Math.min(1, Math.max(0.08, r * brightness))
+      colors[i * 3 + 1] = Math.min(1, Math.max(0.08, gC * brightness))
+      colors[i * 3 + 2] = Math.min(1, Math.max(0.08, b * brightness))
 
       // Size from distance — closer galaxies appear larger
       const K = 32.0
@@ -148,7 +175,7 @@ export class GalaxyField {
 
       // Galaxy struct attributes (packed)
       types[i] = morphologyToGalaxyType(morphClass)
-      seeds[i] = g.pgc * 73856093 ^ ((g.pgc >> 16) * 19349663) // Simple hash for seeding
+      seeds[i] = ((g.pgc * 73856093 ^ ((g.pgc >> 16) * 19349663)) >>> 0) % 100000 // Hash to positive float range
 
       // Pack angles (angleX, angleY, angleZ)
       angles[i * 3] = seededRandom(g.pgc, 1) * Math.PI * 2      // angleX (tilt)
