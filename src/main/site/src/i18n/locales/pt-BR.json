@@ -118,6 +118,51 @@
         "dataLink": "Explorar os dados",
         "downloadDb": "Baixar BD (18 MB)"
       },
+      "measurements": {
+        "title": "Lendo os Números",
+        "intro": "Quando você passa o mouse sobre uma galáxia, vê valores como 238 Mly e 4.403 km/s. Veja o que significam — uma introdução rápida antes de explorar a seção de Cosmografia.",
+        "mly": {
+          "title": "Mly — Milhões de anos-luz",
+          "desc": "Distância em milhões de anos-luz. Um ano-luz é a distância que a luz percorre em um ano — cerca de 9,5 trilhões de km. Então 238 Mly significa que a luz da galáxia levou 238 milhões de anos para nos alcançar. Estamos vendo-a como era há 238 milhões de anos.",
+          "baseAlt": "Tooltip da galáxia mostrando distância em Mly",
+          "zoomAlt": "Diagrama: Terra, raio de luz, galáxia distante"
+        },
+        "velocity": {
+          "title": "km/s — Velocidade",
+          "desc": "Quilômetros por segundo. Galáxias se afastam de nós porque o universo está se expandindo. Quanto mais rápido uma galáxia se afasta, mais avermelhada sua luz — e mais distante ela está. Essa velocidade de recessão é medida em km/s.",
+          "baseAlt": "Tooltip mostrando velocidade em km/s",
+          "zoomAlt": "Diagrama: Galáxia recuando, espectro avermelhado"
+        },
+        "cmb": {
+          "title": "Velocidade CMB",
+          "desc": "Velocidade de recessão no referencial da Radiação Cósmica de Fundo. A Terra se move a ~370 km/s em direção ao Grande Atrator. A velocidade CMB corrige isso — mostra quão rápido a galáxia recua em relação ao referencial do próprio universo.",
+          "baseAlt": "Mapa cósmico com galáxias codificadas por cor",
+          "zoomAlt": "Diagrama: referencial CMB vs referencial terrestre"
+        },
+        "dm": {
+          "title": "DM — Módulo de Distância",
+          "desc": "O módulo de distância (m − M) é a diferença entre magnitude aparente e absoluta. Relaciona-se diretamente à distância: m − M = 5 log₁₀(d/10 pc). Um módulo de 25 corresponde a 1 Mpc. Astrônomos usam DM porque é aditivo ao combinar medições.",
+          "baseAlt": "Painel de dados da galáxia mostrando valor DM",
+          "zoomAlt": "Diagrama: Escala de magnitude"
+        },
+        "clickHint": "Clique para ampliar",
+        "panels": {
+          "space": "Espaço",
+          "instrument": "Instrumento",
+          "data": "Dados"
+        },
+        "sim": {
+          "play": "Reproduzir",
+          "pause": "Pausar",
+          "expansionCaption": "Galáxias recuam mais rápido quanto mais distantes. v = H₀ × d (lei de Hubble). Cores mostram redshift.",
+          "cmbCaption": "A Terra se move a ~370 km/s. A velocidade CMB subtrai nosso movimento para medir no referencial do universo.",
+          "earthFrame": "Referencial Terrestre",
+          "cmbFrameLabel": "Referencial CMB",
+          "distanceLabel": "Distância",
+          "formula": "DM = 5 log₁₀(d / 10 pc)",
+          "dmCaption": "Módulo de distância: galáxias mais distantes têm DM maior. DM 25 ≈ 1 Mpc."
+        }
+      },
       "mapping": {
         "title": "Dos Dados ao Céu",
         "positioning": "Cada galáxia é posicionada em uma esfera celeste usando sua ascensão reta e declinação — o mesmo sistema de coordenadas que astrônomos usam para localizar objetos no céu noturno. Você está olhando para fora da Terra, cercado pelo universo observável.",

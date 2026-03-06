@@ -31,21 +31,15 @@
         <h2 class="about-section-title">{{ t('pages.about.measurements.title') }}</h2>
         <p class="about-body">{{ t('pages.about.measurements.intro') }}</p>
 
-        <div class="about-measurements-grid">
+        <div class="about-measurements-stack">
           <div v-for="key in measurementKeys" :key="key" class="about-measurement-card">
             <h3 class="about-measurement-title">{{ t(`pages.about.measurements.${key}.title`) }}</h3>
             <p class="about-measurement-desc">{{ t(`pages.about.measurements.${key}.desc`) }}</p>
             <div class="about-measurement-visual">
-              <TelescopeLens
-                v-if="key === 'mly'"
-                :telescope-src="measurementSrc(key, 'base')"
-                :telescope-alt="t(`pages.about.measurements.${key}.baseAlt`)"
-                :observation-src="measurementSrc(key, 'zoom')"
-                :observation-alt="t(`pages.about.measurements.${key}.zoomAlt`)"
-              />
-              <ExpansionSimulation v-else-if="key === 'velocity'" />
-              <CMBSimulation v-else-if="key === 'cmb'" />
-              <DMSimulation v-else-if="key === 'dm'" />
+              <MlyMachine v-if="key === 'mly'" />
+              <VelocityMachine v-else-if="key === 'velocity'" />
+              <CmbMachine v-else-if="key === 'cmb'" />
+              <DmMachine v-else-if="key === 'dm'" />
             </div>
           </div>
         </div>
@@ -117,10 +111,10 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AboutBackground from '@/components/AboutBackground.vue'
-import TelescopeLens from '@/components/TelescopeLens.vue'
-import ExpansionSimulation from '@/components/about/ExpansionSimulation.vue'
-import CMBSimulation from '@/components/about/CMBSimulation.vue'
-import DMSimulation from '@/components/about/DMSimulation.vue'
+import MlyMachine from '@/components/about/MlyMachine.vue'
+import VelocityMachine from '@/components/about/VelocityMachine.vue'
+import CmbMachine from '@/components/about/CmbMachine.vue'
+import DmMachine from '@/components/about/DmMachine.vue'
 
 const { t } = useI18n()
 
@@ -128,12 +122,6 @@ const measurementKeys = ['mly', 'velocity', 'cmb', 'dm'] as const
 const mappingImageLoaded = ref(false)
 const renderingImageLoaded = ref(false)
 const techStack = ['Vue 3', 'TypeScript', 'Three.js', 'GLSL Shaders', 'sql.js', 'SQLite', 'Tailwind', 'Vite']
-
-/** Base path for measurement tutorial images. Add images to public/about/measurements/ */
-function measurementSrc(key: string, variant: 'base' | 'zoom'): string {
-  const name = variant === 'base' ? key : `${key}-detail`
-  return `/about/measurements/${name}.webp`
-}
 
 const scrollContainer = ref<HTMLElement | null>(null)
 const currentSection = ref(0)
@@ -253,11 +241,11 @@ onMounted(() => {
   color: #22d3ee;
 }
 
-/* Measurement cards */
-.about-measurements-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+/* Measurement cards — full-width stack for intuition machines */
+.about-measurements-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
   margin-top: 2rem;
 }
 
@@ -290,8 +278,7 @@ onMounted(() => {
 
 .about-measurement-visual {
   width: 100%;
-  max-width: 480px;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 /* Image placeholders */
@@ -395,14 +382,6 @@ onMounted(() => {
 
   .about-section-title {
     font-size: 2.25rem;
-  }
-
-  .about-measurements-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .about-measurement-visual {
-    max-width: 100%;
   }
 
   .about-image-placeholder {

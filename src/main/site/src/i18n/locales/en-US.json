@@ -102,11 +102,18 @@
           "zoomAlt": "Diagram: Magnitude scale. Label: DM = m − M = 5 log₁₀(d/10 pc). Distance modulus relates apparent brightness to true brightness. DM 25 ≈ 1 Mpc."
         },
         "clickHint": "Click to zoom",
+        "panels": {
+          "space": "Space",
+          "instrument": "Instrument",
+          "data": "Data"
+        },
         "sim": {
           "play": "Play",
           "pause": "Pause",
           "expansionCaption": "Galaxies recede faster the farther they are. v = H₀ × d (Hubble's law). Colors show redshift — farther galaxies appear redder.",
           "cmbCaption": "Earth moves ~370 km/s. CMB velocity subtracts our motion so we measure in the universe's rest frame.",
+          "earthFrame": "Earth Frame",
+          "cmbFrameLabel": "CMB Frame",
           "distanceLabel": "Distance",
           "formula": "DM = 5 log₁₀(d / 10 pc)",
           "dmCaption": "Distance modulus: farther galaxies have larger DM. DM 25 ≈ 1 Mpc."

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Galaxy } from '@/types/galaxy'
+import type { Galaxy, MorphologyClass } from '@/types/galaxy'
 import { assignMorphology } from '@/types/galaxy'
 import { raDecToPosition, fovToMaxRedshift, redshiftToDistanceMLY } from './celestialMath'
 import { SPHERE_RADIUS } from './constants'
