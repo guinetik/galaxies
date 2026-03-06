@@ -5,8 +5,25 @@
     <!-- Hero CTA overlay — visible at default zoom, dismissed on scroll or click -->
     <Transition name="hero">
       <div v-if="showHero && canvasReady" class="hero-overlay">
+        <!-- Radial glow that follows the cursor — the "mass" of the gravitational lens -->
+        <div
+          v-if="!isMobile"
+          class="hero-lens-glow"
+          :style="lensGlowStyle"
+        />
         <div class="hero-content">
-          <h1 class="hero-title">{{ t('header.siteName') }}</h1>
+          <h1 ref="titleRef" class="hero-title">
+            <span
+              v-for="(char, i) in titleChars"
+              :key="i"
+              class="hero-char"
+              :style="{
+                ...getCharLensStyle(i),
+                '--twinkle-dur': `${2.5 + i * 0.4}s`,
+                animationDelay: `${0.2 + i * 0.35}s, ${1.0 + i * 0.6}s`,
+              }"
+            >{{ char }}</span>
+          </h1>
           <p class="hero-subtitle">{{ t('pages.home.hero.subtitle') }}</p>
           <button class="hero-button" @click="dismissHero">
             {{ t('pages.home.hero.cta') }}
@@ -85,6 +102,7 @@ const { isLoading } = useGalaxyData()
 const { currentLocation, locationSetter } = useAppHeader()
 const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 const canvasRef = ref<InstanceType<typeof GalaxyCanvas> | null>(null)
+const titleRef = ref<HTMLElement | null>(null)
 const canvasReady = ref(false)
 const showHero = ref(true)
 const totalGalaxyCount = ref(0)
@@ -117,6 +135,8 @@ function onCanvasReady() {
 
 onUnmounted(() => {
   locationSetter.value = null
+  window.removeEventListener('mousemove', onLensMouseMove)
+  window.removeEventListener('resize', onLensResize)
 })
 
 function onFilterChange(payload: { morphologies: Set<MorphologyClass>; sources: Set<string> }) {
@@ -165,6 +185,108 @@ watch(
     }
   }
 )
+
+// ── Gravitational lensing effect on hero title ──
+
+const titleChars = computed(() => t('header.siteName').split(''))
+
+const lensMouseX = ref(-9999)
+const lensMouseY = ref(-9999)
+let charRestPositions: { x: number; y: number }[] = []
+
+const LENS_RADIUS = 180
+const LENS_MAX_DISPLACE = 16
+const LENS_MAX_SCALE = 0.25
+const LENS_GLOW_PEAK = 0.6
+
+/** Snapshot each character's center before any lens transforms are applied */
+function cacheCharPositions() {
+  if (!titleRef.value) return
+  charRestPositions = Array.from(titleRef.value.children).map(child => {
+    const rect = (child as HTMLElement).getBoundingClientRect()
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  })
+}
+
+function onLensMouseMove(e: MouseEvent) {
+  if (charRestPositions.length === 0) cacheCharPositions()
+  lensMouseX.value = e.clientX
+  lensMouseY.value = e.clientY
+}
+
+function onLensResize() {
+  charRestPositions = []
+}
+
+/**
+ * Compute per-character gravitational lens transform.
+ * Uses cached rest positions so feedback from previous-frame transforms
+ * cannot cause oscillation.
+ */
+function getCharLensStyle(i: number): Record<string, string> {
+  const mx = lensMouseX.value
+  const my = lensMouseY.value
+  if (isMobile) return {}
+
+  const pos = charRestPositions[i]
+  if (!pos) return {}
+
+  const dx = pos.x - mx
+  const dy = pos.y - my
+  const dist = Math.sqrt(dx * dx + dy * dy)
+
+  if (dist > LENS_RADIUS) return {}
+
+  const proximity = 1 - dist / LENS_RADIUS
+  const strength = proximity * proximity
+
+  if (dist < 1) {
+    return {
+      scale: `${1 + LENS_MAX_SCALE}`,
+      textShadow: `0 0 20px rgba(255,255,255,${LENS_GLOW_PEAK})`,
+    }
+  }
+
+  const displaceX = (dx / dist) * strength * LENS_MAX_DISPLACE
+  const displaceY = (dy / dist) * strength * LENS_MAX_DISPLACE
+  const sc = 1 + strength * LENS_MAX_SCALE
+  const glow = strength * LENS_GLOW_PEAK
+
+  return {
+    translate: `${displaceX.toFixed(1)}px ${displaceY.toFixed(1)}px`,
+    scale: `${sc.toFixed(3)}`,
+    textShadow: glow > 0.02 ? `0 0 ${(24 * strength).toFixed(0)}px rgba(255,255,255,${glow.toFixed(2)})` : 'none',
+  }
+}
+
+/** Radial glow orb that tracks the cursor — acts as the visible "mass" of the lens */
+const lensGlowStyle = computed(() => {
+  const mx = lensMouseX.value
+  const my = lensMouseY.value
+  if (mx < -999) return { opacity: '0' }
+  return {
+    left: `${mx}px`,
+    top: `${my}px`,
+    opacity: '1',
+  }
+})
+
+if (!isMobile) {
+  watch(
+    () => showHero.value && canvasReady.value,
+    (active) => {
+      if (active) {
+        window.addEventListener('mousemove', onLensMouseMove)
+        window.addEventListener('resize', onLensResize)
+      } else {
+        window.removeEventListener('mousemove', onLensMouseMove)
+        window.removeEventListener('resize', onLensResize)
+        charRestPositions = []
+      }
+    },
+    { immediate: true }
+  )
+}
 </script>
 
 <style scoped>
@@ -202,6 +324,28 @@ watch(
 
 /* ── Hero CTA Overlay ── */
 
+.hero-lens-glow {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(200, 220, 255, 0.18) 0%,
+    rgba(160, 190, 255, 0.10) 20%,
+    rgba(130, 160, 255, 0.05) 40%,
+    rgba(100, 130, 255, 0.02) 60%,
+    transparent 80%
+  );
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+
 .hero-overlay {
   position: fixed;
   inset: 0;
@@ -227,8 +371,30 @@ watch(
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.88);
   margin: 0;
-  text-indent: 0.35em;
+  padding-left: 0.35em;
   animation: heroFadeUp 1s ease-out 0.2s both;
+}
+
+.hero-char {
+  display: inline-block;
+  transition: text-shadow 120ms ease-out;
+  will-change: translate, scale;
+  text-shadow:
+    0 0 6px rgba(200, 220, 255, 0.5),
+    0 0 18px rgba(160, 190, 255, 0.3),
+    0 0 40px rgba(140, 170, 255, 0.12);
+  animation:
+    heroFadeUp 1s ease-out both,
+    twinkle var(--twinkle-dur, 3s) ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    filter: brightness(0.85);
+  }
+  50% {
+    filter: brightness(1.4);
+  }
 }
 
 .hero-subtitle {
