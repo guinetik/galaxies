@@ -62,5 +62,9 @@ void main() {
   }
 
   if (finalAlpha < 0.01) discard;
+
+  // Gamma correction (linear -> sRGB)
+  finalColor = pow(max(finalColor, vec3(0.0)), vec3(0.45));
+
   gl_FragColor = vec4(finalColor, finalAlpha);
 }
