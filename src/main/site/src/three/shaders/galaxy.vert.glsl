@@ -4,6 +4,7 @@ attribute vec3 aColor;
 attribute float aRedshift;
 attribute float aTexIndex;
 attribute float aSelected;
+attribute float aFocused;
 attribute float aAlpha;
 attribute float aSizeMultiplier;
 
@@ -21,6 +22,7 @@ uniform float uMinRedshift;
 uniform float uFov;
 uniform float uParallaxX;
 uniform float uParallaxY;
+uniform float uFocusActive;
 
 // Existing varyings
 varying vec3 vColor;
@@ -28,6 +30,7 @@ varying float vAlpha;
 varying float vTexIndex;
 varying float vDetailMix;
 varying float vSelected;
+varying float vFocused;
 
 // Galaxy struct varyings (packed)
 varying float vType;
@@ -40,6 +43,7 @@ void main() {
   vColor = aColor;
   vTexIndex = aTexIndex;
   vSelected = aSelected;
+  vFocused = aFocused;
 
   // Pass Galaxy struct data (packed)
   vType = aType;
@@ -123,8 +127,21 @@ void main() {
 
   float detailBoost = mix(1.0, 1.18, vDetailMix);
   float farBoost = mix(1.15, 1.0, vDetailMix);
-  gl_PointSize = max(1.1 * uPixelRatio, basePx * detailBoost * farBoost);
-  
+  float focusSize = basePx * detailBoost * farBoost;
+
+  // Focus mode: dim non-focused galaxies, grow the focused one
+  if (uFocusActive > 0.5) {
+    if (aFocused > 0.5) {
+      focusSize *= 1.5;
+      vAlpha = max(vAlpha, 0.9);
+      vDetailMix = 1.0;
+    } else {
+      vAlpha *= 0.12;
+    }
+  }
+
+  gl_PointSize = max(1.1 * uPixelRatio, focusSize);
+
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   // Keep a baseline parallax even when zoomed far out.
   float parallaxZoomMix = smoothstep(75.0, 16.0, uFov);

@@ -45,6 +45,8 @@ export class GalaxyField {
   private redshifts: Float32Array
   private selected: Float32Array = new Float32Array(0)
   private selectedPgc: number | null = null
+  private focused: Float32Array = new Float32Array(0)
+  private hoveredPgc: number | null = null
   private alphas: Float32Array = new Float32Array(0)
   private sizeMultipliers: Float32Array = new Float32Array(0)
   private readonly tempLocal = new THREE.Vector3()
@@ -75,6 +77,7 @@ export class GalaxyField {
         uFov: { value: 60.0 },
         uParallaxX: { value: 0.0 },
         uParallaxY: { value: 0.0 },
+        uFocusActive: { value: 0.0 },
       },
       transparent: true,
       depthWrite: false,
@@ -97,6 +100,7 @@ export class GalaxyField {
     const redshifts = new Float32Array(count)
     const texIndices = new Float32Array(count)
     const selected = new Float32Array(count)
+    const focused = new Float32Array(count)
     const alphas = new Float32Array(count)
     const sizeMultipliers = new Float32Array(count).fill(1.0) // Initialize to 1.0, not 0!
 
@@ -184,6 +188,7 @@ export class GalaxyField {
     }
     this.positions = positions
     this.selected = selected
+    this.focused = focused
     this.sizes = sizes
     this.redshifts = redshifts
     this.alphas = alphas
@@ -197,6 +202,7 @@ export class GalaxyField {
     this.geometry.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
     this.geometry.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
     this.geometry.setAttribute('aSelected', new THREE.BufferAttribute(selected, 1))
+    this.geometry.setAttribute('aFocused', new THREE.BufferAttribute(focused, 1))
     this.geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
     this.geometry.setAttribute('aSizeMultiplier', new THREE.BufferAttribute(sizeMultipliers, 1))
 
@@ -216,6 +222,20 @@ export class GalaxyField {
     this.selectedPgc = pgc
     if (!this.geometry.attributes.aSelected) return
     const attr = this.geometry.attributes.aSelected as THREE.BufferAttribute
+    const arr = attr.array as Float32Array
+    for (let i = 0; i < this.galaxies.length; i++) {
+      arr[i] = pgc != null && this.galaxies[i].pgc === pgc ? 1 : 0
+    }
+    attr.needsUpdate = true
+  }
+
+  /** Set hovered galaxy PGC for focus effect; null to clear. */
+  setHoveredPgc(pgc: number | null): void {
+    if (this.hoveredPgc === pgc) return
+    this.hoveredPgc = pgc
+    this.material.uniforms.uFocusActive.value = pgc != null ? 1.0 : 0.0
+    if (!this.geometry.attributes.aFocused) return
+    const attr = this.geometry.attributes.aFocused as THREE.BufferAttribute
     const arr = attr.array as Float32Array
     for (let i = 0; i < this.galaxies.length; i++) {
       arr[i] = pgc != null && this.galaxies[i].pgc === pgc ? 1 : 0

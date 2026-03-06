@@ -112,6 +112,7 @@ function onPointerMoveHover(e: PointerEvent) {
   }
 
   if (getIsDragging()) {
+    galaxyField?.setHoveredPgc(null)
     emit('hover', null)
     return
   }
@@ -119,9 +120,11 @@ function onPointerMoveHover(e: PointerEvent) {
   const galaxy = pickGalaxyFromPointer(e)
   if (galaxy) {
     canvasRef.value!.style.cursor = 'pointer'
+    galaxyField?.setHoveredPgc(galaxy.pgc)
     emit('hover', { galaxy, screenX: e.clientX, screenY: e.clientY })
   } else {
     canvasRef.value!.style.cursor = 'grab'
+    galaxyField?.setHoveredPgc(null)
     if (!isMobile) emit('hover', null)
   }
 }
@@ -142,6 +145,7 @@ function updatePointerParallaxTarget(clientX: number, clientY: number) {
 function setSelection(payload: HoverEvent | null) {
   selectedGalaxy = payload?.galaxy ?? null
   galaxyField?.setSelectedPgc(selectedGalaxy?.pgc ?? null)
+  galaxyField?.setHoveredPgc(selectedGalaxy?.pgc ?? null)
   emit('select', payload ?? null)
 }
 
@@ -150,6 +154,7 @@ function onPointerLeave() {
   pointerMovedDuringGesture = false
   pointerParallaxTargetX = 0
   pointerParallaxTargetY = 0
+  galaxyField?.setHoveredPgc(null)
   emit('hover', null)
   if (!isMobile) return
   setSelection(null)

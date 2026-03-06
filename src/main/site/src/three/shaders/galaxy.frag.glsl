@@ -7,6 +7,7 @@ varying float vAlpha;
 varying float vTexIndex;
 varying float vDetailMix;
 varying float vSelected;
+varying float vFocused;
 
 // Galaxy struct varyings (packed)
 varying float vType;
@@ -30,7 +31,8 @@ void main() {
   g.seed          = vSeed;
   g.center        = vec2(0.0);
   g.scale         = 1.0;
-  g.time          = uTime;
+  // Animate only the focused galaxy; others freeze at a seed-derived pose
+  g.time          = vFocused > 0.5 ? uTime : vSeed * 0.01;
   g.angleX        = vAngles.x;
   g.angleY        = vAngles.y;
   g.angleZ        = vAngles.z;
