@@ -116,48 +116,41 @@ export class GalaxyField {
       positions[i * 3 + 1] = pos.y
       positions[i * 3 + 2] = pos.z
 
-      // Color: fully seed-driven, independent of morphology type.
-      // Each galaxy picks a random point on the stellar color spectrum.
+      // Color: seed-driven from astronomical palette (no green/cyan).
+      // Sampled from Hubble deep field: blue-white, warm white, gold,
+      // orange, red-orange, pink/magenta. Weighted toward warm tones.
       const morphClass = assignMorphology(g.pgc)
       const seed = (g.pgc * 2654435761) >>> 0
-      const t1 = ((seed >>> 8) % 1024) / 1023   // hue position
+      const t1 = ((seed >>> 8) % 1024) / 1023   // palette position
       const t2 = ((seed >>> 18) % 1024) / 1023  // saturation
       const t3 = ((seed >>> 3) % 1024) / 1023   // brightness
 
-      // Stellar color palette: blue → white → yellow → orange → red → purple
-      // Spread across the full range so same-type galaxies get wildly different hues
-      const hue = t1 * 6.0
-      let r: number, gC: number, b: number
-      if (hue < 1.0) {
-        // blue → cyan
-        r = 0.3; gC = 0.4 + hue * 0.5; b = 1.0
-      } else if (hue < 2.0) {
-        // cyan → white
-        const f = hue - 1.0
-        r = 0.3 + f * 0.7; gC = 0.9 + f * 0.1; b = 1.0
-      } else if (hue < 3.0) {
-        // white → yellow
-        const f = hue - 2.0
-        r = 1.0; gC = 1.0 - f * 0.15; b = 1.0 - f * 0.7
-      } else if (hue < 4.0) {
-        // yellow → orange
-        const f = hue - 3.0
-        r = 1.0; gC = 0.85 - f * 0.35; b = 0.3 - f * 0.15
-      } else if (hue < 5.0) {
-        // orange → red
-        const f = hue - 4.0
-        r = 1.0 - f * 0.15; gC = 0.5 - f * 0.3; b = 0.15 + f * 0.05
-      } else {
-        // red → purple/magenta
-        const f = hue - 5.0
-        r = 0.85 - f * 0.1; gC = 0.2 + f * 0.1; b = 0.2 + f * 0.6
-      }
-      const brightness = 0.7 + t3 * 0.5
-      const saturation = 0.5 + t2 * 0.5
-      // Desaturate toward white by saturation factor
-      r = r * saturation + (1.0 - saturation) * 0.9
-      gC = gC * saturation + (1.0 - saturation) * 0.9
-      b = b * saturation + (1.0 - saturation) * 0.9
+      // Astronomical galaxy color stops (no green valley!)
+      // Lerp between adjacent stops based on t1
+      const palette: [number, number, number][] = [
+        [0.45, 0.55, 1.00],  // blue (young starburst)
+        [0.60, 0.70, 1.00],  // blue-white
+        [0.90, 0.88, 0.95],  // warm white
+        [1.00, 0.88, 0.60],  // gold
+        [1.00, 0.72, 0.38],  // orange
+        [0.95, 0.50, 0.25],  // red-orange
+        [0.85, 0.35, 0.30],  // deep red
+        [0.80, 0.40, 0.55],  // pink/magenta
+      ]
+      const idx = t1 * (palette.length - 1)
+      const lo = Math.floor(idx)
+      const hi = Math.min(lo + 1, palette.length - 1)
+      const frac = idx - lo
+      let r = palette[lo][0] + (palette[hi][0] - palette[lo][0]) * frac
+      let gC = palette[lo][1] + (palette[hi][1] - palette[lo][1]) * frac
+      let b = palette[lo][2] + (palette[hi][2] - palette[lo][2]) * frac
+
+      const brightness = 0.75 + t3 * 0.45
+      const saturation = 0.55 + t2 * 0.45
+      // Desaturate toward warm white (not pure white)
+      r = r * saturation + (1.0 - saturation) * 0.92
+      gC = gC * saturation + (1.0 - saturation) * 0.87
+      b = b * saturation + (1.0 - saturation) * 0.82
       colors[i * 3] = Math.min(1, Math.max(0.08, r * brightness))
       colors[i * 3 + 1] = Math.min(1, Math.max(0.08, gC * brightness))
       colors[i * 3 + 2] = Math.min(1, Math.max(0.08, b * brightness))

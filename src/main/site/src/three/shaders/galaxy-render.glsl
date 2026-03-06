@@ -91,13 +91,12 @@ vec3 _galRenderBulge(vec2 uv, float size, float brightness, vec3 tint) {
 vec3 _galRenderRingLoop(Galaxy g, vec2 uv, GalaxyStyle style) {
   vec3 col = vec3(0.0);
 
-  // Seed-varied dust color: wide warm-to-cool range per galaxy
-  // Cool = blue-white (young stars), warm = gold-orange (old stars)
+  // Seed-varied dust color: astronomical palette (no green).
+  // Cool = blue-white (young OB stars), warm = gold (old K/M stars)
   float dustH = _galSeedHash(g.seed, 99.0);
-  float dustH2 = _galSeedHash(g.seed, 98.0);
-  vec3 coolDust = vec3(0.2, 0.5, 1.0);
-  vec3 warmDust = vec3(0.9, 0.65, 0.3);
-  vec3 dustCol = mix(coolDust, warmDust, dustH * 0.7 + dustH2 * 0.3);
+  vec3 coolDust = vec3(0.35, 0.45, 1.0);   // blue-white
+  vec3 warmDust = vec3(0.95, 0.70, 0.35);  // gold
+  vec3 dustCol = mix(coolDust, warmDust, dustH);
 
   float flip = 1.0;
   float t = g.time * GAL_ORBIT_SPEED;
@@ -143,8 +142,8 @@ vec3 _galRenderRingLoop(Galaxy g, vec2 uv, GalaxyStyle style) {
           * GAL_SUPERNOVA_MULT;
 
     if (i > 3.0 / style.starDensity) {
-      // Star color: mix dust tint toward hot white, with per-star spectral variation
-      vec3 hotStar = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.9, 0.7), n);
+      // Star color: blue-white hot stars to warm yellow, no green
+      vec3 hotStar = mix(vec3(0.75, 0.78, 1.0), vec3(1.0, 0.85, 0.65), n);
       vec3 starCol = mix(dustCol, hotStar, 0.3 + n * 0.5);
       col += sL * starCol;
     }
