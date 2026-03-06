@@ -70,62 +70,58 @@
       "data": {
         "title": "The Data",
         "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains 55,877 galaxies with distances measured through direct observational methods — not estimates derived from the expansion of the universe.",
-        "methodsTitle": "Eight Ways to Measure Distance",
-        "methodsIntro": "Each galaxy in the catalog has its distance determined by one or more of these methods, forming a cosmic distance ladder:",
-        "methods": {
-          "snia": {
-            "name": "Type Ia Supernovae",
-            "abbr": "SNIa",
-            "desc": "Standardizable explosions of white dwarf stars. Their consistent peak luminosity makes them visible across billions of light-years."
-          },
-          "tf": {
-            "name": "Tully-Fisher",
-            "abbr": "TF",
-            "desc": "The faster a spiral galaxy rotates, the more luminous it is. Comparing intrinsic brightness to observed brightness gives the distance."
-          },
-          "fp": {
-            "name": "Fundamental Plane",
-            "abbr": "FP",
-            "desc": "Elliptical galaxies follow a tight relationship between size, surface brightness, and velocity dispersion."
-          },
-          "sbf": {
-            "name": "Surface Brightness Fluctuations",
-            "abbr": "SBF",
-            "desc": "Nearby galaxies look grainy; distant ones look smooth. The amplitude of pixel-to-pixel variations reveals the distance."
-          },
-          "snii": {
-            "name": "Type II Supernovae",
-            "abbr": "SNII",
-            "desc": "Core-collapse supernovae from massive stars. Their expanding photospheres can be used as geometric distance indicators."
-          },
-          "trgb": {
-            "name": "Tip of the Red Giant Branch",
-            "abbr": "TRGB",
-            "desc": "Red giant stars reach a maximum luminosity before helium ignition. This sharp cutoff in brightness is a reliable standard candle."
-          },
-          "ceph": {
-            "name": "Cepheid Variables",
-            "abbr": "Ceph",
-            "desc": "Pulsating stars whose period of brightening and dimming is directly related to their intrinsic luminosity. The original distance ladder rung."
-          },
-          "mas": {
-            "name": "Masers",
-            "abbr": "Mas",
-            "desc": "Water masers in galaxy accretion disks emit microwave radiation. VLBI observations give geometric distances with extraordinary precision."
-          }
-        },
         "paperLink": "Read the paper",
         "dataLink": "Explore the data",
         "downloadDb": "Download DB (18 MB)"
       },
+      "measurements": {
+        "title": "Reading the Numbers",
+        "intro": "When you hover over a galaxy, you see values like 238 Mly and 4,403 km/s. Here's what those mean — a quick primer before you dive into the Cosmography section.",
+        "mly": {
+          "title": "Mly — Million light-years",
+          "desc": "Distance in millions of light-years. One light-year is how far light travels in a year — about 9.5 trillion km. So 238 Mly means the galaxy's light took 238 million years to reach us. We are seeing it as it was 238 million years ago.",
+          "baseAlt": "Galaxy tooltip or cosmic map showing distance in Mly (e.g. 238 Mly) — the number users see when hovering a galaxy",
+          "zoomAlt": "Diagram: Earth, light ray, distant galaxy. Label: 1 Mly = distance light travels in 1 million years. 238 Mly = 238 million years of travel. Scale bar from local to distant."
+        },
+        "velocity": {
+          "title": "km/s — Velocity",
+          "desc": "Kilometers per second. Galaxies recede from us because the universe is expanding. The faster a galaxy moves away, the more redshifted its light — and the farther it is. This recession velocity is measured in km/s.",
+          "baseAlt": "Galaxy tooltip or cosmic map showing velocity in km/s (e.g. 4,403 km/s)",
+          "zoomAlt": "Diagram: Galaxy receding, redshifted spectrum. Label: km/s = kilometers per second. Recession velocity from Doppler shift. Faster = farther (Hubble flow)."
+        },
+        "cmb": {
+          "title": "CMB Velocity",
+          "desc": "Recession velocity in the Cosmic Microwave Background rest frame. Earth moves at ~370 km/s toward the Great Attractor. CMB velocity corrects for that — it tells you how fast the galaxy recedes relative to the universe's own rest frame, not our moving viewpoint.",
+          "baseAlt": "Cosmic map with color-coded galaxies (blue = nearby, red = distant) showing CMB velocity scale",
+          "zoomAlt": "Diagram: CMB rest frame vs. Earth frame. Label: CMB velocity = recession speed after correcting for our 370 km/s motion. Puts us in the universe's rest frame."
+        },
+        "dm": {
+          "title": "DM — Distance Modulus",
+          "desc": "Distance modulus (m − M) is the difference between apparent and absolute magnitude. It relates directly to distance: m − M = 5 log₁₀(d/10 pc). A modulus of 25 corresponds to 1 Mpc. Astronomers use DM because it's additive when combining measurements.",
+          "baseAlt": "Galaxy data panel showing DM value (e.g. 34.15)",
+          "zoomAlt": "Diagram: Magnitude scale. Label: DM = m − M = 5 log₁₀(d/10 pc). Distance modulus relates apparent brightness to true brightness. DM 25 ≈ 1 Mpc."
+        },
+        "clickHint": "Click to zoom",
+        "sim": {
+          "play": "Play",
+          "pause": "Pause",
+          "expansionCaption": "Galaxies recede faster the farther they are. v = H₀ × d (Hubble's law). Colors show redshift — farther galaxies appear redder.",
+          "cmbCaption": "Earth moves ~370 km/s. CMB velocity subtracts our motion so we measure in the universe's rest frame.",
+          "distanceLabel": "Distance",
+          "formula": "DM = 5 log₁₀(d / 10 pc)",
+          "dmCaption": "Distance modulus: farther galaxies have larger DM. DM 25 ≈ 1 Mpc."
+        }
+      },
       "mapping": {
         "title": "From Data to Sky",
+        "imageAlt": "Celestial sphere showing galaxies at different zoom levels, from wide-angle sparse view to deep-field dense view",
         "positioning": "Each galaxy is placed on a celestial sphere using its right ascension and declination — the same coordinate system astronomers use to locate objects in the night sky. You are looking outward from Earth, surrounded by the observable universe.",
         "visibility": "Not all 55,877 galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies — from the local neighborhood (~560 galaxies) at the widest angle, down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
         "sizing": "Galaxy size on screen is determined by measured distance. Closer galaxies appear larger, distant ones smaller — a direct representation of their physical proximity, not an arbitrary aesthetic choice."
       },
       "rendering": {
         "title": "Procedural Galaxy Rendering",
+        "imageAlt": "Side-by-side comparison of five procedurally generated galaxy types: spiral, barred spiral, elliptical, lenticular, and irregular",
         "intro": "Cosmicflows-4 provides superb distance data but no morphological information — no galaxy type, no brightness magnitude, no diameter. Every galaxy you see in the detail view is procedurally generated.",
         "morphology": "Each galaxy is assigned a morphological type based on its PGC catalog number, using a seeded random function weighted by observed cosmic proportions: ~35% spiral, ~35% barred spiral, ~15% elliptical, ~10% lenticular, and ~5% irregular. The same PGC number always produces the same galaxy — the generation is deterministic.",
         "particles": "The detail view renders each galaxy as a particle system of tens of thousands of stars, shaped by morphology-specific parameters: spiral arm count and tightness, bar length, ellipticity, bulge size, and disk thickness. All parameters are derived from the seeded random generator.",

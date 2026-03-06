@@ -229,7 +229,7 @@ onMounted(() => {
 .cosmo-page {
   width: 100%;
   min-height: 100vh;
-  max-width: 48rem;
+  max-width: 64rem;
   margin-left: auto;
   margin-right: auto;
   padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
@@ -239,14 +239,14 @@ onMounted(() => {
 
 .cosmo-section.methods-section {
   /* Wider for full-width experiments */
-  max-width: 56rem;
+  max-width: 72rem;
   margin-left: auto;
   margin-right: auto;
 }
 
-@media (min-width: 56rem) {
+@media (min-width: 72rem) {
   .cosmo-page {
-    max-width: 56rem;
+    max-width: 72rem;
   }
 }
 

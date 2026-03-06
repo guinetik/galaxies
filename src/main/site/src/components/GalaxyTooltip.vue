@@ -6,6 +6,7 @@
     :style="{ left: x + 12 + 'px', top: y - 10 + 'px' }"
   >
     <div class="tooltip-pgc">PGC {{ galaxy.pgc }}</div>
+    <!-- TODO: Add hover/click to show definition for Mly (million light-years) and km/s (recession velocity) -->
     <div class="tooltip-detail">{{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly</div>
     <div v-if="galaxy.vcmb != null" class="tooltip-detail">{{ galaxy.vcmb.toLocaleString() }} km/s</div>
     <button

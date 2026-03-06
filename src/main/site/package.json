@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/d3": "^7.4.3",
     "@types/node": "^25.3.3",
     "@types/sql.js": "^1.4.9",
     "@types/three": "^0.183.0",
