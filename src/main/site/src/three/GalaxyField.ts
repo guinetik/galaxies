@@ -234,9 +234,6 @@ export class GalaxyField {
       const cameraDistanceMpc = cameraDistanceMly / 3.26
       const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
 
-      // Update shader uniform
-      this.material.uniforms.uCameraLogLevel.value = cameraLogLevel
-
       const sizeMultiplierAttr = this.geometry.attributes.aSizeMultiplier as THREE.BufferAttribute
       const sizeMultArray = sizeMultiplierAttr?.array as Float32Array
 
