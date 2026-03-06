@@ -136,8 +136,8 @@ export class GalaxyField {
       colors[i * 3 + 2] = Math.min(1, Math.max(0, b))
 
       // Size from distance — closer galaxies appear larger
-      const K = 16.0
-      sizes[i] = Math.max(2.0, Math.min(64.0, K / g.distance_mpc))
+      const K = 32.0
+      sizes[i] = Math.max(3.0, Math.min(128.0, K / g.distance_mpc))
 
       // Redshift derived from CMB velocity
       redshifts[i] = (g.vcmb ?? 0) / 299792.458
