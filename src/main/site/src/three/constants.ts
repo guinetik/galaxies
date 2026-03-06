@@ -147,14 +147,20 @@ export const LOCATIONS: Record<string, ObserverLocation> = {
 
 export const DEFAULT_LOCATION = 'North Pole'
 
-/** Base colors per morphology class — natural astrophotography-inspired palette */
+/**
+ * Base tint colors per morphology class.
+ * These post-multiply the ring-loop's blue-white dust, so:
+ *   cool tints (high blue) → preserve blue dust → young star populations
+ *   warm tints (high red) → warm the dust → old star populations
+ * Matched to research/galaxy-generator/buffer-a.glsl palette.
+ */
 export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
-  elliptical: [1.00, 0.84, 0.62], // warm golden old stars
-  lenticular: [0.95, 0.86, 0.74], // creamy-beige
-  spiral:     [0.94, 0.80, 0.74], // warm disk with muted cool outskirts
-  barred:     [0.95, 0.79, 0.72], // amber-neutral barred disk
-  irregular:  [0.88, 0.76, 0.90], // magenta-leaning irregulars
-  unknown:    [0.92, 0.80, 0.90], // warm-neutral unknowns
+  spiral:     [0.75, 0.82, 1.00], // cool blue — young O/B star arms
+  barred:     [1.00, 0.85, 0.55], // warm gold — older bar + blue arms
+  elliptical: [1.00, 0.65, 0.38], // red-orange — old K/M star population
+  lenticular: [1.00, 0.78, 0.50], // warm yellow — transitional population
+  irregular:  [0.78, 0.68, 1.00], // blue-violet — starburst + HII emission
+  unknown:    [0.90, 0.85, 0.80], // neutral warm
 }
 
 /** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */

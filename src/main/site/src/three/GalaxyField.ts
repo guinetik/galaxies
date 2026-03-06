@@ -121,16 +121,16 @@ export class GalaxyField {
       const baseColor: [number, number, number] = MORPHOLOGY_COLORS[morphClass]
       const seed = (g.pgc * 2654435761) >>> 0
 
-      // Per-galaxy variation stays subtle to keep a realistic palette.
+      // Per-galaxy variation on the blackbody sequence (no green).
       const t1 = ((seed >>> 8) % 1024) / 1023
       const t2 = ((seed >>> 18) % 1024) / 1023
       const t3 = ((seed >>> 3) % 1024) / 1023
-      const brightnessScale = 0.9 + t1 * 0.22
-      const coolWarmTilt = (t2 - 0.5) * 0.08
-      const magentaTilt = (t3 - 0.5) * 0.1
-      const r = baseColor[0] * brightnessScale + coolWarmTilt * 0.45 + magentaTilt * 0.35
-      const gChannel = baseColor[1] * brightnessScale * 0.92 - Math.abs(magentaTilt) * 0.18
-      const b = baseColor[2] * brightnessScale - coolWarmTilt * 0.45 + magentaTilt * 0.45
+      const brightnessScale = 0.8 + t1 * 0.4
+      const coolWarmTilt = (t2 - 0.5) * 0.2
+      const magentaTilt = (t3 - 0.5) * 0.2
+      const r = baseColor[0] * brightnessScale + coolWarmTilt * 0.5 + magentaTilt * 0.3
+      const gChannel = baseColor[1] * brightnessScale * 0.88 - Math.abs(magentaTilt) * 0.2
+      const b = baseColor[2] * brightnessScale - coolWarmTilt * 0.5 + magentaTilt * 0.5
       colors[i * 3] = Math.min(1, Math.max(0, r))
       colors[i * 3 + 1] = Math.min(1, Math.max(0, gChannel))
       colors[i * 3 + 2] = Math.min(1, Math.max(0, b))
