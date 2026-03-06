@@ -339,16 +339,16 @@ export class GalaxyField {
   private computeVisibilityAlpha(redshift: number, maxRedshift: number, minRedshift: number): number {
     if (redshift < minRedshift || redshift > maxRedshift) return 0
     
-    // Far fade — matches shader: only outer 15% fades
+    // Far fade — matches shader: outer 30% fades
     let farAlpha = 1.0
-    const fadeStart = maxRedshift * 0.85
+    const fadeStart = maxRedshift * 0.7
     if (redshift > fadeStart) {
       farAlpha = this.smoothstep(maxRedshift, fadeStart, redshift)
     }
 
-    // Near fade — gentle fade-in from min boundary
+    // Near fade
     let nearAlpha = 1.0
-    const nearFadeEnd = minRedshift * 2.0
+    const nearFadeEnd = minRedshift * 1.5
     if (redshift < nearFadeEnd) {
       nearAlpha = this.smoothstep(minRedshift, nearFadeEnd, redshift)
     }
@@ -361,13 +361,13 @@ export class GalaxyField {
    * Positive offsets are farther than the current focus; negative are foreground.
    */
   private computeDepthWindowAlpha(logOffset: number, fov: number): number {
-    // Wide depth window so galaxies persist across many scroll ticks.
-    // Narrows as we zoom in to avoid dense overlap in deep fields.
+    // Depth window controls how many galaxies are visible simultaneously.
+    // Wider than original to prevent flash-through, but not so wide it kills perf.
     const zoomMix = this.smoothstep(72, 12, fov)
-    const farFadeStart = this.mix(1.2, 0.4, zoomMix)
-    const farFadeEnd = this.mix(2.0, 0.8, zoomMix)
-    const nearFadeStart = this.mix(-1.0, -0.3, zoomMix)
-    const nearFadeEnd = this.mix(-2.5, -1.0, zoomMix)
+    const farFadeStart = this.mix(0.5, 0.22, zoomMix)
+    const farFadeEnd = this.mix(1.0, 0.55, zoomMix)
+    const nearFadeStart = this.mix(-0.5, -0.22, zoomMix)
+    const nearFadeEnd = this.mix(-1.6, -0.8, zoomMix)
 
     if (logOffset < nearFadeEnd || logOffset > farFadeEnd) return 0.0
     if (logOffset < nearFadeStart) return this.smoothstep(nearFadeEnd, nearFadeStart, logOffset)
@@ -393,8 +393,8 @@ export class GalaxyField {
    */
   private computeForegroundFade(logOffset: number, fov: number): number {
     const zoomMix = this.smoothstep(72, 12, fov)
-    const fadeStart = this.mix(-1.2, -0.4, zoomMix)
-    const fadeEnd = this.mix(-2.8, -1.2, zoomMix)
+    const fadeStart = this.mix(-0.6, -0.28, zoomMix)
+    const fadeEnd = this.mix(-1.8, -0.9, zoomMix)
     if (logOffset >= fadeStart) return 1.0
     if (logOffset <= fadeEnd) return 0.0
     return this.smoothstep(fadeEnd, fadeStart, logOffset)
