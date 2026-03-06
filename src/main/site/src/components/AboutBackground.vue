@@ -6,6 +6,12 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as THREE from 'three'
 import { generateGalaxyTextureAtlas, ATLAS_ORDER } from '@/three/GalaxyTextures'
+import galaxyVertShader from '@/three/shaders/galaxy.vert.glsl?raw'
+import noiseLib from '@/three/shaders/noise-value.glsl?raw'
+import renderLib from '@/three/shaders/galaxy-render.glsl?raw'
+import fragMain from '@/three/shaders/galaxy.frag.glsl?raw'
+
+const galaxyFragShader = noiseLib + '\n' + renderLib + '\n' + fragMain
 
 const props = defineProps<{
   scrollProgress: number // 0 to 1 overall progress
@@ -206,42 +212,124 @@ function createDataCloud() {
   scene.add(dataCloud)
 }
 
+/** Simple deterministic hash. */
+function _aboutHash(n: number): number {
+  let x = ((n * 2654435761) >>> 0)
+  x = (((x >> 16) ^ x) * 0x45d9f3b) >>> 0
+  return (x & 0x7fffffff) / 0x7fffffff
+}
+
+/** Astronomical color palette (no green). */
+const ABOUT_PALETTE: [number, number, number][] = [
+  [0.45, 0.55, 1.00], [0.60, 0.70, 1.00], [0.90, 0.88, 0.95],
+  [1.00, 0.88, 0.60], [1.00, 0.72, 0.38], [0.95, 0.50, 0.25],
+  [0.85, 0.35, 0.30], [0.80, 0.40, 0.55],
+]
+
+function _aboutSampleColor(t: number): [number, number, number] {
+  const idx = t * (ABOUT_PALETTE.length - 1)
+  const lo = Math.floor(idx), hi = Math.min(lo + 1, ABOUT_PALETTE.length - 1), f = idx - lo
+  return [
+    ABOUT_PALETTE[lo][0] + (ABOUT_PALETTE[hi][0] - ABOUT_PALETTE[lo][0]) * f,
+    ABOUT_PALETTE[lo][1] + (ABOUT_PALETTE[hi][1] - ABOUT_PALETTE[lo][1]) * f,
+    ABOUT_PALETTE[lo][2] + (ABOUT_PALETTE[hi][2] - ABOUT_PALETTE[lo][2]) * f,
+  ]
+}
+
+let morphologyMaterial: THREE.ShaderMaterial
+
 function createMorphologyShowcase() {
   morphologyGroup = new THREE.Group()
-  
-  // Create a sprite for each galaxy type in the atlas
-  // Atlas is 2 cols x 3 rows
-  const types = ['Spiral', 'Barred', 'Elliptical', 'Lenticular', 'Irregular']
-  const count = types.length
-  
-  types.forEach((type, i) => {
-    // UV mapping logic
-    // 2 cols, 3 rows. 
-    // 0: 0,0 (top-left) -> u:0-0.5, v:0.66-1
-    const col = i % 2
-    const row = Math.floor(i / 2)
-    
-    const material = new THREE.SpriteMaterial({
-      map: galaxyAtlas.clone(),
-      transparent: true,
-      blending: THREE.AdditiveBlending
-    })
-    
-    // Fix UVs for this sprite
-    // Note: Three.js textures are 0,0 at bottom-left by default, but canvas is top-left.
-    // We need to be careful. Let's assume standard UVs and adjust offset/repeat.
-    // Atlas: 2x3. 
-    // Width unit: 0.5. Height unit: 1/3 = 0.333
-    material.map!.repeat.set(0.5, 0.333)
-    material.map!.offset.set(col * 0.5, 1 - (row + 1) * 0.333)
-    
-    const sprite = new THREE.Sprite(material)
-    sprite.scale.set(10, 10, 1)
-    sprite.position.set((i - 2) * 12, 0, 0) // Spread horizontally
-    
-    morphologyGroup.add(sprite)
+
+  // ~30 procedural galaxies scattered like a deep field, spanning full viewport
+  const count = 30
+  const positions = new Float32Array(count * 3)
+  const colors = new Float32Array(count * 3)
+  const sizes = new Float32Array(count)
+  const redshifts = new Float32Array(count)
+  const texIndices = new Float32Array(count)
+  const selected = new Float32Array(count)
+  const focused = new Float32Array(count)
+  const alphas = new Float32Array(count)
+  const sizeMultipliers = new Float32Array(count).fill(1.0)
+  const types = new Float32Array(count)
+  const seeds = new Float32Array(count)
+  const angles = new Float32Array(count * 3)
+  const physicalParams = new Float32Array(count * 3)
+  const distances_mpc = new Float32Array(count)
+
+  for (let i = 0; i < count; i++) {
+    // Scatter across a wide area with jitter
+    const cols = 6
+    const rows = 5
+    const col = i % cols
+    const row = Math.floor(i / cols) % rows
+    const jx = (_aboutHash(i * 7 + 1) - 0.5) * 18
+    const jy = (_aboutHash(i * 7 + 2) - 0.5) * 14
+    const z = -10 - _aboutHash(i * 7 + 3) * 40
+
+    positions[i * 3] = (col - cols / 2 + 0.5) * 22 + jx
+    positions[i * 3 + 1] = (row - rows / 2 + 0.5) * 18 + jy
+    positions[i * 3 + 2] = z
+
+    const [r, g, b] = _aboutSampleColor(_aboutHash(i * 13 + 5))
+    const bri = 0.75 + _aboutHash(i * 13 + 6) * 0.4
+    const sat = 0.55 + _aboutHash(i * 13 + 7) * 0.45
+    colors[i * 3] = Math.min(1, (r * sat + (1 - sat) * 0.92) * bri)
+    colors[i * 3 + 1] = Math.min(1, (g * sat + (1 - sat) * 0.87) * bri)
+    colors[i * 3 + 2] = Math.min(1, (b * sat + (1 - sat) * 0.82) * bri)
+
+    // Size varies with depth — foreground larger, background smaller
+    const depthT = (-z - 10) / 40
+    sizes[i] = 6.0 + (1.0 - depthT) * 14.0 + _aboutHash(i * 13 + 8) * 5.0
+    alphas[i] = 0.5 + (1.0 - depthT) * 0.5
+
+    redshifts[i] = 0.01
+    types[i] = Math.floor(_aboutHash(i * 13 + 9) * 5.0)
+    seeds[i] = ((i * 73856093 ^ ((i >> 4) * 19349663)) >>> 0) % 100000
+    angles[i * 3] = _aboutHash(i * 7 + 10) * Math.PI * 2
+    angles[i * 3 + 2] = _aboutHash(i * 7 + 11) * Math.PI * 2
+    physicalParams[i * 3] = 0.3 + _aboutHash(i * 7 + 12) * 0.7
+    physicalParams[i * 3 + 1] = 10.0
+    distances_mpc[i] = 10.0
+  }
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3))
+  geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+  geo.setAttribute('aRedshift', new THREE.BufferAttribute(redshifts, 1))
+  geo.setAttribute('aTexIndex', new THREE.BufferAttribute(texIndices, 1))
+  geo.setAttribute('aSelected', new THREE.BufferAttribute(selected, 1))
+  geo.setAttribute('aFocused', new THREE.BufferAttribute(focused, 1))
+  geo.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
+  geo.setAttribute('aSizeMultiplier', new THREE.BufferAttribute(sizeMultipliers, 1))
+  geo.setAttribute('aType', new THREE.BufferAttribute(types, 1))
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1))
+  geo.setAttribute('aAngles', new THREE.BufferAttribute(angles, 3))
+  geo.setAttribute('aPhysicalParams', new THREE.BufferAttribute(physicalParams, 3))
+  geo.setAttribute('aDistance_mpc', new THREE.BufferAttribute(distances_mpc, 1))
+
+  morphologyMaterial = new THREE.ShaderMaterial({
+    vertexShader: galaxyVertShader,
+    fragmentShader: galaxyFragShader,
+    uniforms: {
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uMaxRedshift: { value: 0.1 },
+      uMinRedshift: { value: 0.0 },
+      uFov: { value: 25.0 },
+      uParallaxX: { value: 0.0 },
+      uParallaxY: { value: 0.0 },
+      uFocusActive: { value: 0.0 },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.NormalBlending,
   })
-  
+
+  const points = new THREE.Points(geo, morphologyMaterial)
+  morphologyGroup.add(points)
   morphologyGroup.visible = false
   scene.add(morphologyGroup)
 }
@@ -294,30 +382,30 @@ function updateSceneState(elapsed: number) {
     targetCameraPos.set(0, 10, 60)
   }
   
-  // Section 2: Mapping
+  // Section 2: Mapping — data cloud + grid
   else if (props.currentSection === 2) {
     heroGalaxy.visible = false
     dataCloud.visible = true
     gridHelper.visible = true
     morphologyGroup.visible = false
-    
+
     gridHelper.rotation.y = elapsed * 0.1
-    
+
     targetCameraPos.set(0, 30, 40)
   }
-  
-  // Section 3: Rendering
-  else if (props.currentSection === 3) {
+
+  // Sections 3 & 4: From Data to Sky + Procedural Rendering — galaxy deep field
+  else if (props.currentSection === 3 || props.currentSection === 4) {
     heroGalaxy.visible = false
     dataCloud.visible = false
     gridHelper.visible = false
     morphologyGroup.visible = true
-    
-    morphologyGroup.children.forEach((sprite, i) => {
-      sprite.position.y = Math.sin(elapsed + i) * 1
-    })
-    
-    targetCameraPos.set(0, 0, 40)
+
+    if (morphologyMaterial) {
+      morphologyMaterial.uniforms.uTime.value = elapsed
+    }
+
+    targetCameraPos.set(0, 0, 50)
   }
   
   // Section 4: Credits
@@ -344,6 +432,9 @@ function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
+  if (morphologyMaterial) {
+    morphologyMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2)
+  }
 }
 
 onMounted(() => {

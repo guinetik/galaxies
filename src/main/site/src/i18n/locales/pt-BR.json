@@ -65,11 +65,11 @@
     },
     "about": {
       "title": "Galáxias",
-      "subtitle": "55.877 galáxias. Distâncias medidas. Uma esfera celeste.",
+      "subtitle": "Dezenas de milhares de galáxias. Distâncias medidas. Uma esfera celeste.",
       "backToSky": "Voltar ao Céu",
       "data": {
         "title": "Os Dados",
-        "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém 55.877 galáxias com distâncias medidas por métodos observacionais diretos — não estimativas derivadas da expansão do universo.",
+        "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém dezenas de milhares de galáxias com distâncias medidas por métodos observacionais diretos — não estimativas derivadas da expansão do universo.",
         "methodsTitle": "Oito Maneiras de Medir Distâncias",
         "methodsIntro": "Cada galáxia no catálogo tem sua distância determinada por um ou mais destes métodos, formando uma escada de distâncias cósmicas:",
         "methods": {
@@ -166,7 +166,7 @@
       "mapping": {
         "title": "Dos Dados ao Céu",
         "positioning": "Cada galáxia é posicionada em uma esfera celeste usando sua ascensão reta e declinação — o mesmo sistema de coordenadas que astrônomos usam para localizar objetos no céu noturno. Você está olhando para fora da Terra, cercado pelo universo observável.",
-        "visibility": "Nem todas as 55.877 galáxias são visíveis ao mesmo tempo. Conforme você aproxima o zoom, a visão revela progressivamente galáxias mais distantes — da vizinhança local (~560 galáxias) no ângulo mais amplo, até o campo profundo completo no zoom máximo. Este filtro baseado em redshift espelha como telescópios reais funcionam: exposições mais profundas revelam objetos mais fracos e distantes.",
+        "visibility": "Nem todas as galáxias são visíveis ao mesmo tempo. Conforme você aproxima o zoom, a visão revela progressivamente galáxias mais distantes — da vizinhança local no ângulo mais amplo, até o campo profundo completo no zoom máximo. Este filtro baseado em redshift espelha como telescópios reais funcionam: exposições mais profundas revelam objetos mais fracos e distantes.",
         "sizing": "O tamanho da galáxia na tela é determinado pela distância medida. Galáxias mais próximas aparecem maiores, distantes menores — uma representação direta de sua proximidade física, não uma escolha estética arbitrária."
       },
       "rendering": {
@@ -241,11 +241,11 @@
       "loading": "Carregando mapa cósmico...",
       "info": "Info",
       "infoTitle": "A Teia Cósmica",
-      "infoIntro": "Você está observando a distribuição tridimensional de 55.877 galáxias do catálogo Cosmicflows-4, mapeadas em coordenadas supergalácticas. Em vez de olhar para fora da Terra, você agora vê o universo de fora — a disposição espacial real das galáxias no espaço cósmico.",
+      "infoIntro": "Você está observando a distribuição tridimensional de galáxias do catálogo Cosmicflows-4, mapeadas em coordenadas supergalácticas. Em vez de olhar para fora da Terra, você agora vê o universo de fora — a disposição espacial real das galáxias no espaço cósmico.",
       "infoStructure": "A estrutura em larga escala do universo não é aleatória. As galáxias se agrupam ao longo de filamentos e folhas, cercando vastos vazios. Esta rede — a teia cósmica — é o maior padrão conhecido na natureza, moldado pela gravidade ao longo de bilhões de anos.",
       "infoCoords": "Os eixos mostram coordenadas cartesianas supergalácticas (SGX, SGY, SGZ), medidas em km/s de velocidade de recessão. Esta representação em espaço de velocidade preserva a estrutura de redshift observada: galáxias próximas estão perto da origem, distantes estão longe.",
       "infoColors": "As cores codificam a velocidade CMB — a velocidade de recessão da galáxia após correção do nosso movimento em relação à radiação cósmica de fundo. Galáxias azuis estão próximas (recessão lenta), vermelhas e laranjas estão distantes (recessão rápida). Isto espelha o esquema de cores usado no artigo de Tully et al. (2023).",
-      "infoGroups": "No modo Grupos, as galáxias são agrupadas por associação gravitacional — cada ponto representa um grupo ou aglomerado de galáxias. No modo Galáxias, cada uma das 55.877 entradas individuais do catálogo é plotada separadamente.",
+      "infoGroups": "No modo Grupos, as galáxias são agrupadas por associação gravitacional — cada ponto representa um grupo ou aglomerado de galáxias. No modo Galáxias, cada entrada individual do catálogo é plotada separadamente.",
       "distributionTitle": "Distribuição de Velocidade",
       "statsTitle": "Estatísticas",
       "statsPoints": "Pontos exibidos",

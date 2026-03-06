@@ -65,11 +65,11 @@
     },
     "about": {
       "title": "Galaxies",
-      "subtitle": "55,877 galaxies. Measured distances. One celestial sphere.",
+      "subtitle": "Tens of thousands of galaxies. Measured distances. One celestial sphere.",
       "backToSky": "Back to Sky",
       "data": {
         "title": "The Data",
-        "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains 55,877 galaxies with distances measured through direct observational methods — not estimates derived from the expansion of the universe.",
+        "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains tens of thousands of galaxies with distances measured through direct observational methods — not estimates derived from the expansion of the universe.",
         "paperLink": "Read the paper",
         "dataLink": "Explore the data",
         "downloadDb": "Download DB (18 MB)"
@@ -123,7 +123,7 @@
         "title": "From Data to Sky",
         "imageAlt": "Celestial sphere showing galaxies at different zoom levels, from wide-angle sparse view to deep-field dense view",
         "positioning": "Each galaxy is placed on a celestial sphere using its right ascension and declination — the same coordinate system astronomers use to locate objects in the night sky. You are looking outward from Earth, surrounded by the observable universe.",
-        "visibility": "Not all 55,877 galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies — from the local neighborhood (~560 galaxies) at the widest angle, down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
+        "visibility": "Not all galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies — from the local neighborhood at the widest angle, down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
         "sizing": "Galaxy size on screen is determined by measured distance. Closer galaxies appear larger, distant ones smaller — a direct representation of their physical proximity, not an arbitrary aesthetic choice."
       },
       "rendering": {
@@ -199,11 +199,11 @@
       "loading": "Loading cosmic map...",
       "info": "Info",
       "infoTitle": "The Cosmic Web",
-      "infoIntro": "You are looking at the three-dimensional distribution of 55,877 galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside — the actual spatial arrangement of galaxies in cosmic space.",
+      "infoIntro": "You are looking at the three-dimensional distribution of galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside — the actual spatial arrangement of galaxies in cosmic space.",
       "infoStructure": "The large-scale structure of the universe is not random. Galaxies cluster along filaments and sheets, surrounding vast empty voids. This network — the cosmic web — is the largest known pattern in nature, shaped by gravity over billions of years.",
       "infoCoords": "The axes show supergalactic Cartesian coordinates (SGX, SGY, SGZ), measured in km/s of recession velocity. This velocity-space representation preserves the observed redshift structure: nearby galaxies are near the origin, distant ones are far out.",
       "infoColors": "Colors encode CMB velocity — the galaxy's recession speed after correcting for our motion relative to the cosmic microwave background. Blue galaxies are nearby (slow recession), red and orange are far away (fast recession). This mirrors the color scheme used in the Tully et al. (2023) paper.",
-      "infoGroups": "In Groups mode, galaxies are clustered by gravitational association — each point represents a galaxy group or cluster. In Galaxies mode, each of the 55,877 individual catalog entries is plotted separately.",
+      "infoGroups": "In Groups mode, galaxies are clustered by gravitational association — each point represents a galaxy group or cluster. In Galaxies mode, each individual catalog entry is plotted separately.",
       "distributionTitle": "Velocity Distribution",
       "statsTitle": "Statistics",
       "statsPoints": "Points displayed",
