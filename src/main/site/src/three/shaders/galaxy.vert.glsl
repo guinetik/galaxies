@@ -55,15 +55,15 @@ void main() {
     vAlpha = 0.0;
     sizeScale = 0.0;
   } else {
-    // Far fade
-    float fadeStart = uMaxRedshift * 0.6;
+    // Far fade — only the outer 15% of the range fades out
+    float fadeStart = uMaxRedshift * 0.85;
     float farAlpha = aRedshift < fadeStart
       ? 1.0
       : smoothstep(uMaxRedshift, fadeStart, aRedshift);
 
-    // Near fade (steeper to clear foreground quickly)
+    // Near fade — gentle fade-in from the min boundary
     // Avoid division by zero if uMinRedshift is 0
-    float nearFadeEnd = uMinRedshift > 0.0 ? uMinRedshift * 1.5 : 0.0;
+    float nearFadeEnd = uMinRedshift > 0.0 ? uMinRedshift * 2.0 : 0.0;
     float nearAlpha = aRedshift > nearFadeEnd
       ? 1.0
       : smoothstep(uMinRedshift, nearFadeEnd, aRedshift);

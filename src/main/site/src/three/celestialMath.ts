@@ -46,6 +46,8 @@ export function fovToMaxRedshift(fov: number): number {
     if (fov <= fov0 && fov >= fov1) {
       const t = (fov0 - fov) / (fov0 - fov1)
       // Exponential interpolation for smoother transition
+      // Fall back to linear when z0 is 0 (log undefined)
+      if (z0 <= 0) return z1 * t
       return z0 * Math.pow(z1 / z0, t)
     }
   }
