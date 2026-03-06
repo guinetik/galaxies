@@ -11,7 +11,7 @@ import { GalaxyField } from '@/three/GalaxyField'
 import { EarthHorizon } from '@/three/EarthHorizon'
 import { BackgroundStars } from '@/three/BackgroundStars'
 import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
-import { LOCATIONS } from '@/three/constants'
+import { LOCATIONS, CAMERA_FOV_MIN, CAMERA_FOV_DEFAULT } from '@/three/constants'
 import type { Galaxy, MorphologyClass } from '@/types/galaxy'
 import { assignMorphology } from '@/types/galaxy'
 
@@ -32,7 +32,7 @@ const isMobile = typeof window !== 'undefined' && window.matchMedia('(pointer: c
 
 const router = useRouter()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const { currentFov, currentMaxRedshift, currentMinRedshift, currentLocation, currentLookAt, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, dispose: disposeScene } = useThreeScene()
+const { currentFov, currentMaxRedshift, currentMinRedshift, currentLocation, currentLookAt, init, getScene, getCamera, getIsDragging, getPivot, startLoop, setLocation: setSceneLocation, setFovImmediate, setZoomLock, dispose: disposeScene } = useThreeScene()
 const { ready, getAllGalaxies } = useGalaxyData()
 
 function setLocation(name: string) {
@@ -59,7 +59,49 @@ function getAllGalaxiesCount() {
   return allGalaxies.length
 }
 
-defineExpose({ currentFov, currentMaxRedshift, currentLocation, currentLookAt, setLocation, applyFilter, getAllGalaxiesCount })
+const INTRO_DURATION_MS = 4000
+
+/** Cubic ease-in-out: slow start (deep field lingers during hero fade), rush through mid-range, gentle landing. */
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
+/**
+ * Animate FOV from CAMERA_FOV_MIN (deep space) back to CAMERA_FOV_DEFAULT (local).
+ * Creates a cinematic "reverse scroll" journey from billions of light-years to the present.
+ * Zoom is locked for the duration to prevent user input from fighting the animation.
+ */
+function animateIntroZoom(): Promise<void> {
+  return new Promise((resolve) => {
+    const startFov = CAMERA_FOV_MIN
+    const endFov = CAMERA_FOV_DEFAULT
+
+    setZoomLock(true)
+    setFovImmediate(startFov)
+
+    const startTime = performance.now()
+
+    function tick() {
+      const elapsed = performance.now() - startTime
+      const t = Math.min(1, elapsed / INTRO_DURATION_MS)
+      const eased = easeInOutCubic(t)
+      const fov = startFov + (endFov - startFov) * eased
+
+      setFovImmediate(fov)
+
+      if (t < 1) {
+        requestAnimationFrame(tick)
+      } else {
+        setZoomLock(false)
+        resolve()
+      }
+    }
+
+    requestAnimationFrame(tick)
+  })
+}
+
+defineExpose({ currentFov, currentMaxRedshift, currentLocation, currentLookAt, setLocation, applyFilter, getAllGalaxiesCount, animateIntroZoom, setZoomLock })
 
 let galaxyField: GalaxyField | null = null
 let earthHorizon: EarthHorizon | null = null

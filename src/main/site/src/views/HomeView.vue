@@ -93,7 +93,6 @@ import ElevationIndicator from '@/components/ElevationIndicator.vue'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { redshiftToDistanceMLY } from '@/three/celestialMath'
-import { CAMERA_FOV_DEFAULT } from '@/three/constants'
 import type { Galaxy, MorphologyClass } from '@/types/galaxy'
 
 const router = useRouter()
@@ -137,6 +136,8 @@ onUnmounted(() => {
   locationSetter.value = null
   window.removeEventListener('mousemove', onLensMouseMove)
   window.removeEventListener('resize', onLensResize)
+  window.removeEventListener('wheel', onHeroWheel, { capture: true } as EventListenerOptions)
+  window.removeEventListener('touchmove', onHeroTouch, { capture: true } as EventListenerOptions)
 })
 
 function onFilterChange(payload: { morphologies: Set<MorphologyClass>; sources: Set<string> }) {
@@ -170,20 +171,50 @@ function onTooltipNavigate() {
   }
 }
 
-/** Dismiss hero CTA — triggered by button click or zoom detection */
-function dismissHero() {
+let introAnimating = false
+
+/**
+ * Dismiss hero CTA and launch the cinematic intro zoom.
+ * Zooms from deepest field (CAMERA_FOV_MIN) back to default,
+ * creating a "reverse journey" from billions of light-years to local space.
+ */
+async function dismissHero() {
+  if (!showHero.value || introAnimating) return
+  introAnimating = true
   showHero.value = false
+  if (canvasRef.value) {
+    await canvasRef.value.animateIntroZoom()
+  }
+  introAnimating = false
 }
 
-const HERO_DISMISS_THRESHOLD = 1
+function onHeroWheel(e: WheelEvent) {
+  if (showHero.value) {
+    e.preventDefault()
+    dismissHero()
+  }
+}
+
+function onHeroTouch(e: TouchEvent) {
+  if (showHero.value && e.touches.length >= 2) {
+    e.preventDefault()
+    dismissHero()
+  }
+}
 
 watch(
-  () => canvasRef.value?.currentFov,
-  (fov) => {
-    if (showHero.value && fov !== undefined && fov < CAMERA_FOV_DEFAULT - HERO_DISMISS_THRESHOLD) {
-      dismissHero()
+  () => showHero.value && canvasReady.value,
+  (heroActive) => {
+    if (heroActive) {
+      canvasRef.value?.setZoomLock(true)
+      window.addEventListener('wheel', onHeroWheel, { passive: false, capture: true })
+      window.addEventListener('touchmove', onHeroTouch, { passive: false, capture: true })
+    } else {
+      window.removeEventListener('wheel', onHeroWheel, { capture: true } as EventListenerOptions)
+      window.removeEventListener('touchmove', onHeroTouch, { capture: true } as EventListenerOptions)
     }
-  }
+  },
+  { immediate: true }
 )
 
 // ── Gravitational lensing effect on hero title ──

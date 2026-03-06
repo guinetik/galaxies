@@ -59,6 +59,8 @@ export function useThreeScene() {
   const WHEEL_ZOOM_SPEED = 0.032
   const PINCH_ZOOM_SPEED = 0.065
 
+  let zoomLocked = false
+
   // Location animation — smooth scene rotation
   let currentSceneRotationX = 0
   let targetSceneRotationX = 0
@@ -265,7 +267,7 @@ export function useThreeScene() {
 
   function onWheel(e: WheelEvent) {
     e.preventDefault()
-    // Set target FOV — actual FOV lerps toward it each frame
+    if (zoomLocked) return
     const delta = e.deltaY * WHEEL_ZOOM_SPEED
     targetFov = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, targetFov + delta))
   }
@@ -287,6 +289,7 @@ export function useThreeScene() {
   function onTouchMove(e: TouchEvent) {
     if (e.touches.length === 2) {
       e.preventDefault()
+      if (zoomLocked) return
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
       const dist = Math.sqrt(dx * dx + dy * dy)
@@ -306,6 +309,26 @@ export function useThreeScene() {
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
+  }
+
+  /**
+   * Set camera FOV immediately (bypassing the lerp).
+   * Also updates targetFov so the lerp doesn't fight back.
+   */
+  function setFovImmediate(fov: number) {
+    if (!camera) return
+    const clamped = Math.max(CAMERA_FOV_MIN, Math.min(CAMERA_FOV_MAX, fov))
+    camera.fov = clamped
+    targetFov = clamped
+    camera.updateProjectionMatrix()
+    currentFov.value = clamped
+    currentMaxRedshift.value = fovToMaxRedshift(clamped)
+    currentMinRedshift.value = fovToMinRedshift(clamped)
+  }
+
+  /** Lock or unlock user-driven zoom (wheel / pinch). */
+  function setZoomLock(locked: boolean) {
+    zoomLocked = locked
   }
 
   function getScene(): THREE.Scene {
@@ -363,6 +386,8 @@ export function useThreeScene() {
     getPivot,
     startLoop,
     setLocation,
+    setFovImmediate,
+    setZoomLock,
     dispose,
   }
 }
