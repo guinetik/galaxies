@@ -9,10 +9,11 @@ export const EARTH_RADIUS = 580
 /** Earth sphere Y position (sunken below camera) */
 export const EARTH_Y_OFFSET = -600
 
-/** Camera field-of-view limits (degrees) */
+/** Camera field-of-view limits (degrees).
+ * Default/max ≤60° avoids perspective distortion on Earth horizon (oval → circular arc). */
 export const CAMERA_FOV_MIN = 1
-export const CAMERA_FOV_MAX = 75
-export const CAMERA_FOV_DEFAULT = 75
+export const CAMERA_FOV_MAX = 60
+export const CAMERA_FOV_DEFAULT = 55
 
 /** Camera clipping planes */
 export const CAMERA_NEAR = 0.1
@@ -26,67 +27,63 @@ export const CAMERA_POSITION: [number, number, number] = [0, 50, 0]
  * Wider FOV = nearby only; narrower FOV = deeper field.
  * Interpolated smoothly (exponential) in fovToMaxRedshift().
  *
- * Tuned for deep-field readability on CF4 (55,877 galaxies, max z ≈ 0.11):
- *   75° → very local neighborhood only
- *   55° → sparse nearby shells
- *   35° → moderate mid-depth population
- *   15° → dense but still readable deep field
- *    3° → full dataset
- *    3° →  55,877 galaxies (full deep field)
+ * Flatter curve = less LY per zoom level = fewer galaxies visible per scroll tick.
+ * Combined with slower wheel speed for more scroll depth.
  */
 export const REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.0000],  // Start at 0 MLY — no galaxies visible
-  [74, 0.0003],  // First scroll tick: ~1 MLY, first galaxies appear
-  [73, 0.0006],  // ~2 MLY
-  [72, 0.0010],  // ~3 MLY — gentle ramp into local neighborhood
-  [70, 0.0016],  // ~5 MLY
-  [68, 0.0024],  // ~8 MLY
-  [66, 0.0030],  // ~10 MLY
-  [64, 0.0037],  // ~12 MLY
-  [62, 0.0043],  // ~14 MLY
-  [60, 0.0050],  // ~16 MLY — smooth transition into mid-range
-  [58, 0.0052],
-  [55, 0.0062],
-  [52, 0.0074],
-  [49, 0.0088],
-  [46, 0.0103],
-  [43, 0.0120],
-  [40, 0.0138],
-  [37, 0.0158],
-  [34, 0.0172],
-  [31, 0.0196],
-  [28, 0.0220],
-  [26, 0.0244],
-  [24, 0.0268],
-  [22, 0.0293],
-  [20, 0.0318],
-  [18, 0.0345],
-  [17, 0.0368],
-  [16, 0.0395],
-  [14, 0.0430],
-  [13, 0.0458],
-  [12, 0.0488],
-  [11, 0.0522],
-  [10, 0.0558],
-  [9,  0.0598],
-  [8,  0.0640],
-  [7,  0.0698],
-  [6,  0.0758],
-  [5,  0.0858],
-  [4,  0.0970],
-  [3,  0.110],
-  [2,  0.130],
-  [1,  0.155],
+  [60, 0.0000],  // Max FOV: no galaxies (Earth arc visible, no distortion)
+  [74, 0.0001],  // ~0.3 MLY
+  [73, 0.0002],  // ~0.7 MLY
+  [72, 0.00035], // ~1.2 MLY
+  [70, 0.0006],  // ~2 MLY
+  [68, 0.0009],  // ~3 MLY
+  [66, 0.0012],  // ~4 MLY
+  [64, 0.0015],  // ~5 MLY
+  [62, 0.0018],  // ~6 MLY
+  [60, 0.0021],  // ~7 MLY
+  [58, 0.0024],
+  [55, 0.0028],
+  [52, 0.0033],
+  [49, 0.0039],
+  [46, 0.0045],
+  [43, 0.0052],
+  [40, 0.0060],
+  [37, 0.0069],
+  [34, 0.0075],
+  [31, 0.0086],
+  [28, 0.0096],
+  [26, 0.0106],
+  [24, 0.0117],
+  [22, 0.0128],
+  [20, 0.0139],
+  [18, 0.0151],
+  [17, 0.0161],
+  [16, 0.0173],
+  [14, 0.0188],
+  [13, 0.0200],
+  [12, 0.0213],
+  [11, 0.0228],
+  [10, 0.0244],
+  [9,  0.0262],
+  [8,  0.0280],
+  [7,  0.0306],
+  [6,  0.0332],
+  [5,  0.0376],
+  [4,  0.0425],
+  [3,  0.072],
+  [2,  0.095],
+  [1,  0.155],  // Full deep field at max zoom
 ]
 
 /**
  * Maps FOV brackets to minimum visible redshift.
  * Used to fade out nearby galaxies when zooming in to deep fields.
  * Lags behind REDSHIFT_RANGES to keep a "window" of visibility.
+ * Scaled with REDSHIFT_RANGES for fewer galaxies per zoom level.
  */
 export const MIN_REDSHIFT_RANGES: [number, number][] = [
-  [75, 0.0000], // Wide view: retain local anchors
-  [74, 0.0000],
+  [60, 0.0000],
+  [58, 0.0000],
   [73, 0.0000],
   [72, 0.0000],
   [70, 0.0000],
@@ -96,37 +93,37 @@ export const MIN_REDSHIFT_RANGES: [number, number][] = [
   [62, 0.0000],
   [60, 0.0000],
   [58, 0.0000],
-  [55, 0.0001],
-  [52, 0.0002],
-  [49, 0.0004],
-  [46, 0.0006],
-  [43, 0.0009],
-  [40, 0.0013],
-  [37, 0.0018],
-  [34, 0.0018],
-  [31, 0.0023],
-  [28, 0.0029],
-  [26, 0.0034],
-  [24, 0.0040],
-  [22, 0.0047],
-  [20, 0.0054],
-  [18, 0.0062],
-  [17, 0.0068],
-  [16, 0.0076],
-  [14, 0.0088],
-  [13, 0.0098],
-  [12, 0.0110],
-  [11, 0.0124],
-  [10, 0.0138],
-  [9,  0.0155],
-  [8,  0.0172],
-  [7,  0.0194],
-  [6,  0.0216],
-  [5,  0.0250],
-  [4,  0.0298],
-  [3,  0.0365],
-  [2,  0.0450],
-  [1,  0.0560], // Deep field: stronger local foreground trim
+  [55, 0.00004],
+  [52, 0.00008],
+  [49, 0.00016],
+  [46, 0.00024],
+  [43, 0.00036],
+  [40, 0.00052],
+  [37, 0.00075],
+  [34, 0.00075],
+  [31, 0.00095],
+  [28, 0.00115],
+  [26, 0.00135],
+  [24, 0.0016],
+  [22, 0.00185],
+  [20, 0.0021],
+  [18, 0.00245],
+  [17, 0.00265],
+  [16, 0.0029],
+  [14, 0.0033],
+  [13, 0.0035],
+  [12, 0.0038],
+  [11, 0.0041],
+  [10, 0.0045],
+  [9,  0.0050],
+  [8,  0.0055],
+  [7,  0.0062],
+  [6,  0.0069],
+  [5,  0.0080],
+  [4,  0.0095],
+  [3,  0.0155],
+  [2,  0.0220],
+  [1,  0.0336],
 ]
 
 /** Observer location on Earth */

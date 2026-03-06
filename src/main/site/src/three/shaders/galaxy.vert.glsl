@@ -73,12 +73,12 @@ void main() {
       : smoothstep(uMinRedshift, nearFadeEnd, aRedshift);
 
     // Depth-based dimming: galaxies farther in the redshift range appear dimmer.
-    // Normalized position within the visible range: 0 at min, 1 at max.
+    // Reduces overlap from distant background galaxies.
     float redshiftRange = uMaxRedshift - uMinRedshift;
     float depthT = redshiftRange > 0.0
       ? (aRedshift - uMinRedshift) / redshiftRange
       : 0.0;
-    float depthDim = mix(1.0, 0.35, depthT);
+    float depthDim = mix(1.0, 0.45, depthT);
 
     vAlpha = min(farAlpha, nearAlpha) * aAlpha * depthDim;
 
@@ -94,9 +94,9 @@ void main() {
   // Uses default 60° as reference. Ratio gives ~0.7x at 75° and ~4x at 10°.
   float fovScale = 60.0 / uFov;
   
-  // Default wide view stays low-LOD dots; detail appears later while zooming in.
-  // vDetailMix = 0.0 (blur) -> 1.0 (texture)
-  float fovMix = smoothstep(44.0, 24.0, uFov);
+  // Detail appears earlier so galaxies can grow into sharp view before fading.
+  // vDetailMix = 0.0 (blur) -> 1.0 (texture). Trigger at 55°–32° FOV.
+  float fovMix = smoothstep(55.0, 32.0, uFov);
   
   // Proximity boost: if galaxy is very close (low redshift), show detail sooner!
   // Very near galaxies can gain detail sooner, but less aggressively.
@@ -118,12 +118,13 @@ void main() {
   // Apply controlled proximity scaling for deep-field readability.
   float basePx = aSize * uPixelRatio * fovScale * twinkle * sizeScale * aSizeMultiplier * 2.35;
   
-  // If the sprite is going to be large on screen, we MUST show texture detail
-  // regardless of zoom level, otherwise it looks like a blurry blob.
-  // Smoothly transition to texture only when sprites are clearly large.
-  float pixelSizeBoost = smoothstep(20.0, 40.0, basePx);
+  // Show texture detail when sprites reach modest size so galaxies look sharp as they grow.
+  float pixelSizeBoost = smoothstep(14.0, 28.0, basePx);
   
   vDetailMix = max(max(max(fovMix, proximityBoost * 0.95), sizeBoost), pixelSizeBoost);
+
+  // Dim blurry galaxies to reduce overlap clutter; in-focus stay full opacity.
+  vAlpha *= mix(0.5, 1.0, vDetailMix);
 
   float detailBoost = mix(1.0, 1.18, vDetailMix);
   float farBoost = mix(1.15, 1.0, vDetailMix);

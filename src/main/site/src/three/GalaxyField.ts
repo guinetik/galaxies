@@ -397,17 +397,15 @@ export class GalaxyField {
   }
 
   /**
-   * Compute alpha from a narrow logarithmic depth window around camera focus.
-   * Positive offsets are farther than the current focus; negative are foreground.
+   * Compute alpha from a logarithmic depth window around camera focus.
+   * Balanced: enough depth for cool look, narrow enough to reduce overlap for browsing.
    */
   private computeDepthWindowAlpha(logOffset: number, fov: number): number {
-    // Depth window controls how many galaxies are visible simultaneously.
-    // Wider than original to prevent flash-through, but not so wide it kills perf.
     const zoomMix = this.smoothstep(72, 12, fov)
-    const farFadeStart = this.mix(0.5, 0.22, zoomMix)
-    const farFadeEnd = this.mix(1.0, 0.55, zoomMix)
-    const nearFadeStart = this.mix(-0.5, -0.22, zoomMix)
-    const nearFadeEnd = this.mix(-1.6, -0.8, zoomMix)
+    const farFadeStart = this.mix(0.4, 0.2, zoomMix)
+    const farFadeEnd = this.mix(0.95, 0.55, zoomMix)
+    const nearFadeStart = this.mix(-0.4, -0.2, zoomMix)
+    const nearFadeEnd = this.mix(-1.5, -0.85, zoomMix)
 
     if (logOffset < nearFadeEnd || logOffset > farFadeEnd) return 0.0
     if (logOffset < nearFadeStart) return this.smoothstep(nearFadeEnd, nearFadeStart, logOffset)
@@ -429,12 +427,12 @@ export class GalaxyField {
   }
 
   /**
-   * Fade foreground earlier so nearby galaxies do not dominate the frame.
+   * Fade foreground to reduce overlap while still letting galaxies grow into view.
    */
   private computeForegroundFade(logOffset: number, fov: number): number {
     const zoomMix = this.smoothstep(72, 12, fov)
-    const fadeStart = this.mix(-0.6, -0.28, zoomMix)
-    const fadeEnd = this.mix(-1.8, -0.9, zoomMix)
+    const fadeStart = this.mix(-0.4, -0.2, zoomMix)
+    const fadeEnd = this.mix(-1.3, -0.75, zoomMix)
     if (logOffset >= fadeStart) return 1.0
     if (logOffset <= fadeEnd) return 0.0
     return this.smoothstep(fadeEnd, fadeStart, logOffset)

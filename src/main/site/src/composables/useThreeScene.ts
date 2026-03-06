@@ -53,11 +53,12 @@ export function useThreeScene() {
   const DRAG_SENSITIVITY_POWER = 0.85
   const DRAG_VELOCITY_CAP = 0.03
 
-  // Smooth zoom — target FOV that we lerp toward each frame
+  // Smooth zoom — target FOV that we lerp toward each frame.
+  // Slower speeds = more scroll depth, less LY per tick, finer zoom levels.
   let targetFov = CAMERA_FOV_DEFAULT
   const ZOOM_LERP = 0.08
-  const WHEEL_ZOOM_SPEED = 0.032
-  const PINCH_ZOOM_SPEED = 0.065
+  const WHEEL_ZOOM_SPEED = 0.01
+  const PINCH_ZOOM_SPEED = 0.022
 
   let zoomLocked = false
 
