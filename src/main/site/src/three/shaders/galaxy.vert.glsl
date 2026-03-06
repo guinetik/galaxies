@@ -68,7 +68,15 @@ void main() {
       ? 1.0
       : smoothstep(uMinRedshift, nearFadeEnd, aRedshift);
 
-    vAlpha = min(farAlpha, nearAlpha) * aAlpha;
+    // Depth-based dimming: galaxies farther in the redshift range appear dimmer.
+    // Normalized position within the visible range: 0 at min, 1 at max.
+    float redshiftRange = uMaxRedshift - uMinRedshift;
+    float depthT = redshiftRange > 0.0
+      ? (aRedshift - uMinRedshift) / redshiftRange
+      : 0.0;
+    float depthDim = mix(1.0, 0.35, depthT);
+
+    vAlpha = min(farAlpha, nearAlpha) * aAlpha * depthDim;
 
     // Size scaling logic:
     // 1. Far fade: shrink to keep dense deep fields readable.
