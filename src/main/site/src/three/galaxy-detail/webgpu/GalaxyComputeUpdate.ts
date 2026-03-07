@@ -3,8 +3,6 @@
  *
  * Runs every frame to:
  * - Apply differential rotation
- * - Apply mouse repulsion force
- * - Apply spring force restoring particles to original positions
  * - Twinkle modulation for bright-layer stars
  */
 
