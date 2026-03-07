@@ -31,4 +31,16 @@ describe('getConstellation', () => {
     // Polaris: RA=37.954°, Dec=89.264°
     expect(getConstellation(37.954, 89.264)).toBe('Ursa Minor')
   })
+
+  it('returns Dorado for LMC region', () => {
+    // Large Magellanic Cloud: RA=80.894°, Dec=-69.756° - this is safely in Dorado
+    expect(getConstellation(80.894, -69.756)).toBe('Dorado')
+  })
+
+  it('returns Dorado not Puppis near Dorado/Puppis boundary', () => {
+    // A point at RA≈90.7°, Dec≈-52.4° (J2000) precesses to B1875 Dec≈-52.4°,
+    // which is above the Dorado northern boundary (-52.5°) and within Dorado RA range (6.0-6.1667h).
+    // Before the sort fix, the Puppis row [6.0,7.5,-53.0] would shadow this and return Puppis.
+    expect(getConstellation(90.7, -52.4)).toBe('Dorado')
+  })
 })
