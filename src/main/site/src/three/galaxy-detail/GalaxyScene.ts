@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Galaxy } from '@/types/galaxy'
-import { galaxyToGeneratorParams } from './GalaxyParamsMapper'
-import type { GeneratorParams } from './GalaxyParamsMapper'
+import { mapGalaxyToRenderParams } from './morphology'
+import type { GalaxyRenderParams } from './morphology'
 import { generateGalaxy } from './GalaxyGenerator'
 import { GalaxyParticles } from './GalaxyParticles'
 import { GalaxyHaze } from './GalaxyHaze'
@@ -29,7 +29,7 @@ export class GalaxyScene implements IGalaxyScene {
   private animationId = 0
   private clock = new THREE.Clock()
   private galaxyRotation = 0
-  private params: GeneratorParams
+  private params: GalaxyRenderParams
 
   // Lensing post-process
   private galaxyRT: THREE.WebGLRenderTarget
@@ -80,7 +80,7 @@ export class GalaxyScene implements IGalaxyScene {
 
     // ─── Galaxy data pipeline ──────────────────────────────────────────
 
-    this.params = galaxyToGeneratorParams(galaxy)
+    this.params = mapGalaxyToRenderParams(galaxy)
     const stars = generateGalaxy(this.params)
     const R = this.params.galaxyRadius
 
@@ -315,7 +315,7 @@ export class GalaxyScene implements IGalaxyScene {
 
       this.particles.update(dt, time)
 
-      const axisRatio = this.params.type === 'elliptical' ? this.params.axisRatio : 1.0
+      const axisRatio = this.params.morphology.ellipticity > 0 ? this.params.morphology.axisRatio : 1.0
 
       this.nebula.update(
         time,
