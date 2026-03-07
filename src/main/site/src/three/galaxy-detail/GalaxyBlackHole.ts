@@ -13,6 +13,7 @@ export class GalaxyBlackHole {
   readonly depthMesh: THREE.Mesh
   private material: THREE.ShaderMaterial
   private quadSize: number
+  private apparentPx = 0
 
   constructor(_activityClass: string | null, quadSize = 60) {
     this.quadSize = quadSize
@@ -66,14 +67,18 @@ export class GalaxyBlackHole {
       const fov = (camera as THREE.PerspectiveCamera).fov ?? 60
       const vFov = fov * Math.PI / 180
       const screenH = this.material.uniforms.uResolution.value.y
-      const apparentPx = (this.quadSize / camDist) * (screenH / (2 * Math.tan(vFov / 2)))
-      const lod = Math.min(Math.max((apparentPx - 6) / 220, 0), 1)
+      this.apparentPx = (this.quadSize / camDist) * (screenH / (2 * Math.tan(vFov / 2)))
+      const lod = Math.min(Math.max((this.apparentPx - 6) / 220, 0), 1)
       this.material.uniforms.uLOD.value = lod
     }
   }
 
   getLOD(): number {
     return this.material.uniforms.uLOD.value
+  }
+
+  getApparentPx(): number {
+    return this.apparentPx
   }
 
   dispose(): void {

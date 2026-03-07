@@ -46,6 +46,7 @@ const CONFIG = {
     brightFraction: 0.03,
     dustHueRange: [240, 280] as [number, number],
     brightHueRange: [10, 45] as [number, number],
+    hiiRegionChance: 0.15,
   },
 } as const
 
@@ -196,29 +197,35 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
   const irregularity = m.irregularity
   const hasBar = m.barLength > 0
   const barLength = m.barLength * galaxyRadius
+  const windingFactor = 2.5
 
   for (let arm = 0; arm < numArms; arm++) {
     const armOffset = (arm / numArms) * TAU
 
     for (let i = 0; i < starsPerArm; i++) {
-      const t = i / starsPerArm
-      const theta = t * TAU * 2.5
-      const r = spiralStart * Math.exp(spiralTightness * theta)
+      // Sample radius first so density stays even across the disk instead of
+      // piling too many particles into a loose exponential outer spiral.
+      const armRadius = Math.sqrt(Math.random()) * (galaxyRadius * 0.9) + galaxyRadius * 0.1
 
-      if (r > galaxyRadius) continue
       // For barred spirals, skip stars inside the bar zone
-      if (hasBar && r < barLength * 0.5) continue
+      if (hasBar && armRadius < barLength * 0.5) continue
+
+      const safeSpiralStart = Math.max(spiralStart, 0.001)
+      const theta = Math.log(Math.max(armRadius / safeSpiralStart, 1.0))
+        / Math.max(spiralTightness, 0.001)
+        * windingFactor
 
       const baseAngle = theta + armOffset
-      const scatter = (Math.random() - 0.5 + Math.random() - 0.5) * armWidth
+      const scatterScale = (armRadius / galaxyRadius) * 0.5 + 0.5
+      const scatter = (Math.random() - 0.5 + Math.random() - 0.5) * armWidth * scatterScale
       const scatterAngle = baseAngle + Math.PI / 2
-      const alongScatter = (Math.random() - 0.5) * 20
       const irr = irregularity * (Math.random() - 0.5) * 30
 
-      const x = Math.cos(baseAngle) * (r + alongScatter + irr) + Math.cos(scatterAngle) * scatter
-      const z = Math.sin(baseAngle) * (r + alongScatter + irr) + Math.sin(scatterAngle) * scatter
+      const x = Math.cos(baseAngle) * (armRadius + irr) + Math.cos(scatterAngle) * scatter
+      const z = Math.sin(baseAngle) * (armRadius + irr) + Math.sin(scatterAngle) * scatter
 
-      const thickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - t * 0.7)
+      const radialT = armRadius / galaxyRadius
+      const thickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - radialT * 0.7)
       const y = (Math.random() - 0.5) * thickness
 
       const actualRadius = Math.sqrt(x * x + z * z)
@@ -379,14 +386,13 @@ function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
     const theta = Math.random() * TAU
     const distFactor = r / galaxyRadius
 
-    // Lens-shaped vertical profile: thick at center, thin at edge.
-    // Creates natural bulge→disk transition with no gap.
-    const thickness = galaxyRadius * 0.06 * Math.exp(-2.5 * distFactor)
+    // Match the WebGPU lens profile: a fuller central thickness that tapers
+    // quadratically toward the disk edge.
+    const thickness = galaxyRadius * 0.06 * Math.pow(Math.max(1 - distFactor, 0), 2)
     const y = (Math.random() - 0.5) * thickness
 
-    // Inner bulge region gets brightness boost and slower rotation
-    const inBulge = r < bulgeRadius
-    const bulgeBlend = inBulge ? 1.0 - r / bulgeRadius : 0
+    // Match the WebGPU continuous bulge weighting instead of a hard in/out split.
+    const bulgeBlend = Math.max(0, Math.min(1, 1 - r / Math.max(bulgeRadius, 1)))
     const coreBrightBoost = 1.0 + bulgeBlend * 0.4
 
     const layer = assignLayer(Math.random())
@@ -396,7 +402,7 @@ function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
       radius: r,
       angle: theta,
       y,
-      rotationSpeed: computeRotationSpeed(r) * (inBulge ? 0.5 : 1.0),
+      rotationSpeed: computeRotationSpeed(r) * (bulgeBlend > 0 ? 0.5 : 1.0),
       hue: pickHue(layer, distFactor * 0.2, false),
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
       size: props.size * (1.0 + bulgeBlend * 0.3),

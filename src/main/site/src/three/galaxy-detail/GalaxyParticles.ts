@@ -42,20 +42,26 @@ function layerLightness(layer: Star['layer'], brightness: number): number {
  */
 export class GalaxyParticles {
   readonly points: THREE.Points
-  private geometry: THREE.BufferGeometry
+  readonly foregroundPoints: THREE.Points
+  private backgroundGeometry: THREE.BufferGeometry
+  private foregroundGeometry: THREE.BufferGeometry
   private material: THREE.ShaderMaterial
+  private foregroundMaterial: THREE.ShaderMaterial
   private stars: Star[]
   private angleOffsets: Float32Array
   private baseAlphas: Float32Array
+  private baseDistance: number
 
   constructor(stars: Star[], baseDistance = 600) {
     this.stars = stars
+    this.baseDistance = baseDistance
     const count = stars.length
 
     // ─── Build attribute buffers ──────────────────────────────────────
 
     const positions = new Float32Array(count * 3)
-    const colors = new Float32Array(count * 4)
+    const backgroundColors = new Float32Array(count * 4)
+    const foregroundColors = new Float32Array(count * 4)
     const sizes = new Float32Array(count)
     this.angleOffsets = new Float32Array(count)
     this.baseAlphas = new Float32Array(count)
@@ -74,10 +80,11 @@ export class GalaxyParticles {
       const s = layerSaturation(star.layer)
       const l = layerLightness(star.layer, star.brightness)
       const [r, g, b] = hslToRgb(star.hue, s, l)
-      colors[i * 4]     = r
-      colors[i * 4 + 1] = g
-      colors[i * 4 + 2] = b
-      colors[i * 4 + 3] = star.alpha
+      backgroundColors[i * 4] = foregroundColors[i * 4] = r
+      backgroundColors[i * 4 + 1] = foregroundColors[i * 4 + 1] = g
+      backgroundColors[i * 4 + 2] = foregroundColors[i * 4 + 2] = b
+      backgroundColors[i * 4 + 3] = star.alpha
+      foregroundColors[i * 4 + 3] = 0
 
       sizes[i] = star.size
       this.angleOffsets[i] = star.angle
@@ -86,10 +93,18 @@ export class GalaxyParticles {
 
     // ─── Geometry ─────────────────────────────────────────────────────
 
-    this.geometry = new THREE.BufferGeometry()
-    this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    this.geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 4))
-    this.geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
+    const positionAttr = new THREE.BufferAttribute(positions, 3)
+    const sizeAttr = new THREE.BufferAttribute(sizes, 1)
+
+    this.backgroundGeometry = new THREE.BufferGeometry()
+    this.backgroundGeometry.setAttribute('position', positionAttr)
+    this.backgroundGeometry.setAttribute('aColor', new THREE.BufferAttribute(backgroundColors, 4))
+    this.backgroundGeometry.setAttribute('aSize', sizeAttr)
+
+    this.foregroundGeometry = new THREE.BufferGeometry()
+    this.foregroundGeometry.setAttribute('position', positionAttr)
+    this.foregroundGeometry.setAttribute('aColor', new THREE.BufferAttribute(foregroundColors, 4))
+    this.foregroundGeometry.setAttribute('aSize', sizeAttr)
 
     // ─── Material ─────────────────────────────────────────────────────
 
@@ -105,18 +120,68 @@ export class GalaxyParticles {
       blending: THREE.AdditiveBlending,
     })
 
-    this.points = new THREE.Points(this.geometry, this.material)
+    this.foregroundMaterial = this.material.clone()
+    this.foregroundMaterial.uniforms = {
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uBaseDistance: { value: baseDistance },
+    }
+
+    this.points = new THREE.Points(this.backgroundGeometry, this.material)
+    this.points.frustumCulled = false
+
+    this.foregroundPoints = new THREE.Points(this.foregroundGeometry, this.foregroundMaterial)
+    this.foregroundPoints.frustumCulled = false
+    this.foregroundPoints.renderOrder = 2
   }
 
   // ─── Per-frame update ───────────────────────────────────────────────────────
 
-  update(dt: number, time: number): void {
+  /**
+   * Updates star positions and splits visibility into background (lensed) and
+   * foreground (unlensed) layers using camera-relative depth to the black hole.
+   * A star is only considered foreground if it is both clearly closer than the
+   * black hole and projected inside the black hole screen footprint.
+   */
+  update(
+    dt: number,
+    time: number,
+    camera: THREE.PerspectiveCamera,
+    bhNdcX: number,
+    bhNdcY: number,
+    bhRadiusPx: number,
+    viewportWidth: number,
+    viewportHeight: number,
+  ): void {
     const stars = this.stars
     const count = stars.length
-    const posAttr = this.geometry.getAttribute('position') as THREE.BufferAttribute
-    const colAttr = this.geometry.getAttribute('aColor') as THREE.BufferAttribute
+    const posAttr = this.backgroundGeometry.getAttribute('position') as THREE.BufferAttribute
+    const backgroundColorAttr = this.backgroundGeometry.getAttribute('aColor') as THREE.BufferAttribute
+    const foregroundColorAttr = this.foregroundGeometry.getAttribute('aColor') as THREE.BufferAttribute
     const positions = posAttr.array as Float32Array
-    const colors = colAttr.array as Float32Array
+    const backgroundColors = backgroundColorAttr.array as Float32Array
+    const foregroundColors = foregroundColorAttr.array as Float32Array
+    const viewMatrix = camera.matrixWorldInverse.elements
+    const projMatrix = camera.projectionMatrix.elements
+    const bhViewZ = viewMatrix[14]
+    const cameraDistance = camera.position.length()
+    const edgeOnMix = THREE.MathUtils.smoothstep(
+      1.0 - Math.abs(camera.position.y) / Math.max(cameraDistance, 0.0001),
+      0.55,
+      0.95,
+    )
+    const depthThreshold = THREE.MathUtils.lerp(
+      Math.max(this.baseDistance * 0.03, 6.0),
+      Math.max(this.baseDistance * 0.004, 0.75),
+      edgeOnMix,
+    )
+    const depthSoftness = THREE.MathUtils.lerp(
+      Math.max(this.baseDistance * 0.06, 10.0),
+      Math.max(this.baseDistance * 0.018, 3.0),
+      edgeOnMix,
+    )
+    const overlapScale = THREE.MathUtils.lerp(0.75, 1.2, edgeOnMix)
+    const ndcRadiusX = Math.max((bhRadiusPx * overlapScale) / Math.max(viewportWidth * 0.5, 1), 0.04)
+    const ndcRadiusY = Math.max((bhRadiusPx * overlapScale) / Math.max(viewportHeight * 0.5, 1), 0.04)
 
     for (let i = 0; i < count; i++) {
       const star = stars[i]
@@ -127,21 +192,56 @@ export class GalaxyParticles {
       positions[i * 3]     = star.radius * Math.cos(angle)
       positions[i * 3 + 2] = star.radius * Math.sin(angle)
 
+      let alpha = this.baseAlphas[i]
+
       // Twinkle — bright layer only for performance
       if (star.layer === 'bright') {
         const twinkle = Math.sin(time * 2 + star.twinklePhase) * 0.15 + 0.85
-        colors[i * 4 + 3] = this.baseAlphas[i] * twinkle
+        alpha *= twinkle
       }
+
+      const x = positions[i * 3]
+      const y = positions[i * 3 + 1]
+      const z = positions[i * 3 + 2]
+      const viewX = viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z + viewMatrix[12]
+      const viewY = viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z + viewMatrix[13]
+      const viewZ = viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14]
+
+      const clipX = projMatrix[0] * viewX + projMatrix[4] * viewY + projMatrix[8] * viewZ + projMatrix[12]
+      const clipY = projMatrix[1] * viewX + projMatrix[5] * viewY + projMatrix[9] * viewZ + projMatrix[13]
+      const clipW = projMatrix[3] * viewX + projMatrix[7] * viewY + projMatrix[11] * viewZ + projMatrix[15]
+      const invW = clipW !== 0 ? 1 / clipW : 0
+      const starNdcX = clipX * invW
+      const starNdcY = clipY * invW
+
+      const dx = (starNdcX - bhNdcX) / ndcRadiusX
+      const dy = (starNdcY - bhNdcY) / ndcRadiusY
+      const overlap = 1 - THREE.MathUtils.smoothstep(0.75, 1.25, Math.sqrt(dx * dx + dy * dy))
+
+      // Camera-space z is negative in front of the camera; values closer to 0
+      // are foreground. Only clearly-nearer stars inside the BH footprint stay
+      // unlensed. Everything else remains in the lensed background field.
+      const frontDepth = THREE.MathUtils.smoothstep(
+        viewZ - bhViewZ,
+        depthThreshold,
+        depthThreshold + depthSoftness,
+      )
+      const frontMix = overlap * frontDepth
+      backgroundColors[i * 4 + 3] = alpha * (1 - frontMix)
+      foregroundColors[i * 4 + 3] = alpha * frontMix
     }
 
     posAttr.needsUpdate = true
-    colAttr.needsUpdate = true
+    backgroundColorAttr.needsUpdate = true
+    foregroundColorAttr.needsUpdate = true
   }
 
   // ─── Cleanup ────────────────────────────────────────────────────────────────
 
   dispose(): void {
-    this.geometry.dispose()
+    this.backgroundGeometry.dispose()
+    this.foregroundGeometry.dispose()
     this.material.dispose()
+    this.foregroundMaterial.dispose()
   }
 }

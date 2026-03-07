@@ -5,6 +5,7 @@ import type { GalaxyRenderParams } from './morphology'
 import { generateGalaxy } from './GalaxyGenerator'
 import { GalaxyParticles } from './GalaxyParticles'
 import { GalaxyHaze } from './GalaxyHaze'
+import { GalaxyBackdrop } from './GalaxyBackdrop'
 import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
@@ -22,6 +23,7 @@ export class GalaxyScene implements IGalaxyScene {
   private renderer: THREE.WebGLRenderer
   private scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
+  private backdrop: GalaxyBackdrop
   private particles: GalaxyParticles
   private haze: GalaxyHaze
   private nebula: GalaxyNebula
@@ -92,8 +94,12 @@ export class GalaxyScene implements IGalaxyScene {
 
     // ─── Visual layers ─────────────────────────────────────────────────
 
+    this.backdrop = new GalaxyBackdrop(this.baseDistance, galaxy.pgc)
+    this.scene.add(this.backdrop.mesh)
+
     this.particles = new GalaxyParticles(stars, this.baseDistance)
     this.scene.add(this.particles.points)
+    this.scene.add(this.particles.foregroundPoints)
 
     this.haze = new GalaxyHaze(R)
     this.scene.add(this.haze.mesh)
@@ -106,9 +112,11 @@ export class GalaxyScene implements IGalaxyScene {
     this.scene.add(this.blackHole.mesh)
 
     // ─── Layer assignments ───────────────────────────────────────────
-    // Layer 1: galaxy objects (rendered to RT for lensing)
-    // Layer 2: black hole (rendered on top after lensing pass)
+    // Layer 1: background + galaxy objects (rendered to RT for lensing)
+    // Layer 2: black hole + foreground stars (rendered after lensing pass)
+    this.backdrop.mesh.layers.set(1)
     this.particles.points.layers.set(1)
+    this.particles.foregroundPoints.layers.set(2)
     this.haze.mesh.layers.set(1)
     this.nebula.mesh.layers.set(1)
     // Black hole layers are set in GalaxyBlackHole constructor (layer 2)
@@ -130,6 +138,7 @@ export class GalaxyScene implements IGalaxyScene {
         uSceneTexture: { value: this.galaxyRT.texture },
         uBHScreenPos: { value: new THREE.Vector2(0.5, 0.5) },
         uLensStrength: { value: 0.0 },
+        uLensZoom: { value: 0.0 },
         uAspectRatio: { value: w / h },
       },
       depthTest: false,
@@ -155,7 +164,8 @@ export class GalaxyScene implements IGalaxyScene {
 
     // PGC-seeded random angle (no position_angle in CF4)
     const initRotY = ((galaxy.pgc * 2654435761 >>> 0) / 4294967296) * Math.PI * 2
-    const initTiltX = -0.45
+    // Positive tilt opens the scene from above the galaxy plane rather than below it.
+    const initTiltX = 0.45
 
     // Build initial quaternion: tilt around X then rotate around Y
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
@@ -313,7 +323,32 @@ export class GalaxyScene implements IGalaxyScene {
 
       // ─── Update visual layers ─────────────────────────────────────
 
-      this.particles.update(dt, time)
+      // Derive tiltX / rotY from camera position for black hole shader
+      const cp = this.camera.position
+      const hDist = Math.sqrt(cp.x * cp.x + cp.z * cp.z)
+      const tiltX = Math.atan2(cp.y, hDist)
+      const rotY = Math.atan2(cp.x, cp.z)
+      this.backdrop.update(time, this.camera)
+      this.blackHole.update(time, tiltX, rotY, this.camera, this.renderer)
+
+      // Project black hole world position (0,0,0) to screen space before
+      // updating star split so foreground classification can use overlap.
+      this._bhScreenVec.set(0, 0, 0).project(this.camera)
+      const bhU = this._bhScreenVec.x * 0.5 + 0.5
+      const bhV = this._bhScreenVec.y * 0.5 + 0.5
+      const rendererSize = this.renderer.getSize(new THREE.Vector2())
+      const dpr = this.renderer.getPixelRatio()
+
+      this.particles.update(
+        dt,
+        time,
+        this.camera,
+        this._bhScreenVec.x,
+        this._bhScreenVec.y,
+        this.blackHole.getApparentPx(),
+        rendererSize.x * dpr,
+        rendererSize.y * dpr,
+      )
 
       const axisRatio = this.params.morphology.ellipticity > 0 ? this.params.morphology.axisRatio : 1.0
 
@@ -325,23 +360,11 @@ export class GalaxyScene implements IGalaxyScene {
         axisRatio,
       )
 
-      // Derive tiltX / rotY from camera position for black hole shader
-      const cp = this.camera.position
-      const hDist = Math.sqrt(cp.x * cp.x + cp.z * cp.z)
-      const tiltX = Math.atan2(cp.y, hDist)
-      const rotY = Math.atan2(cp.x, cp.z)
-      this.blackHole.update(time, tiltX, rotY, this.camera, this.renderer)
-
       // ─── Render (3-pass lensing pipeline) ─────────────────────────
 
-      // Project black hole world position (0,0,0) to screen UV
-      this._bhScreenVec.set(0, 0, 0).project(this.camera)
-      const bhU = this._bhScreenVec.x * 0.5 + 0.5
-      const bhV = this._bhScreenVec.y * 0.5 + 0.5
-
-      // LOD-driven lens strength: 0 when far, 0.03 when close
+      // LOD-driven lens strength: 0 when far, stronger when close
       const lod = this.blackHole.getLOD()
-      const lensStrength = lod * lod * 0.03
+      const lensStrength = lod * lod * 0.045
 
       if (lensStrength < 0.001) {
         // ─── Fast path: no visible lensing, single render ──────────
@@ -358,6 +381,7 @@ export class GalaxyScene implements IGalaxyScene {
         // ─── Pass 2: Lensing quad → screen ─────────────────────────
         this.lensingMaterial.uniforms.uBHScreenPos.value.set(bhU, bhV)
         this.lensingMaterial.uniforms.uLensStrength.value = lensStrength
+        this.lensingMaterial.uniforms.uLensZoom.value = lod
         this.renderer.setRenderTarget(null)
         this.renderer.clear()
         this.renderer.render(this.lensingScene, this.lensingCamera)
@@ -390,6 +414,7 @@ export class GalaxyScene implements IGalaxyScene {
     canvas.removeEventListener('touchend', this.onTouchEnd)
     this.resizeObserver.disconnect()
 
+    this.backdrop.dispose()
     this.particles.dispose()
     this.haze.dispose()
     this.nebula.dispose()
