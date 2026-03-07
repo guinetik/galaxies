@@ -5,10 +5,19 @@
     :class="{ 'has-cta': showCta }"
     :style="{ left: x + 12 + 'px', top: y - 10 + 'px' }"
   >
-    <div class="tooltip-pgc">PGC {{ galaxy.pgc }}</div>
-    <!-- TODO: Add hover/click to show definition for Mly (million light-years) and km/s (recession velocity) -->
-    <div class="tooltip-detail">{{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly</div>
-    <div v-if="galaxy.vcmb != null" class="tooltip-detail">{{ galaxy.vcmb.toLocaleString() }} km/s</div>
+    <div class="tooltip-pgc">{{ galaxy.name ?? 'PGC ' + galaxy.pgc }}</div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Distance</span>
+      <span class="tooltip-value">{{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly</span>
+    </div>
+    <div v-if="galaxy.vcmb != null" class="tooltip-row">
+      <span class="tooltip-label">Recession</span>
+      <span class="tooltip-value">{{ galaxy.vcmb.toLocaleString() }} km/s</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Constellation</span>
+      <span class="tooltip-value">{{ constellation }}</span>
+    </div>
     <button
       v-if="showCta"
       type="button"
@@ -21,10 +30,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
+import { getConstellation } from '@/three/constellationLookup'
 
-defineProps<{
+const props = defineProps<{
   galaxy: Galaxy | null
   x: number
   y: number
@@ -36,6 +47,10 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const constellation = computed(() =>
+  props.galaxy ? getConstellation(props.galaxy.ra, props.galaxy.dec) : ''
+)
 </script>
 
 <style scoped>
@@ -48,6 +63,7 @@ const { t } = useI18n()
   padding: 8px 12px;
   z-index: 30;
   backdrop-filter: blur(8px);
+  min-width: 180px;
 }
 
 .tooltip.has-cta {
@@ -58,13 +74,25 @@ const { t } = useI18n()
   font-size: 13px;
   font-weight: 600;
   color: #22d3ee;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
-.tooltip-detail {
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
   font-family: ui-monospace, monospace;
+  line-height: 1.6;
+}
+
+.tooltip-label {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tooltip-value {
+  color: rgba(255, 255, 255, 0.75);
+  text-align: right;
 }
 
 .tooltip-cta {
