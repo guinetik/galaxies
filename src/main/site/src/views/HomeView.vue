@@ -93,7 +93,8 @@ import ElevationIndicator from '@/components/ElevationIndicator.vue'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { redshiftToDistanceMLY } from '@/three/celestialMath'
-import type { Galaxy, MorphologyClass } from '@/types/galaxy'
+import type { Galaxy } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -140,7 +141,7 @@ onUnmounted(() => {
   window.removeEventListener('touchmove', onHeroTouch, { capture: true } as EventListenerOptions)
 })
 
-function onFilterChange(payload: { morphologies: Set<MorphologyClass>; sources: Set<string> }) {
+function onFilterChange(payload: { morphologies: Set<MorphologyCategory>; sources: Set<string> }) {
   const count = canvasRef.value?.applyFilter(payload.morphologies, payload.sources) ?? 0
   filteredCount.value = count
 }

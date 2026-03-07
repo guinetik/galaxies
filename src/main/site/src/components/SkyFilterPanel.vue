@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MorphologyClass } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
 
 const { t } = useI18n()
 
@@ -70,15 +70,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'filter-change': [payload: { morphologies: Set<MorphologyClass>; sources: Set<string> }]
+  'filter-change': [payload: { morphologies: Set<MorphologyCategory>; sources: Set<string> }]
 }>()
 
 const expanded = ref(false)
 
-const morphologyOptions: MorphologyClass[] = ['spiral', 'barred', 'elliptical', 'lenticular', 'irregular']
+const morphologyOptions: MorphologyCategory[] = ['spiral', 'barred', 'elliptical', 'lenticular', 'irregular']
 const sourceOptions = ['CF4', 'ALFALFA', 'FSS', 'UGC']
 
-const activeMorphologies = reactive(new Set<MorphologyClass>(morphologyOptions))
+const activeMorphologies = reactive(new Set<MorphologyCategory>(morphologyOptions))
 const activeSources = reactive(new Set<string>(sourceOptions))
 
 const isFiltered = computed(() =>
@@ -88,7 +88,7 @@ const isFiltered = computed(() =>
 const formattedFilteredCount = computed(() => props.filteredCount.toLocaleString())
 const formattedTotal = computed(() => props.totalCount.toLocaleString())
 
-function toggleMorphology(m: MorphologyClass) {
+function toggleMorphology(m: MorphologyCategory) {
   if (activeMorphologies.has(m)) {
     if (activeMorphologies.size > 1) activeMorphologies.delete(m)
   } else {

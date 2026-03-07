@@ -26,12 +26,12 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useGalaxyData } from '@/composables/useGalaxyData'
-import { assignMorphology } from '@/types/galaxy'
 import type { Galaxy } from '@/types/galaxy'
-import type { MorphologyClass } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
+import { selectPreset, assignPresetFromPgc, presetToCategory } from '@/three/galaxy-detail/morphology'
 
 const SAMPLE_SIZE = 3000
-const MORPH_TYPES: MorphologyClass[] = ['spiral', 'barred', 'elliptical', 'lenticular', 'irregular']
+const MORPH_TYPES: MorphologyCategory[] = ['spiral', 'barred', 'elliptical', 'lenticular', 'irregular']
 
 interface PickItem {
   galaxy: Galaxy
@@ -45,11 +45,12 @@ const { isLoading, ready, getRandomGalaxies } = useGalaxyData()
 function pick() {
   picks.value = []
   const galaxies = getRandomGalaxies(SAMPLE_SIZE)
-  const byType = new Map<MorphologyClass, Galaxy>()
+  const byType = new Map<MorphologyCategory, Galaxy>()
 
   for (const g of galaxies) {
-    const morph = assignMorphology(g.pgc, g.morphology)
-    if (!byType.has(morph) && morph !== 'unknown') {
+    const preset = g.morphology ? selectPreset(g.morphology) : assignPresetFromPgc(g.pgc)
+    const morph = presetToCategory(preset)
+    if (!byType.has(morph)) {
       byType.set(morph, g)
       if (byType.size === MORPH_TYPES.length) break
     }

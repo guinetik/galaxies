@@ -33,7 +33,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
-import { assignMorphology, estimateGalaxySize } from '@/types/galaxy'
+import { selectPreset, assignPresetFromPgc, presetToCategory, mapGalaxyToRenderParams } from '@/three/galaxy-detail/morphology'
 
 const { t } = useI18n()
 
@@ -41,23 +41,17 @@ const props = defineProps<{
   galaxy: Galaxy
 }>()
 
-const morphology = computed(() => assignMorphology(props.galaxy.pgc, props.galaxy.morphology))
-
-// Mulberry32 PRNG matching the one in GalaxyParamsMapper
-function mulberry32(seed: number): () => number {
-  let s = seed | 0
-  return () => {
-    s = (s + 0x6d2b79f5) | 0
-    let t = Math.imul(s ^ (s >>> 15), 1 | s)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-const sizeEstimate = computed(() => {
-  const rand = mulberry32(props.galaxy.pgc)
-  return estimateGalaxySize(props.galaxy, morphology.value, rand)
+const morphology = computed(() => {
+  const preset = props.galaxy.morphology ? selectPreset(props.galaxy.morphology) : assignPresetFromPgc(props.galaxy.pgc)
+  return presetToCategory(preset)
 })
+
+const renderParams = computed(() => mapGalaxyToRenderParams(props.galaxy))
+
+const sizeEstimate = computed(() => ({
+  diameterKpc: renderParams.value.diameterKpc,
+  source: renderParams.value.sizeSource,
+}))
 
 const sizeSourceKey = computed(() => {
   switch (sizeEstimate.value.source) {

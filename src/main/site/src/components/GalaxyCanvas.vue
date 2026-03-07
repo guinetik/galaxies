@@ -12,8 +12,9 @@ import { EarthHorizon } from '@/three/EarthHorizon'
 import { BackgroundStars } from '@/three/BackgroundStars'
 import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
 import { LOCATIONS, CAMERA_FOV_MIN, CAMERA_FOV_DEFAULT } from '@/three/constants'
-import type { Galaxy, MorphologyClass } from '@/types/galaxy'
-import { assignMorphology } from '@/types/galaxy'
+import type { Galaxy } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
+import { selectPreset, assignPresetFromPgc, presetToCategory } from '@/three/galaxy-detail/morphology'
 
 export interface HoverEvent {
   galaxy: Galaxy
@@ -45,11 +46,12 @@ function setLocation(name: string) {
 
 let allGalaxies: Galaxy[] = []
 
-function applyFilter(morphologies: Set<MorphologyClass>, sources: Set<string>) {
+function applyFilter(morphologies: Set<MorphologyCategory>, sources: Set<string>) {
   if (!galaxyField) return 0
   const filtered = allGalaxies.filter(g => {
-    const morph = assignMorphology(g.pgc, g.morphology)
-    return morphologies.has(morph) && sources.has(g.source ?? 'CF4')
+    const preset = g.morphology ? selectPreset(g.morphology) : assignPresetFromPgc(g.pgc)
+    const category = presetToCategory(preset)
+    return morphologies.has(category) && sources.has(g.source ?? 'CF4')
   })
   galaxyField.rebuild(filtered)
   return filtered.length
