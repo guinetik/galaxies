@@ -78,21 +78,22 @@ void main() {
     float depthT = redshiftRange > 0.0
       ? (aRedshift - uMinRedshift) / redshiftRange
       : 0.0;
-    float depthDim = mix(1.0, 0.45, depthT);
+    float depthDim = mix(1.0, 0.48, depthT);
 
     vAlpha = min(farAlpha, nearAlpha) * aAlpha * depthDim;
 
     // Size scaling logic:
-    // 1. Far fade: shrink to keep dense deep fields readable.
-    // 2. Near fade: modest growth only, avoiding giant foreground blobs.
-    float farScale = mix(0.5, 1.0, farAlpha);
+    // 1. Keep galaxies readable longer as they approach the active shell edges.
+    // 2. Let them complete the "grow into view" moment before fading away.
+    float farScale = mix(0.96, 1.12, farAlpha);
     float nearScale = mix(3.2, 1.0, nearAlpha);
-    sizeScale = farScale * nearScale * (0.5 + 0.5 * aAlpha);
+    sizeScale = farScale * nearScale * (0.94 + 0.48 * aAlpha);
   }
 
   // FOV-based scaling: zoomed out (75°) = compact, zoomed in (10°) = larger for interaction
   // Uses default 60° as reference. Ratio gives ~0.7x at 75° and ~4x at 10°.
   float fovScale = 60.0 / uFov;
+  float homeViewBoost = clamp((uFov - 40.0) / 18.0, 0.0, 1.0);
   
   // Detail appears earlier so galaxies can grow into sharp view before fading.
   // vDetailMix = 0.0 (blur) -> 1.0 (texture). Trigger at 55°–32° FOV.
@@ -116,19 +117,20 @@ void main() {
 
   // Base marker stays visible at all zoom levels to avoid LOD dead zones.
   // Apply controlled proximity scaling for deep-field readability.
-  float basePx = aSize * uPixelRatio * fovScale * twinkle * sizeScale * aSizeMultiplier * 2.35;
+  float basePx = aSize * uPixelRatio * fovScale * twinkle * sizeScale * aSizeMultiplier * mix(2.8, 3.35, homeViewBoost);
   
   // Show texture detail when sprites reach modest size so galaxies look sharp as they grow.
-  float pixelSizeBoost = smoothstep(14.0, 28.0, basePx);
+  float pixelSizeBoost = smoothstep(11.0, 23.0, basePx);
   
   vDetailMix = max(max(max(fovMix, proximityBoost * 0.95), sizeBoost), pixelSizeBoost);
 
   // Dim blurry galaxies to reduce overlap clutter; in-focus stay full opacity.
-  vAlpha *= mix(0.5, 1.0, vDetailMix);
+  vAlpha *= mix(0.68, 1.0, smoothstep(0.18, 0.72, vDetailMix));
+  vAlpha *= mix(1.0, 1.28, homeViewBoost);
 
   float detailBoost = mix(1.0, 1.18, vDetailMix);
   float farBoost = mix(1.15, 1.0, vDetailMix);
-  float focusSize = basePx * detailBoost * farBoost;
+  float focusSize = basePx * detailBoost * farBoost * mix(1.0, 1.12, homeViewBoost);
 
   // Focus mode: dim non-focused galaxies, grow the focused one
   if (uFocusActive > 0.5) {
@@ -141,7 +143,7 @@ void main() {
     }
   }
 
-  gl_PointSize = max(1.1 * uPixelRatio, focusSize);
+  gl_PointSize = min(max(1.6 * uPixelRatio, focusSize), 140.0 * uPixelRatio);
 
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   // Keep a baseline parallax even when zoomed far out.

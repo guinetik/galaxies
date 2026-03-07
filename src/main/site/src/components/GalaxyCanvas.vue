@@ -119,17 +119,45 @@ let pointerParallaxTargetX = 0
 let pointerParallaxTargetY = 0
 let pointerParallaxX = 0
 let pointerParallaxY = 0
+let lastParallaxElapsed = 0
+let lastHoverPickElapsed = 0
+let latestPointerClientX = 0
+let latestPointerClientY = 0
+let pointerInsideCanvas = false
+let hoveredGalaxyPgc: number | null = null
+const HOVER_PICK_INTERVAL_SECONDS = 1 / 24
+
+/**
+ * Clamp a scalar into the provided range.
+ */
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+/**
+ * Compute frame-rate independent parallax follow strength.
+ * Zoomed-in views use a lower response rate so pointer motion stays fluid.
+ */
+function getParallaxFollowAlpha(deltaSeconds: number, fov: number): number {
+  const zoomT = clamp(
+    (CAMERA_FOV_DEFAULT - fov) / (CAMERA_FOV_DEFAULT - CAMERA_FOV_MIN),
+    0,
+    1
+  )
+  const responseRate = 12 - zoomT * 7
+  return 1 - Math.exp(-deltaSeconds * responseRate)
+}
 
 /**
  * Perform pointer hit detection against square galaxy sprite bounds.
  * Coordinates are converted from viewport space into canvas-local space.
  */
-function pickGalaxyFromPointer(e: PointerEvent): Galaxy | null {
+function pickGalaxyAtClient(clientX: number, clientY: number): Galaxy | null {
   if (!galaxyField || !canvasRef.value) return null
 
   const rect = canvasRef.value.getBoundingClientRect()
-  const localX = e.clientX - rect.left
-  const localY = e.clientY - rect.top
+  const localX = clientX - rect.left
+  const localY = clientY - rect.top
   if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return null
 
   return galaxyField.pickGalaxyAtScreen(
@@ -144,7 +172,49 @@ function pickGalaxyFromPointer(e: PointerEvent): Galaxy | null {
   )
 }
 
+/**
+ * Apply the latest hover state without spamming duplicate clear events.
+ */
+function updateHoveredGalaxy(galaxy: Galaxy | null, clientX: number, clientY: number) {
+  if (galaxy) {
+    hoveredGalaxyPgc = galaxy.pgc
+    canvasRef.value!.style.cursor = 'pointer'
+    galaxyField?.setHoveredPgc(galaxy.pgc)
+    emit('hover', { galaxy, screenX: clientX, screenY: clientY })
+    return
+  }
+
+  canvasRef.value!.style.cursor = 'grab'
+  galaxyField?.setHoveredPgc(null)
+  if (hoveredGalaxyPgc !== null && !isMobile) {
+    emit('hover', null)
+  }
+  hoveredGalaxyPgc = null
+}
+
+/**
+ * Refresh hover picking on the render loop so pointer motion stays smooth.
+ */
+function updateHoverPicking(elapsed: number) {
+  if (isMobile || !pointerInsideCanvas || !canvasRef.value) return
+  if (getIsDragging()) {
+    updateHoveredGalaxy(null, latestPointerClientX, latestPointerClientY)
+    return
+  }
+  if (elapsed - lastHoverPickElapsed < HOVER_PICK_INTERVAL_SECONDS) return
+  lastHoverPickElapsed = elapsed
+
+  const galaxy = pickGalaxyAtClient(latestPointerClientX, latestPointerClientY)
+  updateHoveredGalaxy(galaxy, latestPointerClientX, latestPointerClientY)
+}
+
+/**
+ * Record pointer motion for smooth parallax and deferred hover picking.
+ */
 function onPointerMoveHover(e: PointerEvent) {
+  pointerInsideCanvas = true
+  latestPointerClientX = e.clientX
+  latestPointerClientY = e.clientY
   updatePointerParallaxTarget(e.clientX, e.clientY)
 
   if (pointerIsDown) {
@@ -153,23 +223,6 @@ function onPointerMoveHover(e: PointerEvent) {
     if (dx * dx + dy * dy > CLICK_CANCEL_DISTANCE_PX * CLICK_CANCEL_DISTANCE_PX) {
       pointerMovedDuringGesture = true
     }
-  }
-
-  if (getIsDragging()) {
-    galaxyField?.setHoveredPgc(null)
-    emit('hover', null)
-    return
-  }
-
-  const galaxy = pickGalaxyFromPointer(e)
-  if (galaxy) {
-    canvasRef.value!.style.cursor = 'pointer'
-    galaxyField?.setHoveredPgc(galaxy.pgc)
-    emit('hover', { galaxy, screenX: e.clientX, screenY: e.clientY })
-  } else {
-    canvasRef.value!.style.cursor = 'grab'
-    galaxyField?.setHoveredPgc(null)
-    if (!isMobile) emit('hover', null)
   }
 }
 
@@ -194,12 +247,12 @@ function setSelection(payload: HoverEvent | null) {
 }
 
 function onPointerLeave() {
+  pointerInsideCanvas = false
   pointerIsDown = false
   pointerMovedDuringGesture = false
   pointerParallaxTargetX = 0
   pointerParallaxTargetY = 0
-  galaxyField?.setHoveredPgc(null)
-  emit('hover', null)
+  updateHoveredGalaxy(null, latestPointerClientX, latestPointerClientY)
   if (!isMobile) return
   setSelection(null)
 }
@@ -208,6 +261,9 @@ function onPointerLeave() {
  * Track pointer gesture lifecycle to suppress click navigation after drags.
  */
 function onPointerDownCapture(e: PointerEvent) {
+  pointerInsideCanvas = true
+  latestPointerClientX = e.clientX
+  latestPointerClientY = e.clientY
   pointerIsDown = true
   pointerDownX = e.clientX
   pointerDownY = e.clientY
@@ -230,7 +286,7 @@ function onPointerClickGalaxy(e: MouseEvent) {
   }
   if (getIsDragging()) return
 
-  const galaxy = pickGalaxyFromPointer(e as PointerEvent)
+  const galaxy = pickGalaxyAtClient(e.clientX, e.clientY)
   if (isMobile) {
     if (galaxy) {
       if (selectedGalaxy?.pgc === galaxy.pgc) {
@@ -272,9 +328,15 @@ onMounted(async () => {
 
   // 5. Start animation loop
   startLoop((elapsed) => {
-    // Smooth pointer-driven parallax so reveal lanes glide while dragging.
-    pointerParallaxX += (pointerParallaxTargetX - pointerParallaxX) * 0.18
-    pointerParallaxY += (pointerParallaxTargetY - pointerParallaxY) * 0.18
+    // Use time-based damping so high-zoom parallax stays fluid instead of stepping.
+    const deltaSeconds = lastParallaxElapsed > 0
+      ? Math.min(0.1, elapsed - lastParallaxElapsed)
+      : 1 / 60
+    lastParallaxElapsed = elapsed
+    const parallaxFollowAlpha = getParallaxFollowAlpha(deltaSeconds, currentFov.value)
+    pointerParallaxX += (pointerParallaxTargetX - pointerParallaxX) * parallaxFollowAlpha
+    pointerParallaxY += (pointerParallaxTargetY - pointerParallaxY) * parallaxFollowAlpha
+    updateHoverPicking(elapsed)
     galaxyField?.update(
       elapsed,
       currentMaxRedshift.value,
@@ -298,6 +360,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  lastParallaxElapsed = 0
+  lastHoverPickElapsed = 0
   canvasRef.value?.removeEventListener('pointermove', onPointerMoveHover)
   canvasRef.value?.removeEventListener('pointerdown', onPointerDownCapture)
   canvasRef.value?.removeEventListener('pointerup', onPointerUpCapture)

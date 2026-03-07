@@ -54,6 +54,9 @@ export class GalaxyField {
   private readonly tempView = new THREE.Vector3()
   private latestPointerParallaxX = 0
   private latestPointerParallaxY = 0
+  private lastComputedFov: number | null = null
+  private lastComputedMaxRedshift: number | null = null
+  private lastComputedMinRedshift: number | null = null
 
   constructor(galaxies: Galaxy[], atlasTexture: THREE.Texture) {
     this.galaxies = galaxies
@@ -92,6 +95,9 @@ export class GalaxyField {
 
   rebuild(galaxies: Galaxy[]): void {
     this.galaxies = galaxies
+    this.lastComputedFov = null
+    this.lastComputedMaxRedshift = null
+    this.lastComputedMinRedshift = null
     const count = galaxies.length
 
     const positions = new Float32Array(count * 3)
@@ -267,11 +273,23 @@ export class GalaxyField {
     this.material.uniforms.uParallaxX.value = this.latestPointerParallaxX
     this.material.uniforms.uParallaxY.value = this.latestPointerParallaxY
 
-    // Update per-galaxy alpha and size based on camera distance (derived from FOV)
-    // Galaxies grow larger as camera approaches their distance
-    if (this.alphas.length === this.galaxies.length) {
-      const maxRedshift = fovToMaxRedshift(fov)
-      const cameraDistanceMly = redshiftToDistanceMLY(maxRedshift)
+    const visibilityNeedsUpdate =
+      this.alphas.length === this.galaxies.length && (
+        this.lastComputedFov === null ||
+        this.lastComputedMaxRedshift === null ||
+        this.lastComputedMinRedshift === null ||
+        Math.abs(this.lastComputedFov - fov) > 0.01 ||
+        Math.abs(this.lastComputedMaxRedshift - maxRedshift) > 0.000001 ||
+        Math.abs(this.lastComputedMinRedshift - minRedshift) > 0.000001
+      )
+
+    // Update per-galaxy alpha and size only when the zoom window changes.
+    if (visibilityNeedsUpdate) {
+      this.lastComputedFov = fov
+      this.lastComputedMaxRedshift = maxRedshift
+      this.lastComputedMinRedshift = minRedshift
+      const cameraMaxRedshift = fovToMaxRedshift(fov)
+      const cameraDistanceMly = redshiftToDistanceMLY(cameraMaxRedshift)
       const cameraDistanceMpc = cameraDistanceMly / 3.26
       const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
 
@@ -286,7 +304,7 @@ export class GalaxyField {
         const depthAlpha = this.computeDepthWindowAlpha(logOffset, fov)
         const foregroundFade = this.computeForegroundFade(logOffset, fov)
         this.alphas[i] = depthAlpha * foregroundFade
-        sizeMultArray[i] = this.computeGrowthMultiplier(logOffset)
+        sizeMultArray[i] = this.computeGrowthMultiplier(logOffset, fov)
       }
       const alphaAttr = this.geometry.attributes.aAlpha as THREE.BufferAttribute
       if (alphaAttr) {
@@ -368,12 +386,12 @@ export class GalaxyField {
 
   /** Estimate sprite pixel size from shader-equivalent uniforms. */
   private estimatePointSizePx(size: number, alpha: number, pixelRatio: number, fov: number, detailMix: number): number {
-    const sizeScale = 0.5 + 0.5 * alpha
+    const sizeScale = 0.72 + 0.58 * alpha
     const fovScale = 60 / fov
-    const basePx = size * pixelRatio * fovScale * sizeScale * 2.35
+    const basePx = size * pixelRatio * fovScale * sizeScale * 2.65
     const detailBoost = 1 + 0.18 * detailMix
     const farBoost = 1.15 - 0.15 * detailMix
-    return Math.max(1.1 * pixelRatio, basePx * detailBoost * farBoost)
+    return Math.max(1.6 * pixelRatio, basePx * detailBoost * farBoost)
   }
 
   /** Match shader redshift visibility curve. */
@@ -399,44 +417,77 @@ export class GalaxyField {
 
   /**
    * Compute alpha from a logarithmic depth window around camera focus.
-   * Balanced: enough depth for cool look, narrow enough to reduce overlap for browsing.
+   * Keeps the visible shell tight around the distance badge so nearby and faraway
+   * galaxies do not pile up in the same frame.
    */
   private computeDepthWindowAlpha(logOffset: number, fov: number): number {
-    const zoomMix = this.smoothstep(72, 12, fov)
-    const farFadeStart = this.mix(0.4, 0.2, zoomMix)
-    const farFadeEnd = this.mix(0.95, 0.55, zoomMix)
-    const nearFadeStart = this.mix(-0.4, -0.2, zoomMix)
-    const nearFadeEnd = this.mix(-1.5, -0.85, zoomMix)
+    const profile = this.getDepthBandProfile(fov)
 
-    if (logOffset < nearFadeEnd || logOffset > farFadeEnd) return 0.0
-    if (logOffset < nearFadeStart) return this.smoothstep(nearFadeEnd, nearFadeStart, logOffset)
-    if (logOffset > farFadeStart) return 1.0 - this.smoothstep(farFadeStart, farFadeEnd, logOffset)
+    if (logOffset < profile.nearFadeEnd || logOffset > profile.farFadeEnd) return 0.0
+    if (logOffset < profile.nearFadeStart) {
+      return this.smoothstep(profile.nearFadeEnd, profile.nearFadeStart, logOffset)
+    }
+    if (logOffset > profile.farFadeStart) {
+      return 1.0 - this.smoothstep(profile.farFadeStart, profile.farFadeEnd, logOffset)
+    }
     return 1.0
   }
 
   /**
-   * Compute size growth while keeping deep-field rendering conservative.
-   * Foreground objects can grow modestly, while background objects shrink.
+   * Compute size growth while preserving the "grow into view" effect inside the
+   * tighter depth shell.
    */
-  private computeGrowthMultiplier(logOffset: number): number {
+  private computeGrowthMultiplier(logOffset: number, fov: number): number {
+    const profile = this.getDepthBandProfile(fov)
+
     if (logOffset >= 0) {
-      return 1.0 - 0.38 * this.smoothstep(0.0, 1.0, logOffset)
+      return this.mix(
+        1.65,
+        profile.backgroundMinScale,
+        this.smoothstep(profile.farFadeStart, profile.farFadeEnd, logOffset)
+      )
     }
 
-    const foregroundProximity = this.smoothstep(-0.78, -0.05, logOffset)
-    return 1.15 + 2.7 * foregroundProximity
+    const foregroundProximity = 1.0 - this.smoothstep(profile.nearFadeEnd, 0.04, logOffset)
+    return 1.45 + profile.foregroundGrowthBoost * foregroundProximity
   }
 
   /**
    * Fade foreground to reduce overlap while still letting galaxies grow into view.
    */
   private computeForegroundFade(logOffset: number, fov: number): number {
-    const zoomMix = this.smoothstep(72, 12, fov)
-    const fadeStart = this.mix(-0.4, -0.2, zoomMix)
-    const fadeEnd = this.mix(-1.3, -0.75, zoomMix)
-    if (logOffset >= fadeStart) return 1.0
-    if (logOffset <= fadeEnd) return 0.0
-    return this.smoothstep(fadeEnd, fadeStart, logOffset)
+    const profile = this.getDepthBandProfile(fov)
+    if (logOffset >= profile.foregroundFadeStart) return 1.0
+    if (logOffset <= profile.foregroundFadeEnd) return 0.0
+    return this.smoothstep(profile.foregroundFadeEnd, profile.foregroundFadeStart, logOffset)
+  }
+
+  /**
+   * Derive the active depth shell for the current FOV.
+   * The band stays asymmetric: a little room behind the focus distance, less room
+   * in front, which reduces foreground clutter without flattening the zoom feel.
+   */
+  private getDepthBandProfile(fov: number): {
+    nearFadeStart: number
+    nearFadeEnd: number
+    farFadeStart: number
+    farFadeEnd: number
+    foregroundFadeStart: number
+    foregroundFadeEnd: number
+    foregroundGrowthBoost: number
+    backgroundMinScale: number
+  } {
+    const zoomMix = this.smoothstep(58, 18, fov)
+    return {
+      nearFadeStart: this.mix(-0.08, -0.05, zoomMix),
+      nearFadeEnd: this.mix(-0.70, -0.44, zoomMix),
+      farFadeStart: this.mix(0.05, 0.03, zoomMix),
+      farFadeEnd: this.mix(0.14, 0.09, zoomMix),
+      foregroundFadeStart: this.mix(-0.12, -0.07, zoomMix),
+      foregroundFadeEnd: this.mix(-0.40, -0.25, zoomMix),
+      foregroundGrowthBoost: this.mix(2.7, 2.0, zoomMix),
+      backgroundMinScale: this.mix(1.08, 1.16, zoomMix),
+    }
   }
 
   /**

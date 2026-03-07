@@ -6,16 +6,30 @@ uniform float uTime;
 uniform float uSeed;
 uniform float uNebulaIntensity;
 
+#define PI 3.14159265359
 #define TAU 6.28318530718
 
+// Noise constants
 const float MOD_DIVISOR = 289.0;
 const float NOISE_OUTPUT_SCALE_3D = 42.0;
+const int FBM_MAX_OCTAVES = 8;
 
-float hash11(float p) {
-  p = fract(p * 0.1031);
-  p *= p + 33.33;
-  p *= p + p;
-  return fract(p);
+// Nebula structure
+const float NEBULA_SCALE = 0.5;
+const float NEBULA_DETAIL = 2.0;
+const int SPIRAL_NOISE_ITER = 5;
+const float NUDGE = 3.0;
+const float DENSITY_THRESHOLD = 0.02;
+const float DENSITY_FALLOFF = 0.5;
+
+// =============================================================================
+// HASH FUNCTIONS
+// =============================================================================
+
+float seedHash(float seed) {
+  vec3 p3 = fract(vec3(seed) * vec3(0.1031, 0.1030, 0.0973));
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
 }
 
 vec3 hash33(vec3 p) {
@@ -23,6 +37,10 @@ vec3 hash33(vec3 p) {
   p += dot(p, p.yxz + 33.33);
   return fract((p.xxy + p.yxx) * p.zyx);
 }
+
+// =============================================================================
+// SIMPLEX NOISE 3D
+// =============================================================================
 
 vec3 mod289_3(vec3 x) {
   return x - floor(x * (1.0 / MOD_DIVISOR)) * MOD_DIVISOR;
@@ -100,24 +118,93 @@ float snoise3D(vec3 v) {
   return NOISE_OUTPUT_SCALE_3D * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-float fbm3D(vec3 p) {
+// =============================================================================
+// FBM (variable octaves)
+// =============================================================================
+
+float fbm3D(vec3 p, int octaves) {
   float value = 0.0;
   float amplitude = 0.5;
+  float frequency = 1.0;
+  vec3 shift = vec3(100.0);
 
-  for (int i = 0; i < 5; i++) {
-    value += amplitude * snoise3D(p);
-    p = p * 2.0 + vec3(17.0, 29.0, 41.0);
-    amplitude *= 0.52;
+  for (int i = 0; i < FBM_MAX_OCTAVES; i++) {
+    if (i >= octaves) break;
+    value += amplitude * snoise3D(p * frequency);
+    p += shift;
+    frequency *= 2.0;
+    amplitude *= 0.5;
   }
 
   return value;
 }
 
+// =============================================================================
+// SPIRAL NOISE — creates organic filamentary structure
+// =============================================================================
+
+float spiralNoise(vec3 p, float seed) {
+  float normalizer = 1.0 / sqrt(1.0 + NUDGE * NUDGE);
+  float n = 1.5 - seed * 0.5;
+  float iter = 2.0;
+
+  for (int i = 0; i < SPIRAL_NOISE_ITER; i++) {
+    n += -abs(sin(p.y * iter) + cos(p.x * iter)) / iter;
+    p.xy += vec2(p.y, -p.x) * NUDGE;
+    p.xy *= normalizer;
+    p.xz += vec2(p.z, -p.x) * NUDGE;
+    p.xz *= normalizer;
+    iter *= 1.5 + seed * 0.2;
+  }
+
+  return n;
+}
+
+// =============================================================================
+// NEBULA DENSITY — heterogeneous with bright/dark regions
+// =============================================================================
+
+float nebulaDensity(vec3 p, float seed) {
+  float k = 1.5 + seed * 0.5;
+  float spiral = spiralNoise(p * NEBULA_SCALE, seed);
+  float detail = fbm3D(p * NEBULA_DETAIL, 4) * 0.35;
+  float fine = fbm3D(p * NEBULA_DETAIL * 3.0, 2) * 0.15;
+  return k * (0.5 + spiral * 0.5 + detail + fine);
+}
+
+float densityVariation(vec3 p, float seed) {
+  float largeBright = fbm3D(p * 0.3 + seed * 50.0, 2);
+  largeBright = smoothstep(-0.4, 0.4, largeBright);
+  float mediumVar = fbm3D(p * 0.8 + seed * 30.0, 2);
+  mediumVar = mediumVar * 0.5 + 0.5;
+  return 0.3 + largeBright * (0.4 + mediumVar * 0.3);
+}
+
+float voidMask(vec3 p, float seed) {
+  float voidNoise = fbm3D(p * 0.6 + seed * 70.0, 2);
+  float voids = smoothstep(-0.5, 0.3, voidNoise);
+  float smallVoids = fbm3D(p * 1.5 + seed * 90.0, 2);
+  smallVoids = smoothstep(-0.5, 0.2, smallVoids);
+  return 0.55 + voids * smallVoids * 0.45;
+}
+
+float brightRegions(vec3 p, float seed) {
+  float patch1 = fbm3D(p * 0.5 + seed * 40.0, 2);
+  patch1 = pow(max(patch1 + 0.3, 0.0), 2.0);
+  float cores = fbm3D(p * 1.5 + seed * 60.0, 2);
+  cores = pow(max(cores + 0.5, 0.0), 3.0) * 0.5;
+  return patch1 + cores;
+}
+
+// =============================================================================
+// EMISSION COLORS — physically-inspired nebula palette
+// =============================================================================
+
 vec3 nebulaEmissionColor(float hue, float variation) {
-  vec3 hAlpha = vec3(0.92, 0.33, 0.38);
-  vec3 oiii = vec3(0.24, 0.73, 0.70);
-  vec3 sii = vec3(0.82, 0.30, 0.23);
-  vec3 hBeta = vec3(0.34, 0.52, 0.86);
+  vec3 hAlpha = vec3(0.9, 0.3, 0.35);   // H-alpha red
+  vec3 oiii   = vec3(0.2, 0.7, 0.65);   // OIII teal
+  vec3 sii    = vec3(0.8, 0.25, 0.2);   // SII deep red
+  vec3 hBeta  = vec3(0.3, 0.5, 0.8);    // H-beta blue
 
   vec3 color;
   if (hue < 0.25) {
@@ -130,100 +217,332 @@ vec3 nebulaEmissionColor(float hue, float variation) {
     color = mix(sii, hAlpha, (hue - 0.75) / 0.25);
   }
 
-  return color + (variation - 0.5) * 0.12;
+  color += (variation - 0.5) * 0.15;
+  return color;
 }
 
-vec4 nebulaCloud(vec3 dir, float seed, vec3 center, float size, float timeOffset) {
+// =============================================================================
+// STAR COLOR FROM TEMPERATURE
+// =============================================================================
+
+vec3 starColorFromTemp(float temp) {
+  if (temp < 0.2) {
+    return mix(vec3(1.0, 0.6, 0.4), vec3(1.0, 0.75, 0.5), temp / 0.2);
+  } else if (temp < 0.4) {
+    return mix(vec3(1.0, 0.75, 0.5), vec3(1.0, 0.9, 0.75), (temp - 0.2) / 0.2);
+  } else if (temp < 0.6) {
+    return mix(vec3(1.0, 0.9, 0.75), vec3(1.0, 1.0, 1.0), (temp - 0.4) / 0.2);
+  } else if (temp < 0.8) {
+    return mix(vec3(1.0, 1.0, 1.0), vec3(0.85, 0.9, 1.0), (temp - 0.6) / 0.2);
+  } else {
+    return mix(vec3(0.85, 0.9, 1.0), vec3(0.7, 0.8, 1.0), (temp - 0.8) / 0.2);
+  }
+}
+
+// =============================================================================
+// STAR SCINTILLATION
+// =============================================================================
+
+float starScintillation(float baseIntensity, float starHash, float time) {
+  if (baseIntensity < 0.5) return baseIntensity;
+  float scint = 1.0;
+  scint += 0.03 * sin(time * 1.5 + starHash * TAU);
+  scint += 0.02 * sin(time * 2.7 + starHash * TAU * 1.3);
+  return baseIntensity * scint;
+}
+
+// =============================================================================
+// DISTANT GAS CLOUD — background nebula patches
+// =============================================================================
+
+vec4 distantGasCloud(vec3 dir, float seed, vec3 cloudCenter, float cloudSize, vec3 cloudColor) {
+  float dist = length(dir - cloudCenter);
+  float mask = 1.0 - smoothstep(0.0, cloudSize, dist);
+  mask = pow(max(mask, 0.0), 1.5);
+
+  if (mask < 0.01) return vec4(0.0);
+
+  vec3 localPos = (dir - cloudCenter) / cloudSize;
+  float noise = fbm3D(localPos * 3.0 + seed * 10.0, 3) * 0.5 + 0.5;
+  float detail = fbm3D(localPos * 8.0 + seed * 20.0, 2) * 0.5 + 0.5;
+
+  float voidNoise = fbm3D(localPos * 2.0 + seed * 30.0, 2);
+  float voids = smoothstep(-0.3, 0.2, voidNoise);
+
+  float brightCore = fbm3D(localPos * 4.0 + seed * 40.0, 2);
+  brightCore = pow(max(brightCore + 0.4, 0.0), 2.5);
+
+  float density = mask * noise * (0.7 + detail * 0.3) * voids;
+  density += brightCore * mask * 0.3;
+
+  float edge = smoothstep(0.0, 0.3, mask) * (1.0 - smoothstep(0.7, 1.0, mask));
+  density *= 0.4 + edge * 0.6;
+
+  float colorVar = fbm3D(localPos * 2.5 + seed * 15.0, 2) * 0.15;
+  vec3 variedColor = cloudColor * (0.85 + colorVar * 2.0);
+  variedColor = mix(variedColor, cloudColor * 1.3, brightCore);
+
+  vec3 color = variedColor * (0.12 + density * 0.28);
+
+  return vec4(color, density * 0.45);
+}
+
+// =============================================================================
+// EMISSION KNOT — compact bright HII region
+// =============================================================================
+
+vec4 emissionKnot(vec3 dir, float seed, vec3 center, float size, vec3 knotColor) {
   float dist = length(dir - center);
-  float shellMask = 1.0 - smoothstep(0.0, size, dist);
-  if (shellMask < 0.001) {
-    return vec4(0.0);
-  }
+  float mask = 1.0 - smoothstep(0.0, size, dist);
+  mask = pow(max(mask, 0.0), 2.0);
 
-  vec3 localPos = (dir - center) / max(size, 0.0001);
-  vec3 flowA = vec3(timeOffset * 0.03, -timeOffset * 0.018, seed * 9.0);
-  vec3 flowB = vec3(-timeOffset * 0.016, timeOffset * 0.024, seed * 17.0);
+  if (mask < 0.01) return vec4(0.0);
 
-  float nearLayer = fbm3D(localPos * 2.6 + flowA) * 0.5 + 0.5;
-  float farLayer = fbm3D(localPos * 5.8 + flowB) * 0.5 + 0.5;
-  float wisps = fbm3D(localPos * 9.0 + vec3(seed * 31.0)) * 0.5 + 0.5;
-  float voids = smoothstep(-0.35, 0.45, fbm3D(localPos * 1.7 - vec3(seed * 23.0)));
+  vec3 localPos = (dir - center) / size;
+  float noise = fbm3D(localPos * 5.0 + seed * 25.0, 2) * 0.5 + 0.5;
+  float density = mask * noise;
 
-  float density = shellMask * mix(nearLayer, farLayer, 0.45);
-  density *= 0.70 + wisps * 1.10;
-  density *= 0.45 + voids * 0.95;
+  float core = exp(-dist * 30.0 / size) * 0.8;
+  density += core;
 
-  float emission = pow(max(nearLayer, 0.0), 1.8) * shellMask;
-  float hue = fract(seed * 0.137 + farLayer * 0.22 + wisps * 0.08);
-  vec3 color = nebulaEmissionColor(hue, nearLayer);
-  color *= 0.18 + density * 1.30 + emission * 0.42;
-
-  return vec4(color, density * 0.85);
+  vec3 color = knotColor * density * 0.6;
+  return vec4(color, min(density * 0.5, 1.0));
 }
 
-float starLayer(vec3 dir, float scale, float threshold, float falloff, float seedOffset) {
-  vec3 cell = floor(dir * scale);
-  float h = hash11(dot(cell, vec3(127.1, 311.7, 74.7)) + uSeed * seedOffset);
-  if (h < threshold) {
-    return 0.0;
-  }
+// =============================================================================
+// DISTANT GALAXY — tiny background smudge
+// =============================================================================
 
-  vec3 center = (cell + 0.5) / scale;
-  float dist = length(dir - normalize(center));
-  float intensity = exp(-dist * falloff) * smoothstep(threshold, 1.0, h);
-  float twinkle = 0.96 + 0.04 * sin(uTime * (1.4 + h * 2.6) + h * TAU);
-  return intensity * twinkle;
+vec3 distantGalaxy(vec3 dir, float seed, vec3 center, float size) {
+  float dist = length(dir - center);
+  if (dist > size * 2.0) return vec3(0.0);
+
+  vec3 toCenter = dir - center;
+  vec3 tiltAxis = normalize(hash33(vec3(seed * 100.0)) - 0.5);
+
+  float diskDist = length(toCenter - tiltAxis * dot(toCenter, tiltAxis));
+  float heightDist = abs(dot(toCenter, tiltAxis));
+
+  float angle = atan(toCenter.y, toCenter.x);
+  float spiral = sin(angle * 2.0 + diskDist * 20.0 / size + seed * TAU) * 0.5 + 0.5;
+
+  float disk = exp(-diskDist * 8.0 / size) * exp(-heightDist * 40.0 / size);
+  float bulge = exp(-dist * 15.0 / size) * 0.8;
+
+  float brightness = (disk * (0.3 + spiral * 0.7) + bulge) * 0.15;
+
+  vec3 galaxyColor = mix(vec3(1.0, 0.9, 0.7), vec3(0.9, 0.85, 1.0), seedHash(seed + 0.5));
+  return galaxyColor * brightness;
 }
 
-vec3 starColor(float seed) {
-  float t = hash11(seed * 19.7);
-  vec3 warm = vec3(1.0, 0.84, 0.70);
-  vec3 neutral = vec3(1.0, 0.98, 0.96);
-  vec3 cool = vec3(0.72, 0.82, 1.0);
-  return t < 0.5 ? mix(warm, neutral, t * 2.0) : mix(neutral, cool, (t - 0.5) * 2.0);
-}
+// =============================================================================
+// MAIN
+// =============================================================================
 
 void main() {
   vec3 dir = normalize(vDirection);
   float time = uTime * 0.35;
+  float realTime = uTime;
 
-  float horizon = 1.0 - abs(dir.y);
-  vec3 color = mix(
-    vec3(0.010, 0.014, 0.026),
-    vec3(0.026, 0.038, 0.065),
-    smoothstep(0.0, 0.95, horizon)
+  // Seed-derived parameters for this galaxy's sky
+  float sh1 = seedHash(uSeed);
+  float sh2 = seedHash(uSeed + 1.0);
+  float sh3 = seedHash(uSeed + 2.0);
+  float sh4 = seedHash(uSeed + 3.0);
+  float sh5 = seedHash(uSeed + 4.0);
+  float sh6 = seedHash(uSeed + 5.0);
+
+  float flowTime = uTime * 0.008;
+
+  // Animated position for main nebula
+  vec3 animPos = dir + vec3(
+    flowTime * 0.03 * (sh1 - 0.5),
+    flowTime * 0.03 * 0.5,
+    flowTime * 0.03 * (sh2 - 0.5)
   );
 
-  for (int i = 0; i < 6; i++) {
-    float cloudSeed = uSeed + float(i) * 13.17;
-    vec3 center = normalize(hash33(vec3(cloudSeed, cloudSeed + 1.7, cloudSeed + 3.9)) - 0.5);
-    float size = 0.40 + hash11(cloudSeed + 0.7) * 0.28;
-    vec4 cloud = nebulaCloud(dir, cloudSeed, center, size, time + float(i) * 3.0);
-    color = mix(color, color + cloud.rgb * uNebulaIntensity, cloud.a);
+  // === DEEP SPACE BACKGROUND ===
+  vec3 finalColor = vec3(0.005, 0.005, 0.008);
+
+  // === DISTANT GALAXIES (very far background) ===
+  int numGalaxies = 2 + int(sh5 * 3.0);
+  for (int i = 0; i < 4; i++) {
+    if (i >= numGalaxies) break;
+    float galSeed = seedHash(uSeed + float(i) * 7.0 + 100.0);
+    vec3 galCenter = normalize(vec3(
+      seedHash(galSeed) - 0.5,
+      seedHash(galSeed + 0.1) - 0.5,
+      seedHash(galSeed + 0.2) - 0.5
+    ));
+    float galSize = 0.03 + seedHash(galSeed + 0.3) * 0.04;
+    finalColor += distantGalaxy(dir, galSeed, galCenter, galSize);
   }
 
-  vec3 bandDir = normalize(vec3(
-    sin(uSeed * 0.013) * 0.6,
-    -0.18 + cos(uSeed * 0.017) * 0.25,
-    cos(uSeed * 0.019)
-  ));
-  float band = 1.0 - abs(dot(dir, bandDir));
-  band = smoothstep(0.10, 0.92, band);
-  float bandNoise = fbm3D(dir * 3.5 + vec3(0.0, time * 0.02, uSeed * 11.0)) * 0.5 + 0.5;
-  vec3 bandColor = nebulaEmissionColor(fract(uSeed * 0.021 + bandNoise * 0.25), bandNoise);
-  color += bandColor * band * (0.45 + bandNoise * 0.75) * 0.26 * uNebulaIntensity;
+  // === STARS — 4 layers, jittered positions to break grid artifacts ===
+  float starField = 0.0;
+  vec3 starColor = vec3(1.0);
 
-  float brightStars = starLayer(dir, 220.0, 0.9945, 900.0, 1.0);
-  float mediumStars = starLayer(dir, 360.0, 0.9895, 1250.0, 2.0);
-  float faintStars = starLayer(dir, 560.0, 0.9835, 1700.0, 3.0);
+  // Bright stars (sparse, vivid color, scintillation)
+  vec3 starCell1 = floor(dir * 180.0);
+  float starHash1 = seedHash(dot(starCell1, vec3(127.1, 311.7, 74.7)) + uSeed);
+  if (starHash1 > 0.993) {
+    vec3 jitter1 = hash33(starCell1 + uSeed) * 0.8 + 0.1;
+    vec3 starCenter = (starCell1 + jitter1) / 180.0;
+    float dist = length(dir - normalize(starCenter));
+    float star = exp(-dist * 800.0) * (0.6 + starHash1 * 0.4);
+    star = starScintillation(star, starHash1, realTime);
+    starField = star;
+    starColor = starColorFromTemp(seedHash(starHash1 * 77.7));
+  }
 
-  float starIntensity = brightStars * 1.1 + mediumStars * 0.9 + faintStars * 0.55;
-  vec3 stars = starColor(brightStars + mediumStars + faintStars + uSeed) * starIntensity;
-  color += stars;
+  // Medium stars
+  vec3 starCell2 = floor(dir * 320.0);
+  float starHash2 = seedHash(dot(starCell2, vec3(93.1, 157.3, 211.7)) + uSeed * 2.0);
+  if (starHash2 > 0.988) {
+    vec3 jitter2 = hash33(starCell2 + uSeed + 7.0) * 0.8 + 0.1;
+    vec3 starCenter2 = (starCell2 + jitter2) / 320.0;
+    float dist2 = length(dir - normalize(starCenter2));
+    float star2 = exp(-dist2 * 1000.0) * (0.35 + starHash2 * 0.35);
+    if (star2 > starField) {
+      starField = star2;
+      starColor = starColorFromTemp(seedHash(starHash2 * 77.7));
+    }
+  }
 
+  // Faint stars (dense layer)
+  vec3 starCell3 = floor(dir * 520.0);
+  float starHash3 = seedHash(dot(starCell3, vec3(41.1, 89.3, 173.7)) + uSeed * 3.0);
+  if (starHash3 > 0.978) {
+    vec3 jitter3 = hash33(starCell3 + uSeed + 13.0) * 0.8 + 0.1;
+    vec3 starCenter3 = (starCell3 + jitter3) / 520.0;
+    float dist3 = length(dir - normalize(starCenter3));
+    float faint = exp(-dist3 * 1400.0) * 0.25;
+    starField = max(starField, faint);
+  }
+
+  // Very faint stars (densest layer — fills the sky)
+  vec3 starCell4 = floor(dir * 850.0);
+  float starHash4 = seedHash(dot(starCell4, vec3(17.3, 43.7, 97.1)) + uSeed * 4.0);
+  if (starHash4 > 0.970) {
+    vec3 jitter4 = hash33(starCell4 + uSeed + 19.0) * 0.8 + 0.1;
+    vec3 starCenter4 = (starCell4 + jitter4) / 850.0;
+    float dist4 = length(dir - normalize(starCenter4));
+    starField = max(starField, exp(-dist4 * 2000.0) * 0.1);
+  }
+
+  finalColor += starColor * starField;
+
+  // === DISTANT GAS CLOUDS (background nebula patches) ===
+  int numClouds = 3 + int(sh4 * 4.0);
+  for (int i = 0; i < 6; i++) {
+    if (i >= numClouds) break;
+    float cloudSeed = seedHash(uSeed + float(i) * 13.0 + 50.0);
+    vec3 cloudCenter = normalize(vec3(
+      seedHash(cloudSeed) - 0.5,
+      seedHash(cloudSeed + 0.1) - 0.5,
+      seedHash(cloudSeed + 0.2) - 0.5
+    ));
+    float cloudSize = 0.15 + seedHash(cloudSeed + 0.3) * 0.25;
+    float cloudHue = fract(sh1 + 0.3 + seedHash(cloudSeed + 0.4) * 0.4);
+    vec3 cloudColor = nebulaEmissionColor(cloudHue, seedHash(cloudSeed + 0.5));
+    vec4 cloud = distantGasCloud(dir, cloudSeed, cloudCenter, cloudSize, cloudColor);
+    finalColor = mix(finalColor, finalColor + cloud.rgb * uNebulaIntensity, cloud.a);
+  }
+
+  // (dark nebulae removed — they created unwanted dark spots in the backdrop)
+
+  // === MAIN NEBULA — spiral noise with heterogeneous density ===
+  vec3 lightDir = normalize(vec3(sh1 - 0.5, 0.3, sh2 - 0.5));
+
+  float mainDensity = nebulaDensity(animPos * 2.0, sh1);
+  float offsetDensity = nebulaDensity(animPos * 2.0 + lightDir * 0.15, sh1);
+  float density = mainDensity * 0.65 + offsetDensity * 0.35;
+
+  // Heterogeneous density: bright regions + voids
+  float variation = densityVariation(animPos, sh1);
+  density *= 0.3 + variation * 1.2;
+
+  float voids = voidMask(animPos, sh2);
+  density *= voids;
+
+  float brightSpots = brightRegions(animPos, sh3);
+  density += brightSpots * 0.4;
+
+  float cloudMask = smoothstep(DENSITY_THRESHOLD, DENSITY_THRESHOLD + DENSITY_FALLOFF, density);
+  cloudMask *= 0.85;
+
+  // Color variation across nebula
+  float colorNoise = fbm3D(animPos * 1.2 + vec3(sh3 * 10.0), 3);
+  colorNoise = colorNoise * 0.5 + 0.5;
+  float regionalHue = fbm3D(animPos * 0.4 + sh4 * 20.0, 2) * 0.3;
+  float hue = fract(sh1 + colorNoise * 0.25 + regionalHue);
+  vec3 nebulaColor = nebulaEmissionColor(hue, colorNoise);
+
+  // Brightness
+  float hotspots = fbm3D(animPos * 2.5 + sh6 * 30.0, 2);
+  hotspots = pow(max(hotspots + 0.3, 0.0), 2.0);
+
+  float brightness = 0.5 + cloudMask * 0.8;
+  brightness *= 0.85 + sh4 * 0.3;
+  brightness *= 0.6 + brightSpots * 1.2;
+  brightness *= 0.8 + hotspots * 0.8;
+  brightness *= 0.7 + variation * 0.8;
+  nebulaColor *= brightness;
+
+  // Structure detail
+  float structure = fbm3D(animPos * 4.0, 2) * 0.5 + 0.5;
+  nebulaColor *= 0.85 + structure * 0.3;
+
+  // Edge glow (ionization fronts)
+  float edgeGlow = pow(max(cloudMask, 0.0), 0.6) - pow(max(cloudMask, 0.0), 1.8);
+  nebulaColor += nebulaColor * edgeGlow * 0.5;
+
+  float brightEdge = pow(max(brightSpots - 0.2, 0.0), 0.5);
+  nebulaColor += nebulaEmissionColor(hue + 0.1, 0.8) * brightEdge * 0.3;
+
+  // Dust lanes
+  float dustLane = fbm3D(animPos * 1.5 + vec3(sh2 * 5.0), 3);
+  dustLane = smoothstep(0.2, 0.5, dustLane);
+  nebulaColor *= 0.5 + dustLane * 0.5;
+
+  // Void regions dim
+  nebulaColor *= 0.2 + voids * 0.8;
+
+  float nebulaAlpha = cloudMask * 0.7 * voids;
+
+  // === EMISSION KNOTS ===
+  int numKnots = 2 + int(sh3 * 4.0);
+  for (int i = 0; i < 5; i++) {
+    if (i >= numKnots) break;
+    float knotSeed = seedHash(uSeed + float(i) * 23.0 + 300.0);
+    vec3 knotCenter = normalize(vec3(
+      (seedHash(knotSeed) - 0.5) * 0.8,
+      (seedHash(knotSeed + 0.1) - 0.5) * 0.8,
+      0.5 + seedHash(knotSeed + 0.2) * 0.3
+    ));
+    float knotSize = 0.02 + seedHash(knotSeed + 0.3) * 0.03;
+    float knotHue = fract(sh1 + 0.15 + seedHash(knotSeed + 0.4) * 0.2);
+    vec3 knotColor = nebulaEmissionColor(knotHue, 0.7) * 1.5;
+    vec4 knot = emissionKnot(dir, knotSeed, knotCenter, knotSize, knotColor);
+    nebulaColor += knot.rgb;
+    nebulaAlpha = max(nebulaAlpha, knot.a);
+  }
+
+  // === COMBINE NEBULA WITH BACKGROUND ===
+  float obscuration = nebulaAlpha * 0.8 * uNebulaIntensity;
+  finalColor = mix(finalColor, nebulaColor, obscuration);
+
+  // Stars punch through slightly
+  finalColor += starColor * starField * (1.0 - obscuration) * 0.3;
+
+
+  // === FINAL ADJUSTMENTS ===
+  // Subtle vignette on vertical extremes
   float vignette = 1.0 - pow(max(abs(dir.y) - 0.10, 0.0), 2.0) * 0.08;
-  color *= vignette;
-  color = pow(max(color, 0.0), vec3(0.90));
+  finalColor *= vignette;
 
-  gl_FragColor = vec4(color, 1.0);
+  // Tone curve
+  finalColor = pow(max(finalColor, 0.0), vec3(0.95));
+
+  gl_FragColor = vec4(finalColor, 1.0);
 }

@@ -198,17 +198,23 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
   const hasBar = m.barLength > 0
   const barLength = m.barLength * galaxyRadius
   const windingFactor = 2.5
+  const minArmRadius = Math.min(
+    Math.max(spiralStart, hasBar ? barLength * 0.5 : 0),
+    galaxyRadius * 0.98,
+  )
+  const minArmRadiusSq = minArmRadius * minArmRadius
+  const maxArmRadiusSq = galaxyRadius * galaxyRadius
 
   for (let arm = 0; arm < numArms; arm++) {
     const armOffset = (arm / numArms) * TAU
 
     for (let i = 0; i < starsPerArm; i++) {
-      // Sample radius first so density stays even across the disk instead of
-      // piling too many particles into a loose exponential outer spiral.
-      const armRadius = Math.sqrt(Math.random()) * (galaxyRadius * 0.9) + galaxyRadius * 0.1
-
-      // For barred spirals, skip stars inside the bar zone
-      if (hasBar && armRadius < barLength * 0.5) continue
+      // Sample radius from an annulus that begins where the spiral actually
+      // starts. This avoids collapsing all inner-arm stars into a straight
+      // segment when r < spiralStart, which is especially visible in WebGPU.
+      const armRadius = Math.sqrt(
+        Math.random() * (maxArmRadiusSq - minArmRadiusSq) + minArmRadiusSq,
+      )
 
       const safeSpiralStart = Math.max(spiralStart, 0.001)
       const theta = Math.log(Math.max(armRadius / safeSpiralStart, 1.0))
