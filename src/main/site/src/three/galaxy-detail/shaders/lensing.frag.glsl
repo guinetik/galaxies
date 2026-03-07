@@ -8,6 +8,19 @@ uniform float     uAspectRatio;   // width / height
 
 varying vec2 vUV;
 
+vec3 gradeIntergalacticBackdrop(vec3 color) {
+  float peak = max(color.r, max(color.g, color.b));
+  float floor = min(color.r, min(color.g, color.b));
+  float saturation = peak - floor;
+
+  // Target diffuse, colorful nebula glow more than star-like highlights.
+  float nebulaMask = smoothstep(0.06, 0.30, saturation);
+  nebulaMask *= 1.0 - smoothstep(0.28, 0.95, peak);
+
+  vec3 graded = pow(max(color, 0.0), vec3(1.14));
+  return graded * mix(0.90, 0.45, nebulaMask);
+}
+
 void main() {
   // Vector from this pixel to the black hole center
   vec2 toBH = uBHScreenPos - vUV;
@@ -33,6 +46,7 @@ void main() {
   vec2 distortedUV = clamp(vUV + offset, 0.0, 1.0);
 
   vec4 color = texture2D(uSceneTexture, distortedUV);
+  color.rgb = gradeIntergalacticBackdrop(color.rgb);
 
   // Subtle Einstein ring glow at characteristic radius
   float ringRadius = mix(0.024, 0.09, uLensZoom);

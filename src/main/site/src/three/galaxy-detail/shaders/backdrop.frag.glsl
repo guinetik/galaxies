@@ -541,8 +541,10 @@ void main() {
   float vignette = 1.0 - pow(max(abs(dir.y) - 0.10, 0.0), 2.0) * 0.08;
   finalColor *= vignette;
 
-  // Tone curve
-  finalColor = pow(max(finalColor, 0.0), vec3(0.95));
+  // Dim for intergalactic backdrop: this sky should feel remote and subdued,
+  // with nebula light reading as far-off emission rather than a local glow.
+  finalColor *= 0.45;
+  finalColor = clamp(finalColor, 0.0, 1.0);
 
   gl_FragColor = vec4(finalColor, 1.0);
 }

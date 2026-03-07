@@ -72,7 +72,7 @@ void main() {
 
     vec3 bh = vec3(0.0);
     float bhr = 0.3;
-    float bhmass = 5.0 * 0.001;
+    float bhmass = 8.0 * 0.001;
 
     vec3 p = ro;
     vec3 pv = rd;
@@ -123,7 +123,7 @@ void main() {
                     * (2.5 / (0.001 + (length(bhv) - bhr) * 50.0));
 
         col += max(vec3(0.0), dcol
-            * step(0.0, -sdTorus(p * vec3(1.0, 20.0, 1.0) - bh, vec2(0.8, 1.2)))
+            * smoothstep(0.15, 0.0, sdTorus(p * vec3(1.0, 20.0, 1.0) - bh, vec2(0.9, 1.4)))
             * noncaptured);
 
         // Glow — subdued
