@@ -8,6 +8,7 @@ import { GalaxyHaze } from './GalaxyHaze'
 import { GalaxyBackdrop } from './GalaxyBackdrop'
 import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
+import { getInitialOrbitAngles } from './initialOrbit'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
 import type { IGalaxyScene } from './IGalaxyScene'
@@ -162,15 +163,12 @@ export class GalaxyScene implements IGalaxyScene {
 
     // ─── Initial orbit from position angle ───────────────────────────
 
-    // PGC-seeded random angle (no position_angle in CF4)
-    const initRotY = ((galaxy.pgc * 2654435761 >>> 0) / 4294967296) * Math.PI * 2
-    // Positive tilt opens the scene from above the galaxy plane rather than below it.
-    const initTiltX = 0.45
+    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy.pgc)
 
-    // Build initial quaternion: tilt around X then rotate around Y
+    // Tilt first, then yaw around world Y so every galaxy starts above the disk.
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
     const qRot = new THREE.Quaternion().setFromAxisAngle(_yAxis, initRotY)
-    this.orbitQuat.multiplyQuaternions(qTilt, qRot)
+    this.orbitQuat.multiplyQuaternions(qRot, qTilt)
 
     // ─── Input bindings ────────────────────────────────────────────────
 

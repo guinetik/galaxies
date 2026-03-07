@@ -29,6 +29,7 @@ import { GalaxyClouds } from './GalaxyClouds'
 import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
 import type { IGalaxyScene } from '../IGalaxyScene'
+import { getInitialOrbitAngles } from '../initialOrbit'
 
 // Reusable math objects (avoid per-frame allocations)
 const _yAxis = new THREE.Vector3(0, 1, 0)
@@ -162,12 +163,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.targetZoom = initialZoom
 
     // ─── Initial orbit from PGC seed ───────────────────────────────────
-    const initRotY = ((galaxy.pgc * 2654435761 >>> 0) / 4294967296) * Math.PI * 2
-    // Positive tilt opens the scene from above the galaxy plane rather than below it.
-    const initTiltX = 0.45
+    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy.pgc)
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
     const qRot = new THREE.Quaternion().setFromAxisAngle(_yAxis, initRotY)
-    this.orbitQuat.multiplyQuaternions(qTilt, qRot)
+    // Tilt first, then yaw around world Y so every galaxy starts above the disk.
+    this.orbitQuat.multiplyQuaternions(qRot, qTilt)
 
     // ─── Input bindings ────────────────────────────────────────────────
 
