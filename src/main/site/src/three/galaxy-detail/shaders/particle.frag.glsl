@@ -2,30 +2,35 @@ precision highp float;
 
 varying vec4 vColor;
 
+float saturate(float value) {
+    return clamp(value, 0.0, 1.0);
+}
+
 void main() {
-    vec2 coord = gl_PointCoord - vec2(0.5);
+    vec2 coord = gl_PointCoord * 2.0 - vec2(1.0);
     float dist = length(coord);
 
-    if (dist > 0.5) {
+    if (dist > 1.0) {
         discard;
     }
 
-    // Sharp bright core (white-hot center)
-    float core = smoothstep(0.18, 0.0, dist);
+    float edge = 1.0 - smoothstep(0.62, 1.0, dist);
+    float core = exp(-dist * dist * 34.0);
+    float innerCorona = exp(-dist * dist * 5.2) * 0.42;
+    float outerCorona = exp(-dist * dist * 1.55) * 0.28;
 
-    // Soft halo with moderate falloff
-    float halo = exp(-dist * dist * 18.0);
+    // Subtle diffraction-style streaking to keep bright stars lively without
+    // turning the whole sprite into a fuzzy disc.
+    float rays = pow(max(0.0, 1.0 - abs(coord.x * coord.y) * 7.0), 5.0);
+    rays *= exp(-dist * dist * 5.0) * 0.07;
 
-    // Anti-aliased edge
-    float edge = smoothstep(0.5, 0.4, dist);
+    float corona = innerCorona + outerCorona + rays;
+    vec3 coronaColor = mix(vColor.rgb * 1.32, vec3(1.0), 0.12);
+    vec3 coreColor = mix(coronaColor, vec3(1.0), 0.92);
+    vec3 litRgb = coronaColor * corona + coreColor * (core * 1.35);
+    float alpha = vColor.a * saturate((core * 1.2 + innerCorona + outerCorona * 0.95 + rays) * edge);
 
-    // Combine: core dominates center, halo provides glow
-    float intensity = max(core, halo * 0.6) * edge;
-
-    // Core shifts toward white, halo carries the star color
-    vec3 litRgb = mix(vColor.rgb, vec3(1.0), core * 0.6);
-    float alpha = vColor.a * intensity;
-
-    // Output premultiplied alpha
-    gl_FragColor = vec4(litRgb * alpha, alpha);
+    // Keep the output un-premultiplied so additive blending preserves hue and
+    // does not effectively square the alpha contribution.
+    gl_FragColor = vec4(litRgb, alpha);
 }

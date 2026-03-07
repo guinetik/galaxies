@@ -97,7 +97,7 @@ export class GalaxyParticles {
       vertexShader,
       fragmentShader,
       uniforms: {
-        uPixelRatio: { value: window.devicePixelRatio },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uBaseDistance: { value: baseDistance },
       },
       transparent: true,

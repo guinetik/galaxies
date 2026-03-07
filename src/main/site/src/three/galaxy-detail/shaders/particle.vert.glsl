@@ -9,8 +9,10 @@ varying vec4 vColor;
 void main() {
   vColor = aColor;
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  // Scale point size relative to camera base distance so stars stay
-  // proportionally sized regardless of galaxy radius.
-  gl_PointSize = aSize * uPixelRatio * (uBaseDistance * 1.5 / -mvPosition.z);
+
+  // Give the fragment shader more room for a broad corona while still capping
+  // the largest sprites before they become giant soft blobs.
+  float pointSize = aSize * uPixelRatio * (uBaseDistance * 1.28 / -mvPosition.z);
+  gl_PointSize = clamp(pointSize, 1.0 * uPixelRatio, 24.0 * uPixelRatio);
   gl_Position = projectionMatrix * mvPosition;
 }

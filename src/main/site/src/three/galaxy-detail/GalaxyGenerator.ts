@@ -44,10 +44,8 @@ const CONFIG = {
     diskThicknessRatio: 0.06,
     dustFraction: 0.65,
     brightFraction: 0.03,
-    hiiHueRange: [320, 340] as [number, number],
-    fieldHueRange: [10, 30] as [number, number],
     dustHueRange: [240, 280] as [number, number],
-    hiiRegionChance: 0.15,
+    brightHueRange: [10, 45] as [number, number],
   },
 } as const
 
@@ -110,13 +108,17 @@ function layerProperties(layer: Layer): LayerProps {
   }
 }
 
-function pickHue(layer: Layer, distFactor: number, isHII: boolean): number {
+/**
+ * Selects a stellar hue using the same broad radial spectral weighting as the
+ * WebGPU generator so both renderers share the same population mix.
+ */
+function pickHue(layer: Layer, distFactor: number, _isHII: boolean): number {
   const v = CONFIG.visual
-  if (isHII) {
-    return v.hiiHueRange[0] + Math.random() * (v.hiiHueRange[1] - v.hiiHueRange[0])
-  }
   if (layer === 'dust') {
     return v.dustHueRange[0] + Math.random() * (v.dustHueRange[1] - v.dustHueRange[0])
+  }
+  if (layer === 'bright') {
+    return v.brightHueRange[0] + Math.random() * (v.brightHueRange[1] - v.brightHueRange[0])
   }
   // Weighted selection from spectral classes based on radial position
   const d = Math.pow(distFactor, 0.6)
@@ -154,19 +156,24 @@ function applyCentralClearZone(stars: Star[], params: GalaxyRenderParams): Star[
 
 // ─── Field star generator ────────────────────────────────────────────────────
 
+/**
+ * Generates a diffuse field star with radial spectral weighting instead of a
+ * fixed warm tint so outskirts can still contain cooler populations.
+ */
 function generateFieldStar(galaxyRadius: number): Star {
   const angle = Math.random() * TAU
   const radius = Math.sqrt(Math.random()) * galaxyRadius
   const y = (Math.random() - 0.5) * galaxyRadius * 0.08
   const layer = assignLayer(Math.random())
   const props = layerProperties(layer)
+  const distFactor = radius / galaxyRadius
 
   return {
     radius,
     angle,
     y,
     rotationSpeed: computeRotationSpeed(radius),
-    hue: CONFIG.visual.fieldHueRange[0] + Math.random() * (CONFIG.visual.fieldHueRange[1] - CONFIG.visual.fieldHueRange[0]),
+    hue: pickHue(layer, distFactor, false),
     brightness: props.brightness,
     size: props.size,
     alpha: props.alpha,
@@ -189,17 +196,9 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
   const irregularity = m.irregularity
   const hasBar = m.barLength > 0
   const barLength = m.barLength * galaxyRadius
-  const hiiChance = CONFIG.visual.hiiRegionChance
-  const numSegments = 10
 
   for (let arm = 0; arm < numArms; arm++) {
     const armOffset = (arm / numArms) * TAU
-
-    // Pre-determine HII regions for this arm
-    const hiiSegments = new Set<number>()
-    for (let seg = 0; seg < numSegments; seg++) {
-      if (Math.random() < hiiChance) hiiSegments.add(seg)
-    }
 
     for (let i = 0; i < starsPerArm; i++) {
       const t = i / starsPerArm
@@ -228,11 +227,9 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
       const rotationSpeed = computeRotationSpeed(actualRadius)
 
       const layer = assignLayer(Math.random())
-      const segment = Math.floor(t * numSegments)
-      const isHII = hiiSegments.has(segment) && Math.random() < 0.4
 
       const props = layerProperties(layer)
-      const hue = pickHue(layer, distFactor, isHII)
+      const hue = pickHue(layer, distFactor, false)
 
       stars.push({
         radius: actualRadius,
@@ -465,7 +462,7 @@ function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
 
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
-    const hue = pickHue(layer, distFactor, isHII)
+        const hue = pickHue(layer, distFactor, false)
 
     stars.push({
       radius: actualRadius,
