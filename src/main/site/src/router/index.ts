@@ -38,5 +38,10 @@ export const router = createRouter({
       name: 'localGroup',
       component: () => import('@/views/LocalGroupView.vue'),
     },
+    {
+      path: '/tour',
+      name: 'tour',
+      component: () => import('@/views/TourView.vue'),
+    },
   ],
 })

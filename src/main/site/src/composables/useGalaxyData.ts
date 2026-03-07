@@ -104,6 +104,25 @@ export function useGalaxyData() {
     return groups
   }
 
+  /**
+   * Returns a random sample of galaxies for sampling by morphology.
+   * @param limit Maximum number of galaxies to return
+   */
+  function getRandomGalaxies(limit: number): Galaxy[] {
+    if (!db) return []
+    const stmt = db.prepare(
+      'SELECT * FROM galaxies WHERE ra IS NOT NULL AND dec IS NOT NULL ORDER BY RANDOM() LIMIT ?'
+    )
+    stmt.bind([limit])
+    const galaxies: Galaxy[] = []
+    const columns = stmt.getColumnNames()
+    while (stmt.step()) {
+      galaxies.push(rowToGalaxy(columns, stmt.get() as any[]))
+    }
+    stmt.free()
+    return galaxies
+  }
+
   function getGalaxyByPgc(pgc: number): Galaxy | null {
     if (!db) return null
     const stmt = db.prepare('SELECT * FROM galaxies WHERE pgc = ?')
@@ -125,6 +144,7 @@ export function useGalaxyData() {
     getAllGalaxies,
     getGalaxiesByRedshiftRange,
     searchGalaxies,
+    getRandomGalaxies,
     getGalaxyByPgc,
     getAllGroups,
   }

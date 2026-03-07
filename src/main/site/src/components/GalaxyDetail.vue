@@ -5,14 +5,30 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { Galaxy } from '@/types/galaxy'
-import { GalaxyScene } from '@/three/galaxy-detail/GalaxyScene'
+import type { IGalaxyScene } from '@/three/galaxy-detail/IGalaxyScene'
 
 const props = defineProps<{ galaxy: Galaxy }>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-let scene: GalaxyScene | null = null
+let scene: IGalaxyScene | null = null
 
-onMounted(() => {
+onMounted(async () => {
   if (!canvasRef.value) return
+
+  if (navigator.gpu) {
+    try {
+      const { GalaxySceneWebGPU } = await import(
+        '@/three/galaxy-detail/webgpu/GalaxySceneWebGPU'
+      )
+      scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy)
+      await scene.start()
+      return
+    } catch (e) {
+      console.warn('WebGPU galaxy renderer failed, falling back to WebGL:', e)
+    }
+  }
+
+  // WebGL fallback
+  const { GalaxyScene } = await import('@/three/galaxy-detail/GalaxyScene')
   scene = new GalaxyScene(canvasRef.value, props.galaxy)
   scene.start()
 })

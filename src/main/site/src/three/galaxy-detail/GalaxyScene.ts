@@ -9,6 +9,7 @@ import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
+import type { IGalaxyScene } from './IGalaxyScene'
 
 // ─── Reusable math objects (avoid per-frame allocations) ─────────────────────
 
@@ -17,7 +18,7 @@ const _qDrag = new THREE.Quaternion()
 
 // ─── GalaxyScene ────────────────────────────────────────────────────────────
 
-export class GalaxyScene {
+export class GalaxyScene implements IGalaxyScene {
   private renderer: THREE.WebGLRenderer
   private scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
