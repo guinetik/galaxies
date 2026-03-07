@@ -189,17 +189,27 @@ async function dismissHero() {
   introAnimating = false
 }
 
+/**
+ * Dismiss hero by scroll: hide overlay and unlock zoom without running the intro animation.
+ * Lets the wheel event propagate so the canvas zooms from the current position.
+ */
+function dismissHeroByScroll() {
+  if (!showHero.value || introAnimating) return
+  showHero.value = false
+  canvasRef.value?.setZoomLock(false)
+}
+
 function onHeroWheel(e: WheelEvent) {
   if (showHero.value) {
-    e.preventDefault()
-    dismissHero()
+    dismissHeroByScroll()
+    // Do NOT preventDefault — let the wheel event reach the canvas so it can zoom from current position
   }
 }
 
 function onHeroTouch(e: TouchEvent) {
   if (showHero.value && e.touches.length >= 2) {
-    e.preventDefault()
-    dismissHero()
+    dismissHeroByScroll()
+    // Do NOT preventDefault — let the touch reach the canvas for pinch-to-zoom
   }
 }
 
