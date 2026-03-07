@@ -23,7 +23,7 @@ uniform float uTime;
 // ---- Main ----
 
 void main() {
-  if (vAlpha < 0.035) discard;
+  if (vAlpha < 0.03) discard;
 
   // Assemble Galaxy struct from varyings
   Galaxy g;
@@ -63,7 +63,7 @@ void main() {
     finalAlpha = max(finalAlpha, outline * 0.75 * vAlpha);
   }
 
-  if (finalAlpha < 0.045) discard;
+  if (finalAlpha < 0.04) discard;
 
   // Gamma correction (linear -> sRGB)
   finalColor = pow(max(finalColor, vec3(0.0)), vec3(0.45));

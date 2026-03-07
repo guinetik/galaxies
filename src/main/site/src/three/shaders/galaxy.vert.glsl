@@ -125,7 +125,7 @@ void main() {
   vDetailMix = max(max(max(fovMix, proximityBoost * 0.95), sizeBoost), pixelSizeBoost);
 
   // Dim blurry galaxies to reduce overlap clutter; in-focus stay full opacity.
-  vAlpha *= mix(0.68, 1.0, smoothstep(0.18, 0.72, vDetailMix));
+  vAlpha *= mix(0.74, 1.0, smoothstep(0.18, 0.72, vDetailMix));
   vAlpha *= mix(1.0, 1.28, homeViewBoost);
 
   float detailBoost = mix(1.0, 1.18, vDetailMix);
