@@ -6,6 +6,7 @@
  */
 
 import {
+  vec2,
   vec3,
   float,
   Fn,
@@ -17,6 +18,9 @@ import {
   max,
   min,
   pow,
+  dot,
+  floor,
+  mix,
 } from 'three/tsl'
 
 // ==============================================================================
@@ -32,6 +36,60 @@ export const hash = Fn(([seed]: [any]) => {
   const h = p.add(19.19)
   const x = fract(h.mul(h.add(47.43)).mul(p))
   return x
+})
+
+/**
+ * 3D hash for ray jitter — maps vec3 → float.
+ */
+export const hash13 = Fn(([p]: [any]) => {
+  const fp: any = fract(p.mul(vec3(0.16532, 0.17369, 0.15787))).toVar()
+  fp.addAssign(dot(fp, fp.yzx.add(19.19)))
+  return fract(fp.x.mul(fp.y).mul(fp.z))
+})
+
+/**
+ * 2D hash — maps vec2 → float.
+ */
+export const hash2d = Fn(([p]: [any]) => {
+  return fract(cos(dot(p, vec2(2.31, 53.21)).mul(124.123)).mul(412.0))
+})
+
+// ==============================================================================
+// NOISE
+// ==============================================================================
+
+/**
+ * 2D value noise with smooth bilinear interpolation.
+ */
+export const noise2d = Fn(([p]: [any]) => {
+  const i: any = floor(p)
+  const f: any = fract(p)
+  const u: any = f.mul(f).mul(float(3.0).sub(f.mul(2.0)))
+  return mix(
+    mix(hash2d(i), hash2d(i.add(vec2(1.0, 0.0))), u.x),
+    mix(hash2d(i.add(vec2(0.0, 1.0))), hash2d(i.add(vec2(1.0, 1.0))), u.x),
+    u.y,
+  )
+})
+
+// ==============================================================================
+// SIGNED DISTANCE FIELDS
+// ==============================================================================
+
+/**
+ * Sphere SDF — distance from point to sphere surface.
+ */
+export const sdSphere = Fn(([p, s]: [any, any]) => {
+  return length(p).sub(s)
+})
+
+/**
+ * Torus SDF — ring shape centered at origin.
+ * t.x = major radius, t.y = minor radius
+ */
+export const sdTorus = Fn(([p, t]: [any, any]) => {
+  const q = vec2(length(p.xz).sub(t.x), p.y)
+  return length(q).sub(t.y)
 })
 
 // ==============================================================================

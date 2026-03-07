@@ -18,14 +18,21 @@ import {
   type GalaxyUniforms,
 } from './GalaxyComputeInit'
 import { createComputeUpdate } from './GalaxyComputeUpdate'
+import {
+  createComputeForeground,
+  createForegroundUniforms,
+  type ForegroundUniforms,
+} from './GalaxyComputeForeground'
 import { GalaxyParticlesWebGPU } from './GalaxyParticlesWebGPU'
 import { GalaxyPostProcessing } from './GalaxyPostProcessing'
 import { GalaxyClouds } from './GalaxyClouds'
+import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import type { IGalaxyScene } from '../IGalaxyScene'
 
 // Reusable math objects (avoid per-frame allocations)
 const _yAxis = new THREE.Vector3(0, 1, 0)
 const _qDrag = new THREE.Quaternion()
+const _mvpMatrix = new THREE.Matrix4()
 
 // WebGPU particle count — much higher than WebGL's 42k-120k
 const PARTICLE_COUNT = 500000
@@ -33,6 +40,8 @@ const PARTICLE_COUNT = 500000
 export class GalaxySceneWebGPU implements IGalaxyScene {
   private renderer!: THREE.WebGPURenderer
   private scene: THREE.Scene
+  private bhScene: THREE.Scene
+  private fgScene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private canvas: HTMLCanvasElement
   private params: GalaxyRenderParams
@@ -40,14 +49,20 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   // GPU compute
   private buffers!: GalaxyBuffers
   private uniforms!: GalaxyUniforms
+  private fgUniforms!: ForegroundUniforms
   private computeInit: any
   private computeUpdate: any
+  private computeForeground: any
   private initialized = false
 
   // Visual layers
   private particles!: GalaxyParticlesWebGPU
   private clouds: GalaxyClouds
+  private blackHole!: GalaxyBlackHoleWebGPU
   private postProcessing!: GalaxyPostProcessing
+
+  // Reusable vector for BH screen projection
+  private _bhScreenVec = new THREE.Vector3()
 
   // Animation
   private animationId = 0
@@ -94,9 +109,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
     this.canvas = canvas
 
-    // ─── Scene ─────────────────────────────────────────────────────────
+    // ─── Scenes ────────────────────────────────────────────────────────
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x000000)
+    this.bhScene = new THREE.Scene()
+    this.fgScene = new THREE.Scene()
 
     // ─── Galaxy data pipeline ──────────────────────────────────────────
     this.params = mapGalaxyToRenderParams(galaxy)
@@ -114,6 +131,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     // ─── Compute shaders ───────────────────────────────────────────────
     this.computeInit = createComputeInit(PARTICLE_COUNT, this.buffers, this.uniforms)
     this.computeUpdate = createComputeUpdate(PARTICLE_COUNT, this.buffers, this.uniforms)
+    this.fgUniforms = createForegroundUniforms()
+    this.computeForeground = createComputeForeground(PARTICLE_COUNT, this.buffers, this.fgUniforms)
 
     // ─── Particle renderer ─────────────────────────────────────────────
     this.particles = new GalaxyParticlesWebGPU(PARTICLE_COUNT, this.buffers, this.baseDistance)
@@ -123,6 +142,14 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.clouds = new GalaxyClouds(this.uniforms, this.baseDistance)
     this.scene.add(this.clouds.sprite)
 
+    // ─── Black hole (separate scene — composited on top after lensing+bloom)
+    this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08)
+    this.bhScene.add(this.blackHole.depthMesh)
+    this.bhScene.add(this.blackHole.mesh)
+
+    // ─── Foreground stars (separate scene — additive on top of BH composite)
+    this.fgScene.add(this.particles.foregroundSprite)
+
     // ─── Mobile: start more zoomed out ─────────────────────────────────
     const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768
     const initialZoom = isNarrowViewport ? 2 : 4
@@ -131,7 +158,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Initial orbit from PGC seed ───────────────────────────────────
     const initRotY = ((galaxy.pgc * 2654435761 >>> 0) / 4294967296) * Math.PI * 2
-    const initTiltX = -0.45
+    // Positive tilt opens the scene from above the galaxy plane rather than below it.
+    const initTiltX = 0.45
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
     const qRot = new THREE.Quaternion().setFromAxisAngle(_yAxis, initRotY)
     this.orbitQuat.multiplyQuaternions(qTilt, qRot)
@@ -267,8 +295,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     await this.renderer.init()
 
-    // ─── Post-processing (bloom) ────────────────────────────────────
-    this.postProcessing = new GalaxyPostProcessing(this.renderer, this.scene, this.camera)
+    // ─── Post-processing (bloom + lensing + BH composite + fg stars) ─
+    this.postProcessing = new GalaxyPostProcessing(
+      this.renderer, this.scene, this.bhScene, this.fgScene, this.camera,
+    )
 
     // ─── Run init compute (once) ────────────────────────────────────
     await this.renderer.computeAsync(this.computeInit)
@@ -325,7 +355,74 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     if (this.initialized) {
       this.renderer.compute(this.computeUpdate)
       this.renderer.compute(this.clouds.computeUpdate)
+
+      // ─── Foreground detection compute ─────────────────────────────
+      const vm = this.camera.matrixWorldInverse.elements
+      _mvpMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
+      const mvp = _mvpMatrix.elements
+      // Pass MVP matrix rows (for NDC projection)
+      this.fgUniforms.mvpRow0.value.set(mvp[0], mvp[4], mvp[8], mvp[12])
+      this.fgUniforms.mvpRow1.value.set(mvp[1], mvp[5], mvp[9], mvp[13])
+      this.fgUniforms.mvpRow3.value.set(mvp[3], mvp[7], mvp[11], mvp[15])
+      // Pass view matrix Z-row (for view-space depth)
+      this.fgUniforms.viewZRow.value.set(vm[2], vm[6], vm[10], vm[14])
+      // BH at origin → view-space Z is just the translation component
+      this.fgUniforms.bhViewZ.value = vm[14]
+
+      // BH NDC position (already computed for lensing below, but compute here too)
+      const bhNdc = this._bhScreenVec.set(0, 0, 0).project(this.camera)
+      this.fgUniforms.bhNdcX.value = bhNdc.x
+      this.fgUniforms.bhNdcY.value = bhNdc.y
+
+      // Edge-on adaptive thresholds (matching WebGL GalaxyParticles.update logic)
+      const cp = this.camera.position
+      const cameraDistance = cp.length()
+      const edgeOnFactor = 1.0 - Math.abs(cp.y) / Math.max(cameraDistance, 0.0001)
+      const edgeOnMix = THREE.MathUtils.smoothstep(edgeOnFactor, 0.55, 0.95)
+      this.fgUniforms.depthThreshold.value = THREE.MathUtils.lerp(
+        Math.max(this.baseDistance * 0.03, 6.0),
+        Math.max(this.baseDistance * 0.004, 0.75),
+        edgeOnMix,
+      )
+      this.fgUniforms.depthSoftness.value = THREE.MathUtils.lerp(
+        Math.max(this.baseDistance * 0.06, 10.0),
+        Math.max(this.baseDistance * 0.018, 3.0),
+        edgeOnMix,
+      )
+
+      // BH screen footprint for overlap detection
+      const bhQuadSize = this.params.galaxyRadius * 0.08
+      const fov = (this.camera.fov * Math.PI) / 180
+      const screenH = this.rendererSize.y * this.dpr
+      const bhRadiusPx = (bhQuadSize / cameraDistance) * (screenH / (2 * Math.tan(fov / 2)))
+      const overlapScale = THREE.MathUtils.lerp(0.75, 1.2, edgeOnMix)
+      const vpW = this.canvas.clientWidth
+      const vpH = this.canvas.clientHeight
+      this.fgUniforms.ndcRadiusX.value = Math.max((bhRadiusPx * overlapScale) / Math.max(vpW * 0.5, 1), 0.04)
+      this.fgUniforms.ndcRadiusY.value = Math.max((bhRadiusPx * overlapScale) / Math.max(vpH * 0.5, 1), 0.04)
+
+      this.renderer.compute(this.computeForeground)
     }
+
+    // ─── Black hole update ────────────────────────────────────────────
+    const cp = this.camera.position
+    const hDist = Math.sqrt(cp.x * cp.x + cp.z * cp.z)
+    const tiltX = Math.atan2(cp.y, hDist)
+    const rotY = Math.atan2(cp.x, cp.z)
+    this.blackHole.update(time, tiltX, rotY, this.camera, this.rendererSize, this.dpr)
+
+    // ─── Lensing ──────────────────────────────────────────────────────
+    this._bhScreenVec.set(0, 0, 0).project(this.camera)
+    const lod = this.blackHole.getLOD()
+    const lensStrength = lod * lod * 0.03
+    this.postProcessing.updateLensing(
+      new THREE.Vector2(
+        this._bhScreenVec.x * 0.5 + 0.5,
+        this._bhScreenVec.y * 0.5 + 0.5,
+      ),
+      lensStrength,
+      this.camera.aspect,
+    )
 
     // ─── Render ──────────────────────────────────────────────────────
     this.postProcessing.render()
@@ -353,6 +450,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     this.particles.dispose()
     this.clouds.dispose()
+    this.blackHole.dispose()
     this.postProcessing.dispose()
     this.renderer.dispose()
   }

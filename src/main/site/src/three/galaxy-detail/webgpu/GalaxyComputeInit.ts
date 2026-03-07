@@ -41,6 +41,7 @@ export interface GalaxyBuffers {
   colorBuffer: ReturnType<typeof instancedArray>
   sizeBuffer: ReturnType<typeof instancedArray>
   layerBuffer: ReturnType<typeof instancedArray>
+  foregroundAlphaBuffer: ReturnType<typeof instancedArray>
 }
 
 export interface GalaxyUniforms {
@@ -87,6 +88,7 @@ export function createGalaxyBuffers(count: number): GalaxyBuffers {
     colorBuffer: instancedArray(count, 'vec4'),
     sizeBuffer: instancedArray(count, 'float'),
     layerBuffer: instancedArray(count, 'float'), // 0=dust, 1=star, 2=bright
+    foregroundAlphaBuffer: instancedArray(count, 'float'),
   }
 }
 
