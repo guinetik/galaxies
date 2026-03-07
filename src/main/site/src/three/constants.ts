@@ -1,4 +1,4 @@
-import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
+import type { MorphologyCategory, MorphologyPreset } from '@/three/galaxy-detail/morphology'
 
 /** Radius of the celestial sphere galaxies are placed on */
 export const SPHERE_RADIUS = 500
@@ -157,6 +157,23 @@ export const MORPHOLOGY_COLORS: Record<MorphologyCategory, [number, number, numb
   elliptical: [1.00, 0.65, 0.38], // red-orange — old K/M star population
   lenticular: [1.00, 0.78, 0.50], // warm yellow — transitional population
   irregular:  [0.78, 0.68, 1.00], // blue-violet — starburst + HII emission
+}
+
+/**
+ * Sub-type tint colors per morphology preset (10 presets).
+ * Finer-grained version of MORPHOLOGY_COLORS for per-preset rendering.
+ */
+export const PRESET_COLORS: Record<MorphologyPreset, [number, number, number]> = {
+  elliptical:  [1.00, 0.65, 0.38],   // red-orange — old K/M star population
+  lenticular:  [1.00, 0.78, 0.50],   // warm yellow — intermediate population
+  spiralSa:    [0.85, 0.85, 0.95],   // warm white — tight arms, large bulge
+  spiral:      [0.75, 0.82, 1.00],   // cool blue — young O/B star arms
+  grandDesign: [0.65, 0.78, 1.00],   // deeper blue — prominent young arms
+  flocculent:  [0.70, 0.75, 1.00],   // blue-violet — patchy star formation
+  barredTight: [1.00, 0.82, 0.50],   // warm gold — bar-dominated
+  barred:      [1.00, 0.85, 0.55],   // warm gold — older bar + blue arms
+  barredOpen:  [0.95, 0.88, 0.60],   // pale gold — weaker bar influence
+  irregular:   [0.78, 0.68, 1.00],   // blue-violet — chaotic star formation
 }
 
 /** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */
