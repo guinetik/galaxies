@@ -20,6 +20,7 @@ import {
   cos,
   floor,
   max,
+  min,
   pow,
   sqrt,
   smoothstep,
@@ -75,12 +76,19 @@ export class GalaxyClouds {
       // ─── SPIRAL / BARRED (numArms > 0): tight dust on inner arm edges ──────
       If(uniforms.numArms.greaterThan(0), () => {
         const rHash = hash(seed.add(1))
-        const armR = sqrt(rHash).mul(R.mul(0.9)).add(R.mul(0.1))
+        const spiralStartR = max(uniforms.spiralStart.mul(R), float(0.001))
+        const barMinR = uniforms.barLength.mul(0.5)
+        const minArmR = min(
+          max(spiralStartR, barMinR),
+          R.mul(0.98),
+        )
+        const armR = sqrt(
+          rHash.mul(R.mul(R).sub(minArmR.mul(minArmR))).add(minArmR.mul(minArmR)),
+        )
         normalizedRadius.assign(armR.div(R))
 
         const armIndex = floor(hash(seed.add(2)).mul(uniforms.numArms))
         const armAngle = armIndex.mul(TAU).div(uniforms.numArms)
-        const spiralStartR = max(uniforms.spiralStart.mul(R), float(0.001))
         const windingFactor = float(2.5)
         const spiralAngle = max(armR.div(spiralStartR), float(1.0)).log()
           .div(max(uniforms.spiralTightness, float(0.001)))

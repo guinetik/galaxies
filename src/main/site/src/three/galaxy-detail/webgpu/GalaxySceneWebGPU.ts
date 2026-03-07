@@ -27,6 +27,7 @@ import { GalaxyParticlesWebGPU } from './GalaxyParticlesWebGPU'
 import { GalaxyPostProcessing } from './GalaxyPostProcessing'
 import { GalaxyClouds } from './GalaxyClouds'
 import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
+import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
 import type { IGalaxyScene } from '../IGalaxyScene'
 
 // Reusable math objects (avoid per-frame allocations)
@@ -56,6 +57,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private initialized = false
 
   // Visual layers
+  private backdrop: GalaxyBackdropWebGPU
   private particles!: GalaxyParticlesWebGPU
   private clouds: GalaxyClouds
   private blackHole!: GalaxyBlackHoleWebGPU
@@ -111,7 +113,6 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Scenes ────────────────────────────────────────────────────────
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0x000000)
     this.bhScene = new THREE.Scene()
     this.fgScene = new THREE.Scene()
 
@@ -133,6 +134,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.computeUpdate = createComputeUpdate(PARTICLE_COUNT, this.buffers, this.uniforms)
     this.fgUniforms = createForegroundUniforms()
     this.computeForeground = createComputeForeground(PARTICLE_COUNT, this.buffers, this.fgUniforms)
+
+    // ─── Backdrop (procedural sky) ──────────────────────────────────────
+    this.backdrop = new GalaxyBackdropWebGPU(this.baseDistance, galaxy.pgc)
+    this.scene.add(this.backdrop.mesh)
 
     // ─── Particle renderer ─────────────────────────────────────────────
     this.particles = new GalaxyParticlesWebGPU(PARTICLE_COUNT, this.buffers, this.baseDistance)
@@ -404,6 +409,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       this.renderer.compute(this.computeForeground)
     }
 
+    // ─── Backdrop update ─────────────────────────────────────────────
+    this.backdrop.update(time, this.camera)
+
     // ─── Black hole update ────────────────────────────────────────────
     const cp = this.camera.position
     const hDist = Math.sqrt(cp.x * cp.x + cp.z * cp.z)
@@ -448,6 +456,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     canvas.removeEventListener('mousemove', this.onMouseMove)
     this.resizeObserver.disconnect()
 
+    this.backdrop.dispose()
     this.particles.dispose()
     this.clouds.dispose()
     this.blackHole.dispose()

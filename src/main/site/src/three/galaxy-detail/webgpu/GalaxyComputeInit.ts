@@ -216,22 +216,29 @@ export function createComputeInit(
         distFactor.assign(r.div(R))
       }).Else(() => {
         // ─── Arm star (spiral pattern) ────────────────────────────
-        // Parameterize by RADIUS (not theta) for even density distribution.
-        // Old approach used theta → exp(theta) for radius, which piles 60%
-        // of stars beyond galaxy radius. New approach: pick radius first,
-        // then derive spiral angle, keeping all stars within R.
+        // Parameterize by RADIUS (not theta) for even density distribution,
+        // but start the annulus where the spiral actually begins. Otherwise,
+        // r < spiralStart forces theta to 0 and creates a bright inner stripe.
         const numA = uniforms.numArms
         const armI = floor(hash(seed.add(30)).mul(numA))
         const armOffset = armI.mul(TAU).div(numA)
 
-        // Area-uniform radial distribution: sqrt biases toward larger radii
-        // to compensate for larger ring circumference at outer radii
+        const spiralStartR = max(uniforms.spiralStart.mul(R), float(0.001))
+        const barMinR = uniforms.barLength.mul(0.5)
+        const minArmR = min(
+          max(spiralStartR, barMinR),
+          R.mul(0.98),
+        )
+
+        // Area-uniform annulus sampling prevents inner-arm collapse and keeps
+        // barred spirals from leaking arm particles into the bar zone.
         const rHash = hash(seed.add(31))
-        const armR = sqrt(rHash).mul(R.mul(0.9)).add(R.mul(0.1))
+        const armR = sqrt(
+          rHash.mul(R.mul(R).sub(minArmR.mul(minArmR))).add(minArmR.mul(minArmR)),
+        )
 
         // Derive spiral angle from logarithmic spiral: r = a * exp(b * theta)
         // Solved: theta = ln(r/a) / b. Winding factor scales up wraps within R.
-        const spiralStartR = max(uniforms.spiralStart.mul(R), float(0.001))
         const windingFactor = float(2.5)
         const theta = max(armR.div(spiralStartR), float(1.0)).log()
           .div(max(uniforms.spiralTightness, float(0.001)))
