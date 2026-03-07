@@ -277,44 +277,37 @@ export function createComputeInit(
       })
     })
 
-    // ─── LENTICULAR (no arms, no bar, no clumps, no ellipticity, but has bulge) ─
+    // ─── LENTICULAR: smooth oblate spheroid (lens shape) ────────────
+    // Single continuous distribution — thick at center (bulge), thinning
+    // to edges (disk). No separate bulge/disk split avoids visible gaps.
     If(uniforms.numArms.equal(0)
       .and(uniforms.barLength.equal(0))
       .and(uniforms.clumpCount.equal(0))
       .and(uniforms.ellipticity.equal(0))
       .and(uniforms.bulgeFraction.greaterThan(0)), () => {
       const bulgeR = uniforms.bulgeRadius
-      const bf = uniforms.bulgeFraction
-      const roleRoll = hash(seed.add(500))
 
-      If(roleRoll.lessThan(bf), () => {
-        // Bulge
-        const r = pow(hash(seed.add(10)), float(0.6)).mul(bulgeR)
-        const theta = hash(seed.add(11)).mul(TAU)
-        const y = hash(seed.add(12)).sub(0.5).mul(bulgeR).mul(0.6)
-        posX.assign(cos(theta).mul(r))
-        posY.assign(y)
-        posZ.assign(sin(theta).mul(r))
-        distFactor.assign(r.div(bulgeR).mul(0.3))
-      }).Else(() => {
-        // Disk — exponential profile
-        const scaleLen = R.div(3)
-        // Inverse CDF of exponential: -ln(1-u) * scaleLength, clipped
-        const u = hash(seed.add(20))
-        const r = clamp(
-          float(-1).mul(float(1).sub(u.mul(0.95)).max(0.001)).log().mul(scaleLen),
-          float(0),
-          R,
-        )
-        const theta = hash(seed.add(21)).mul(TAU)
-        const dRatio = r.div(R)
-        const thick = R.mul(0.06).mul(0.5).mul(float(1).sub(dRatio.mul(0.5)))
-        const y = hash(seed.add(22)).sub(0.5).mul(thick)
-        posX.assign(cos(theta).mul(r))
-        posY.assign(y)
-        posZ.assign(sin(theta).mul(r))
-        distFactor.assign(dRatio.mul(0.3))
-      })
+      // Smooth radial profile: centrally concentrated power-law
+      const r = pow(hash(seed.add(10)), float(0.55)).mul(R)
+      const theta = hash(seed.add(11)).mul(TAU)
+      const df = r.div(R)
+
+      // Lens-shaped vertical profile: thick at center, thin at edge
+      const thickness = R.mul(0.06).mul(pow(max(float(1).sub(df), float(0)), float(2)))
+      const y = hash(seed.add(12)).sub(0.5).mul(thickness)
+
+      posX.assign(cos(theta).mul(r))
+      posY.assign(y)
+      posZ.assign(sin(theta).mul(r))
+
+      // Bulge region: brightness and size boost for prominent center
+      const bulgeBlend = clamp(float(1).sub(r.div(max(bulgeR, float(1)))), float(0), float(1))
+      const boost = float(1).add(bulgeBlend.mul(0.4))
+      brightness.assign(min(brightness.mul(boost), float(0.95)))
+      alpha.assign(min(alpha.mul(boost), float(0.95)))
+      starSize.assign(starSize.mul(float(1).add(bulgeBlend.mul(0.3))))
+
+      distFactor.assign(df.mul(0.2))
     })
 
     // ─── ELLIPTICAL (ellipticity > 0) ──────────────────────────────────

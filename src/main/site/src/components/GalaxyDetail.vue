@@ -7,20 +7,28 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import type { Galaxy } from '@/types/galaxy'
 import type { IGalaxyScene } from '@/three/galaxy-detail/IGalaxyScene'
 
-const props = defineProps<{ galaxy: Galaxy }>()
+const props = withDefaults(defineProps<{
+  galaxy: Galaxy
+  renderer?: 'webgpu' | 'webgl'
+}>(), {
+  renderer: 'webgpu',
+})
+
+const emit = defineEmits<{ activeRenderer: [value: 'webgpu' | 'webgl'] }>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let scene: IGalaxyScene | null = null
 
 onMounted(async () => {
   if (!canvasRef.value) return
 
-  if (navigator.gpu) {
+  if (props.renderer === 'webgpu' && navigator.gpu) {
     try {
       const { GalaxySceneWebGPU } = await import(
         '@/three/galaxy-detail/webgpu/GalaxySceneWebGPU'
       )
       scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy)
       await scene.start()
+      emit('activeRenderer', 'webgpu')
       return
     } catch (e) {
       console.warn('WebGPU galaxy renderer failed, falling back to WebGL:', e)
@@ -31,6 +39,7 @@ onMounted(async () => {
   const { GalaxyScene } = await import('@/three/galaxy-detail/GalaxyScene')
   scene = new GalaxyScene(canvasRef.value, props.galaxy)
   scene.start()
+  emit('activeRenderer', 'webgl')
 })
 
 onUnmounted(() => {

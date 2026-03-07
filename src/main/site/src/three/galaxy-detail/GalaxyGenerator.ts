@@ -365,22 +365,32 @@ function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
   return stars
 }
 
-// ─── Disk star generator (lenticular) ───────────────────────────────────────
+// ─── Lenticular star generator ───────────────────────────────────────────────
+//
+// Lenticulars are smooth oblate spheroids — thick at center (bulge), thinning
+// to a lens edge. Generated as a single continuous distribution to avoid
+// visible gaps between bulge and disk components.
 
-function generateDiskStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
   const stars: Star[] = []
   const galaxyRadius = p.galaxyRadius
-  const diskThickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * 0.5
-  const scaleLength = galaxyRadius / 3
+  const bulgeRadius = p.morphology.bulgeRadius * galaxyRadius
 
   for (let i = 0; i < count; i++) {
-    const u = Math.random()
-    const r = -Math.log(1 - u * 0.95) * scaleLength
-    if (r > galaxyRadius) { i--; continue }
-
+    // Smooth radial profile: centrally concentrated power-law
+    const r = Math.pow(Math.random(), 0.55) * galaxyRadius
     const theta = Math.random() * TAU
     const distFactor = r / galaxyRadius
-    const y = (Math.random() - 0.5) * diskThickness * (1 - distFactor * 0.5)
+
+    // Lens-shaped vertical profile: thick at center, thin at edge.
+    // Creates natural bulge→disk transition with no gap.
+    const thickness = galaxyRadius * 0.06 * Math.exp(-2.5 * distFactor)
+    const y = (Math.random() - 0.5) * thickness
+
+    // Inner bulge region gets brightness boost and slower rotation
+    const inBulge = r < bulgeRadius
+    const bulgeBlend = inBulge ? 1.0 - r / bulgeRadius : 0
+    const coreBrightBoost = 1.0 + bulgeBlend * 0.4
 
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
@@ -389,11 +399,11 @@ function generateDiskStars(p: GalaxyRenderParams, count: number): Star[] {
       radius: r,
       angle: theta,
       y,
-      rotationSpeed: computeRotationSpeed(r),
-      hue: pickHue(layer, distFactor * 0.3, false),
-      brightness: props.brightness,
-      size: props.size,
-      alpha: props.alpha,
+      rotationSpeed: computeRotationSpeed(r) * (inBulge ? 0.5 : 1.0),
+      hue: pickHue(layer, distFactor * 0.2, false),
+      brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
+      size: props.size * (1.0 + bulgeBlend * 0.3),
+      alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
       layer,
       twinklePhase: Math.random() * TAU,
     })
@@ -495,11 +505,8 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     stars.push(...generateEllipticalStars(params, totalStars))
 
   } else if (isLenticular) {
-    // Lenticular: bulgeFraction determines bulge/disk split
-    const bulgeCount = Math.floor(totalStars * m.bulgeFraction)
-    const diskCount = totalStars - bulgeCount
-    stars.push(...generateBulgeStars(params, bulgeCount))
-    stars.push(...generateDiskStars(params, diskCount))
+    // Lenticular: single smooth oblate distribution (no bulge/disk split)
+    stars.push(...generateLenticularStars(params, totalStars))
 
   } else if (hasClumps) {
     // Irregular: all non-field stars go to clumps

@@ -1,9 +1,12 @@
 <template>
   <div class="w-full h-full">
-    <GalaxyDetail v-if="galaxy" :galaxy="galaxy" />
+    <GalaxyDetail v-if="galaxy" :galaxy="galaxy" :renderer="renderer" :key="renderer" @active-renderer="activeRenderer = $event" />
     <GalaxyInfoCard v-if="galaxy" :galaxy="galaxy" />
     <div class="top-header">
       <div class="top-buttons">
+        <button v-if="supportsWebGPU" class="data-button renderer-toggle" @click="toggleRenderer">
+          {{ activeRenderer === 'webgpu' ? 'WebGPU' : 'WebGL' }}
+        </button>
         <button class="data-button" @click="showData = !showData">{{ t('pages.galaxy.dataButton') }}</button>
       </div>
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
@@ -28,6 +31,13 @@ const route = useRoute()
 const { ready, isLoading, getGalaxyByPgc } = useGalaxyData()
 const galaxy = ref<Galaxy | null>(null)
 const showData = ref(false)
+const supportsWebGPU = !!navigator.gpu
+const renderer = ref<'webgpu' | 'webgl'>(supportsWebGPU ? 'webgpu' : 'webgl')
+const activeRenderer = ref<'webgpu' | 'webgl'>('webgl')
+
+function toggleRenderer() {
+  renderer.value = renderer.value === 'webgpu' ? 'webgl' : 'webgpu'
+}
 
 onMounted(async () => {
   await ready
@@ -69,6 +79,12 @@ onMounted(async () => {
 .data-button:hover {
   color: #ffffff;
   background: rgba(0, 0, 0, 0.7);
+}
+
+.renderer-toggle {
+  font-family: monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
 }
 
 .galaxy-title {
