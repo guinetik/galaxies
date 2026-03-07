@@ -93,6 +93,7 @@ void main() {
 
     vec3 c1 = vec3(0.6, 0.25, 0.04);
     vec3 c2 = vec3(0.85, 0.5, 0.15);
+    float minDist = 999.0;
 
     // ─── Ray march with gravity ─────────────────────────────────────────
 
@@ -102,6 +103,7 @@ void main() {
         // Gravity
         vec3 bhv = bh - p;
         float r = dot(bhv, bhv);
+        minDist = min(minDist, length(bhv));
         pv += normalize(bhv) * (bhmass / r);
 
         noncaptured = smoothstep(0.0, 0.01, sdSphere(p - bh, bhr));
@@ -123,12 +125,23 @@ void main() {
                     * (2.5 / (0.001 + (length(bhv) - bhr) * 50.0));
 
         col += max(vec3(0.0), dcol
-            * smoothstep(0.15, 0.0, sdTorus(p * vec3(1.0, 20.0, 1.0) - bh, vec2(0.9, 1.4)))
+            * step(0.0, -sdTorus(p * vec3(1.0, 20.0, 1.0) - bh, vec2(0.85, 1.3)))
             * noncaptured);
 
         // Glow — subdued
         col += vec3(0.85, 0.5, 0.15) * (1.0 / vec3(dot(bhv, bhv))) * 0.002 * noncaptured;
     }
+
+    // Analytical photon ring at ~1.5x BH radius
+    float photonR = bhr * 1.5;
+    float ringDist = minDist - photonR;
+    float innerFall = exp(-ringDist * ringDist / 0.003);
+    float outerFall = exp(-ringDist * ringDist / 0.05);
+    float ringBright = mix(innerFall, outerFall, step(0.0, ringDist)) * (1.0 - captured) * 3.0;
+    col += mix(c2, c1, 0.3) * ringBright;
+
+    // Ensure captured rays are pure black
+    col *= (1.0 - captured);
 
     // Apply LOD intensity
     col *= intensity;

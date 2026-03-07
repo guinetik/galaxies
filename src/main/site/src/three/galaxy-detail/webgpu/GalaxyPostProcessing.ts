@@ -80,12 +80,12 @@ export class GalaxyPostProcessing {
       const dir = toBH.div(max(dist, float(0.0001)))
 
       // Compact lensing falloff
-      const radius = float(0.18)
+      const radius = float(0.45)
       const falloff = smoothstep(radius, float(0.0), dist).toVar()
       falloff.mulAssign(falloff) // squared for steep drop-off
 
       const softDist = max(dist, float(0.03))
-      const deflection = uLensStrength.mul(falloff).mul(float(0.09).div(softDist))
+      const deflection = uLensStrength.mul(falloff).mul(float(0.12).div(softDist))
 
       // Compute offset and undo aspect correction
       const offset = dir.mul(deflection).toVar()
@@ -95,11 +95,11 @@ export class GalaxyPostProcessing {
 
       const col = galaxyColor.sample(distortedUV).toVar()
 
-      // Subtle Einstein ring glow at characteristic radius
-      const ringRadius = float(0.02)
-      const ring = exp(pow(dist.sub(ringRadius).div(0.006), float(2.0)).negate())
-      const ringIntensity = ring.mul(falloff).mul(uLensStrength).mul(8.0)
-      col.rgb.addAssign(vec3(0.6, 0.7, 1.0).mul(ringIntensity.mul(0.12)))
+      // Einstein ring glow at characteristic radius
+      const ringRadius = float(0.06)
+      const ring = exp(pow(dist.sub(ringRadius).div(0.02), float(2.0)).negate())
+      const ringIntensity = ring.mul(falloff).mul(uLensStrength).mul(12.0)
+      col.rgb.addAssign(vec3(0.6, 0.7, 1.0).mul(ringIntensity.mul(0.18)))
 
       return col
     })

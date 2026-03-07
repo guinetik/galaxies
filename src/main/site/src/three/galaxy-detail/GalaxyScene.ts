@@ -277,6 +277,30 @@ export class GalaxyScene implements IGalaxyScene {
     this.orbitQuat.normalize()
   }
 
+  /**
+   * Renders the galaxy layer through the fullscreen post pass so the backdrop
+   * can be color-graded even when gravitational lensing is effectively zero.
+   */
+  private renderGalaxyPostPass(
+    bhU: number,
+    bhV: number,
+    lensStrength: number,
+    lensZoom: number,
+  ): void {
+    this.camera.layers.set(1)
+    this.renderer.setRenderTarget(this.galaxyRT)
+    this.renderer.clear()
+    this.renderer.render(this.scene, this.camera)
+
+    this.lensingMaterial.uniforms.uBHScreenPos.value.set(bhU, bhV)
+    this.lensingMaterial.uniforms.uLensStrength.value = lensStrength
+    this.lensingMaterial.uniforms.uLensZoom.value = lensZoom
+
+    this.renderer.setRenderTarget(null)
+    this.renderer.clear()
+    this.renderer.render(this.lensingScene, this.lensingCamera)
+  }
+
   // ─── Animation loop ─────────────────────────────────────────────────────────
 
   start(): void {
@@ -364,32 +388,13 @@ export class GalaxyScene implements IGalaxyScene {
       const lod = this.blackHole.getLOD()
       const lensStrength = lod * lod * 0.045
 
-      if (lensStrength < 0.001) {
-        // ─── Fast path: no visible lensing, single render ──────────
-        this.camera.layers.enableAll()
-        this.renderer.setRenderTarget(null)
-        this.renderer.render(this.scene, this.camera)
-      } else {
-        // ─── Pass 1: Galaxy objects → render target ────────────────
-        this.camera.layers.set(1)
-        this.renderer.setRenderTarget(this.galaxyRT)
-        this.renderer.clear()
-        this.renderer.render(this.scene, this.camera)
+      this.renderGalaxyPostPass(bhU, bhV, lensStrength, lod)
 
-        // ─── Pass 2: Lensing quad → screen ─────────────────────────
-        this.lensingMaterial.uniforms.uBHScreenPos.value.set(bhU, bhV)
-        this.lensingMaterial.uniforms.uLensStrength.value = lensStrength
-        this.lensingMaterial.uniforms.uLensZoom.value = lod
-        this.renderer.setRenderTarget(null)
-        this.renderer.clear()
-        this.renderer.render(this.lensingScene, this.lensingCamera)
-
-        // ─── Pass 3: Black hole billboard → screen (composite) ─────
-        this.camera.layers.set(2)
-        this.renderer.autoClear = false
-        this.renderer.render(this.scene, this.camera)
-        this.renderer.autoClear = true
-      }
+      // ─── Pass 3: Black hole billboard + foreground stars → screen ─────
+      this.camera.layers.set(2)
+      this.renderer.autoClear = false
+      this.renderer.render(this.scene, this.camera)
+      this.renderer.autoClear = true
     }
 
     animate()

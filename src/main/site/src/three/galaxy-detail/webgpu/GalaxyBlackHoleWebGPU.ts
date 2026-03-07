@@ -28,9 +28,11 @@ import {
   mix,
   smoothstep,
   step,
+  min,
   max,
   clamp,
   pow,
+  exp,
 } from 'three/tsl'
 import { hash13, noise2d, sdSphere, sdTorus } from './tsl-helpers'
 
@@ -89,7 +91,7 @@ export class GalaxyBlackHoleWebGPU {
       // Black hole parameters
       const bh = vec3(0.0, 0.0, 0.0)
       const bhr = float(0.3)
-      const bhmass = float(0.005)
+      const bhmass = float(0.008)
 
       // Mutable ray state
       const p = ro.toVar()
@@ -111,6 +113,7 @@ export class GalaxyBlackHoleWebGPU {
 
       const c1 = vec3(0.6, 0.25, 0.04)
       const c2 = vec3(0.85, 0.5, 0.15)
+      const minDist = float(999.0).toVar()
 
       // Ray march with gravity
       const t = float(0.0).toVar()
@@ -123,6 +126,7 @@ export class GalaxyBlackHoleWebGPU {
 
         const bhv = bh.sub(p)
         const r2 = dot(bhv, bhv)
+        minDist.assign(min(minDist, length(bhv)))
         pv.addAssign(normalize(bhv).mul(bhmass.div(r2)))
 
         noncaptured.assign(
@@ -164,7 +168,7 @@ export class GalaxyBlackHoleWebGPU {
           float(0.0),
           sdTorus(
             p.mul(vec3(1.0, 20.0, 1.0)).sub(bh),
-            vec2(0.8, 1.2),
+            vec2(0.85, 1.3),
           ).negate(),
         )
 
@@ -182,6 +186,19 @@ export class GalaxyBlackHoleWebGPU {
 
         t.addAssign(stepSz)
       })
+
+      // Analytical photon ring at ~1.5× BH radius
+      const photonR = bhr.mul(1.5)
+      const ringDist = minDist.sub(photonR)
+      const innerFall = exp(ringDist.mul(ringDist).negate().div(0.003))
+      const outerFall = exp(ringDist.mul(ringDist).negate().div(0.05))
+      const ringBright = mix(innerFall, outerFall, step(float(0.0), ringDist))
+        .mul(float(1.0).sub(captured))
+        .mul(3.0)
+      col.addAssign(mix(c2, c1, float(0.3)).mul(ringBright))
+
+      // Ensure captured rays are pure black
+      col.mulAssign(float(1.0).sub(captured))
 
       // Apply LOD intensity
       col.mulAssign(intensity)
