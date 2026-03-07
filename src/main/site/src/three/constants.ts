@@ -1,4 +1,4 @@
-import type { MorphologyClass } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
 
 /** Radius of the celestial sphere galaxies are placed on */
 export const SPHERE_RADIUS = 500
@@ -151,13 +151,12 @@ export const DEFAULT_LOCATION = 'North Pole'
  *   warm tints (high red) → warm the dust → old star populations
  * Matched to research/galaxy-generator/buffer-a.glsl palette.
  */
-export const MORPHOLOGY_COLORS: Record<MorphologyClass, [number, number, number]> = {
+export const MORPHOLOGY_COLORS: Record<MorphologyCategory, [number, number, number]> = {
   spiral:     [0.75, 0.82, 1.00], // cool blue — young O/B star arms
   barred:     [1.00, 0.85, 0.55], // warm gold — older bar + blue arms
   elliptical: [1.00, 0.65, 0.38], // red-orange — old K/M star population
   lenticular: [1.00, 0.78, 0.50], // warm yellow — transitional population
   irregular:  [0.78, 0.68, 1.00], // blue-violet — starburst + HII emission
-  unknown:    [0.90, 0.85, 0.80], // neutral warm
 }
 
 /** Velocity color bins for the cosmic map — matches Tully et al. (2023) Figure 9 */

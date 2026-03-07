@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { MorphologyClass } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
 
 const TEX_SIZE = 256
 const TAU = Math.PI * 2
@@ -347,54 +347,29 @@ function renderIrregular(ctx: OffscreenCanvasRenderingContext2D) {
   addFilmGrain(ctx, 8)
 }
 
-function renderUnknown(ctx: OffscreenCanvasRenderingContext2D) {
-  // Generic faint fuzz.
-  renderPhotometricBody(ctx, {
-    majorRadius: CENTER * 0.5,
-    axisRatio: 0.7 + Math.random() * 0.3,
-    rotation: Math.random() * TAU,
-    centerHue: 26,
-    outerHue: 286,
-    concentration: 1.05,
-    irregularity: 0.3,
-    dustStrength: 0.08,
-    armCount: 1,
-  })
-  
-  for (let i = 0; i < 300; i++) {
-    const r = Math.pow(Math.random(), 0.5) * CENTER * 0.6
-    const theta = Math.random() * TAU
-    const x = CENTER + Math.cos(theta) * r
-    const y = CENTER + Math.sin(theta) * r
-    drawSoftDot(ctx, x, y, 210, 0.42, 0.12, 0.5 + Math.random() * 1.3)
-  }
-  addFilmGrain(ctx, 5)
-}
-
-const RENDERERS: Record<MorphologyClass, (ctx: OffscreenCanvasRenderingContext2D) => void> = {
+const RENDERERS: Record<MorphologyCategory, (ctx: OffscreenCanvasRenderingContext2D) => void> = {
   spiral: renderSpiral,
   barred: renderBarred,
   elliptical: renderElliptical,
   lenticular: renderLenticular,
   irregular: renderIrregular,
-  unknown: renderUnknown,
 }
 
 /** Texture atlas layout: 4 columns x 2 rows (power-of-two for mipmaps) */
 const ATLAS_COLS = 4
 const ATLAS_ROWS = 2
 
-/** Order of morphology classes in the atlas */
-export const ATLAS_ORDER: MorphologyClass[] = [
+/** Order of morphology categories in the atlas */
+export const ATLAS_ORDER: MorphologyCategory[] = [
   'spiral', 'barred',
   'elliptical', 'lenticular',
-  'irregular', 'unknown',
+  'irregular',
 ]
 
-/** Get the atlas index for a morphology class */
-export function morphologyToAtlasIndex(morphClass: MorphologyClass): number {
+/** Get the atlas index for a morphology category */
+export function morphologyToAtlasIndex(morphClass: MorphologyCategory): number {
   const idx = ATLAS_ORDER.indexOf(morphClass)
-  return idx >= 0 ? idx : 5 // default to unknown
+  return idx >= 0 ? idx : 0 // default to spiral
 }
 
 /**

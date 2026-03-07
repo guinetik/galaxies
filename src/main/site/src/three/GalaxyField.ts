@@ -1,6 +1,7 @@
 import * as THREE from 'three'
-import type { Galaxy, MorphologyClass } from '@/types/galaxy'
-import { assignMorphology } from '@/types/galaxy'
+import type { Galaxy } from '@/types/galaxy'
+import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
+import { selectPreset, assignPresetFromPgc, presetToCategory } from '@/three/galaxy-detail/morphology'
 import { raDecToPosition, fovToMaxRedshift, redshiftToDistanceMLY } from './celestialMath'
 import { SPHERE_RADIUS } from './constants'
 import { morphologyToAtlasIndex } from './GalaxyTextures'
@@ -12,19 +13,18 @@ import fragMain from './shaders/galaxy.frag.glsl?raw'
 const fragmentShader = noiseLib + '\n' + renderLib + '\n' + fragMain
 
 /**
- * Convert MorphologyClass to Galaxy struct type enum.
- * 0=spiral, 1=barred, 2=elliptical, 3=lenticular, 4=irregular, 5+=unknown
+ * Convert MorphologyCategory to Galaxy struct type enum.
+ * 0=spiral, 1=barred, 2=elliptical, 3=lenticular, 4=irregular
  */
-function morphologyToGalaxyType(morphClass: MorphologyClass): number {
-  const typeMap: Record<MorphologyClass, number> = {
+function morphologyToGalaxyType(category: MorphologyCategory): number {
+  const typeMap: Record<MorphologyCategory, number> = {
     spiral: 0,
     barred: 1,
     elliptical: 2,
     lenticular: 3,
     irregular: 4,
-    unknown: 5,
   }
-  return typeMap[morphClass] ?? 5
+  return typeMap[category] ?? 0
 }
 
 /** Deterministic per-galaxy random from PGC + offset. Returns [0, 1). */
@@ -123,7 +123,8 @@ export class GalaxyField {
       // Color: seed-driven from astronomical palette (no green/cyan).
       // Sampled from Hubble deep field: blue-white, warm white, gold,
       // orange, red-orange, pink/magenta. Weighted toward warm tones.
-      const morphClass = assignMorphology(g.pgc)
+      const preset = g.morphology ? selectPreset(g.morphology) : assignPresetFromPgc(g.pgc)
+      const category = presetToCategory(preset)
       const seed = (g.pgc * 2654435761) >>> 0
       const t1 = ((seed >>> 8) % 1024) / 1023   // palette position
       const t2 = ((seed >>> 18) % 1024) / 1023  // saturation
@@ -167,11 +168,11 @@ export class GalaxyField {
       redshifts[i] = (g.vcmb ?? 0) / 299792.458
 
       // Texture atlas index from morphology
-      texIndices[i] = morphologyToAtlasIndex(morphClass)
+      texIndices[i] = morphologyToAtlasIndex(category)
       selected[i] = this.selectedPgc != null && g.pgc === this.selectedPgc ? 1 : 0
 
       // Galaxy struct attributes (packed)
-      types[i] = morphologyToGalaxyType(morphClass)
+      types[i] = morphologyToGalaxyType(category)
       seeds[i] = ((g.pgc * 73856093 ^ ((g.pgc >> 16) * 19349663)) >>> 0) % 100000 // Hash to positive float range
 
       // Pack angles (angleX, angleY, angleZ)
