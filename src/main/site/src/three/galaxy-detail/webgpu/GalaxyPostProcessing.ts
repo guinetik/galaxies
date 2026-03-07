@@ -34,6 +34,18 @@ import {
 import { pass } from 'three/tsl'
 import { bloom } from 'three/addons/tsl/display/BloomNode.js'
 
+const gradeIntergalacticBackdrop = Fn(([color]: [any]) => {
+  const peak = max(color.r, max(color.g, color.b))
+  const floor = min(color.r, min(color.g, color.b))
+  const saturation = peak.sub(floor)
+
+  const nebulaMask = smoothstep(float(0.06), float(0.30), saturation)
+    .mul(float(1.0).sub(smoothstep(float(0.28), float(0.95), peak)))
+
+  const graded = pow(max(color, vec3(0.0)), vec3(1.14, 1.14, 1.14))
+  return graded.mul(mix(float(0.90), float(0.45), nebulaMask))
+})
+
 export class GalaxyPostProcessing {
   readonly postProcessing: THREE.PostProcessing
   private bloomPassNode: any
@@ -79,13 +91,20 @@ export class GalaxyPostProcessing {
       const dist = length(toBH)
       const dir = toBH.div(max(dist, float(0.0001)))
 
-      // Compact lensing falloff
-      const radius = float(0.45)
+      const lensZoom = clamp(uLensStrength.div(0.03), float(0.0), float(1.0))
+
+      // Match the WebGL lensing falloff more closely.
+      const radius = mix(float(0.20), float(0.40), lensZoom)
       const falloff = smoothstep(radius, float(0.0), dist).toVar()
       falloff.mulAssign(falloff) // squared for steep drop-off
 
-      const softDist = max(dist, float(0.03))
-      const deflection = uLensStrength.mul(falloff).mul(float(0.12).div(softDist))
+      const innerRadius = mix(float(0.012), float(0.05), lensZoom)
+      const innerMask = smoothstep(innerRadius, innerRadius.mul(2.8), dist)
+      const softDist = max(dist, mix(float(0.028), float(0.04), lensZoom))
+      const deflection = uLensStrength
+        .mul(falloff)
+        .mul(innerMask)
+        .mul(mix(float(0.11), float(0.22), lensZoom).div(softDist))
 
       // Compute offset and undo aspect correction
       const offset = dir.mul(deflection).toVar()
@@ -94,12 +113,18 @@ export class GalaxyPostProcessing {
       const distortedUV = clamp(currentUV.add(offset), float(0.0), float(1.0))
 
       const col = galaxyColor.sample(distortedUV).toVar()
+      col.rgb.assign(gradeIntergalacticBackdrop(col.rgb))
 
-      // Einstein ring glow at characteristic radius
-      const ringRadius = float(0.06)
-      const ring = exp(pow(dist.sub(ringRadius).div(0.02), float(2.0)).negate())
-      const ringIntensity = ring.mul(falloff).mul(uLensStrength).mul(12.0)
-      col.rgb.addAssign(vec3(0.6, 0.7, 1.0).mul(ringIntensity.mul(0.18)))
+      // Keep the lensing glow subtle so the BH shader remains the main ring source.
+      const ringRadius = mix(float(0.024), float(0.09), lensZoom)
+      const ringWidth = mix(float(0.008), float(0.024), lensZoom)
+      const ring = exp(pow(dist.sub(ringRadius).div(ringWidth), float(2.0)).negate())
+      const ringIntensity = ring
+        .mul(falloff)
+        .mul(innerMask)
+        .mul(uLensStrength)
+        .mul(mix(float(10.0), float(16.0), lensZoom))
+      col.rgb.addAssign(vec3(0.6, 0.7, 1.0).mul(ringIntensity.mul(0.05)))
 
       return col
     })
@@ -108,9 +133,9 @@ export class GalaxyPostProcessing {
 
     // ─── Bloom (galaxy only — BH excluded) ─────────────────────────
     this.bloomPassNode = bloom(galaxyColor)
-    this.bloomPassNode.threshold.value = 0.1
-    this.bloomPassNode.strength.value = 0.3
-    this.bloomPassNode.radius.value = 0.2
+    this.bloomPassNode.threshold.value = 0.16
+    this.bloomPassNode.strength.value = 0.18
+    this.bloomPassNode.radius.value = 0.12
 
     // ─── Composite: lensed galaxy + bloom → BH on top → fg additive ─
     const galaxyResult = lensedGalaxy.add(this.bloomPassNode)
