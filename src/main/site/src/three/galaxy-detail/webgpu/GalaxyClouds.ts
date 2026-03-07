@@ -66,15 +66,14 @@ export class GalaxyClouds {
       const idx = instanceIndex
       const seed = idx.toFloat().add(10000) // offset from star seeds
       const R = uniforms.galaxyRadius
-      const morphType = uniforms.morphType
 
       const posX = float(0).toVar()
       const posY = float(0).toVar()
       const posZ = float(0).toVar()
       const normalizedRadius = float(0).toVar()
 
-      // ─── SPIRAL / BARRED (morphType 0 or 1): tight dust on inner arm edges ─
-      If(morphType.equal(0).or(morphType.equal(1)), () => {
+      // ─── SPIRAL / BARRED (numArms > 0): tight dust on inner arm edges ──────
+      If(uniforms.numArms.greaterThan(0), () => {
         const rHash = hash(seed.add(1))
         const armR = sqrt(rHash).mul(R.mul(0.9)).add(R.mul(0.1))
         normalizedRadius.assign(armR.div(R))
@@ -98,8 +97,12 @@ export class GalaxyClouds {
         posY.assign(hash(seed.add(5)).sub(0.5).mul(R.mul(0.03)).mul(thicknessFactor))
       })
 
-      // ─── LENTICULAR (morphType 2): smooth disk ───────────────────────
-      If(morphType.equal(2), () => {
+      // ─── LENTICULAR (no arms, no bar, no clumps, no ellipticity, but has bulge)
+      If(uniforms.numArms.equal(0)
+        .and(uniforms.barLength.equal(0))
+        .and(uniforms.clumpCount.equal(0))
+        .and(uniforms.ellipticity.equal(0))
+        .and(uniforms.bulgeFraction.greaterThan(0)), () => {
         const r = pow(hash(seed.add(1)), float(0.5)).mul(R)
         const theta = hash(seed.add(2)).mul(TAU)
         normalizedRadius.assign(r.div(R))
@@ -109,8 +112,8 @@ export class GalaxyClouds {
         posY.assign(hash(seed.add(5)).sub(0.5).mul(thick))
       })
 
-      // ─── ELLIPTICAL (morphType 3): smooth ellipsoid ──────────────────
-      If(morphType.equal(3), () => {
+      // ─── ELLIPTICAL (ellipticity > 0): smooth ellipsoid ───────────────
+      If(uniforms.ellipticity.greaterThan(0), () => {
         const ar = uniforms.axisRatio
         const r = pow(hash(seed.add(1)), float(0.4)).mul(R)
         const theta = hash(seed.add(2)).mul(TAU)
@@ -122,8 +125,8 @@ export class GalaxyClouds {
         posY.assign(hash(seed.add(5)).sub(0.5).mul(R).mul(0.08).mul(float(1.0).sub(normalizedRadius.mul(0.5))))
       })
 
-      // ─── IRREGULAR (morphType 4): clumped ────────────────────────────
-      If(morphType.equal(4), () => {
+      // ─── IRREGULAR (clumpCount > 0): clumped ──────────────────────────
+      If(uniforms.clumpCount.greaterThan(0), () => {
         const nClumps = uniforms.clumpCount
         const clumpIdx = floor(hash(seed.add(2)).mul(nClumps))
         const clumpAngle = clumpIdx.div(nClumps).mul(TAU).add(hash(clumpIdx.add(5000)).mul(0.5))

@@ -29,7 +29,7 @@ import {
   mix,
 } from 'three/tsl'
 import * as THREE from 'three'
-import type { GeneratorParams } from '../GalaxyParamsMapper'
+import type { GalaxyRenderParams } from '../morphology'
 import { hash, hslToRgb } from './tsl-helpers'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -44,8 +44,6 @@ export interface GalaxyBuffers {
 }
 
 export interface GalaxyUniforms {
-  // Morphology
-  morphType: ReturnType<typeof uniform>
   // Spiral/barred params
   numArms: ReturnType<typeof uniform>
   armWidth: ReturnType<typeof uniform>
@@ -59,6 +57,7 @@ export interface GalaxyUniforms {
   barWidth: ReturnType<typeof uniform>
   // Elliptical
   axisRatio: ReturnType<typeof uniform>
+  ellipticity: ReturnType<typeof uniform>
   // Lenticular
   bulgeFraction: ReturnType<typeof uniform>
   diskThickness: ReturnType<typeof uniform>
@@ -93,30 +92,24 @@ export function createGalaxyBuffers(count: number): GalaxyBuffers {
 
 // ─── Create uniforms ───────────────────────────────────────────────────────
 
-export function createGalaxyUniforms(params: GeneratorParams): GalaxyUniforms {
-  const morphMap: Record<string, number> = {
-    spiral: 0,
-    barred: 1,
-    lenticular: 2,
-    elliptical: 3,
-    irregular: 4,
-  }
+export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms {
+  const m = params.morphology
 
   return {
-    morphType: uniform(morphMap[params.type] ?? 0),
-    numArms: uniform('numArms' in params ? params.numArms : 2),
-    armWidth: uniform('armWidth' in params ? params.armWidth : 40),
-    spiralTightness: uniform('spiralTightness' in params ? params.spiralTightness : 0.25),
-    spiralStart: uniform('spiralStart' in params ? params.spiralStart : 0.2),
-    bulgeRadius: uniform('bulgeRadius' in params ? params.bulgeRadius : 50),
-    fieldStarFraction: uniform('fieldStarFraction' in params ? params.fieldStarFraction : 0.15),
-    irregularity: uniform('irregularity' in params ? params.irregularity : 0),
-    barLength: uniform('barLength' in params ? params.barLength : 120),
-    barWidth: uniform('barWidth' in params ? params.barWidth : 25),
-    axisRatio: uniform('axisRatio' in params ? params.axisRatio : 1.0),
-    bulgeFraction: uniform('bulgeFraction' in params ? params.bulgeFraction : 0.4),
-    diskThickness: uniform('diskThickness' in params ? params.diskThickness : 0.1),
-    clumpCount: uniform('clumpCount' in params ? params.clumpCount : 5),
+    numArms: uniform(m.numArms),
+    armWidth: uniform(m.armWidth * params.galaxyRadius),
+    spiralTightness: uniform(m.spiralTightness),
+    spiralStart: uniform(m.spiralStart), // keep as fraction, shader multiplies by R
+    bulgeRadius: uniform(m.bulgeRadius * params.galaxyRadius),
+    fieldStarFraction: uniform(m.fieldStarFraction),
+    irregularity: uniform(m.irregularity),
+    barLength: uniform(m.barLength * params.galaxyRadius),
+    barWidth: uniform(m.barWidth * params.galaxyRadius),
+    axisRatio: uniform(m.axisRatio),
+    ellipticity: uniform(m.ellipticity),
+    bulgeFraction: uniform(m.bulgeFraction),
+    diskThickness: uniform(m.diskThickness),
+    clumpCount: uniform(m.clumpCount),
     galaxyRadius: uniform(params.galaxyRadius),
     galaxySeed: uniform(params.starCount * 0.61803398875), // golden ratio based seed
     time: uniform(0),
@@ -143,7 +136,6 @@ export function createComputeInit(
     const seed = idx.toFloat()
 
     const R = uniforms.galaxyRadius
-    const morphType = uniforms.morphType
     const clearRadius = R.mul(0.06) // central exclusion zone
 
     // ─── Layer assignment: dust 65%, star 32%, bright 3% ───────────────
@@ -191,9 +183,9 @@ export function createComputeInit(
     const posZ = float(0).toVar()
     const distFactor = float(0).toVar()
 
-    // ─── SPIRAL (morphType == 0) ───────────────────────────────────────
+    // ─── SPIRAL / BARRED (numArms > 0) ────────────────────────────────
     // Each star is either an arm star, bulge star, or field star
-    If(morphType.equal(0).or(morphType.equal(1)), () => {
+    If(uniforms.numArms.greaterThan(0), () => {
       // Spiral or barred spiral — same arm generation
       const roleRoll = hash(seed.add(500))
 
@@ -269,7 +261,7 @@ export function createComputeInit(
       })
 
       // For barred spirals, add bar stars by re-using some arm stars
-      If(morphType.equal(1), () => {
+      If(uniforms.barLength.greaterThan(0), () => {
         const barRoll = hash(seed.add(600))
         If(barRoll.lessThan(0.25), () => {
           // Convert this to a bar star
@@ -285,8 +277,12 @@ export function createComputeInit(
       })
     })
 
-    // ─── LENTICULAR (morphType == 2) ───────────────────────────────────
-    If(morphType.equal(2), () => {
+    // ─── LENTICULAR (no arms, no bar, no clumps, no ellipticity, but has bulge) ─
+    If(uniforms.numArms.equal(0)
+      .and(uniforms.barLength.equal(0))
+      .and(uniforms.clumpCount.equal(0))
+      .and(uniforms.ellipticity.equal(0))
+      .and(uniforms.bulgeFraction.greaterThan(0)), () => {
       const bulgeR = uniforms.bulgeRadius
       const bf = uniforms.bulgeFraction
       const roleRoll = hash(seed.add(500))
@@ -321,8 +317,8 @@ export function createComputeInit(
       })
     })
 
-    // ─── ELLIPTICAL (morphType == 3) ───────────────────────────────────
-    If(morphType.equal(3), () => {
+    // ─── ELLIPTICAL (ellipticity > 0) ──────────────────────────────────
+    If(uniforms.ellipticity.greaterThan(0), () => {
       const ar = uniforms.axisRatio
       const r = pow(hash(seed.add(10)), float(0.4)).mul(R)
       const theta = hash(seed.add(11)).mul(TAU)
@@ -336,8 +332,8 @@ export function createComputeInit(
       distFactor.assign(dRatio)
     })
 
-    // ─── IRREGULAR (morphType == 4) ────────────────────────────────────
-    If(morphType.equal(4), () => {
+    // ─── IRREGULAR (clumpCount > 0) ────────────────────────────────────
+    If(uniforms.clumpCount.greaterThan(0), () => {
       const irr = uniforms.irregularity
       const nClumps = uniforms.clumpCount
 

@@ -8,8 +8,8 @@
 
 import * as THREE from 'three/webgpu'
 import type { Galaxy } from '@/types/galaxy'
-import { galaxyToGeneratorParams } from '../GalaxyParamsMapper'
-import type { GeneratorParams } from '../GalaxyParamsMapper'
+import { mapGalaxyToRenderParams } from '../morphology'
+import type { GalaxyRenderParams } from '../morphology'
 import {
   createGalaxyBuffers,
   createGalaxyUniforms,
@@ -35,7 +35,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private canvas: HTMLCanvasElement
-  private params: GeneratorParams
+  private params: GalaxyRenderParams
 
   // GPU compute
   private buffers!: GalaxyBuffers
@@ -99,7 +99,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.scene.background = new THREE.Color(0x000000)
 
     // ─── Galaxy data pipeline ──────────────────────────────────────────
-    this.params = galaxyToGeneratorParams(galaxy)
+    this.params = mapGalaxyToRenderParams(galaxy)
     const R = this.params.galaxyRadius
 
     // ─── Camera ────────────────────────────────────────────────────────
