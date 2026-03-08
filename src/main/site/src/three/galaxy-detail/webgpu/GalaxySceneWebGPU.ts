@@ -148,7 +148,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.computeForeground = createComputeForeground(count, this.buffers, this.fgUniforms)
 
     // ─── Backdrop (procedural sky) ──────────────────────────────────────
-    this.backdrop = new GalaxyBackdropWebGPU(this.baseDistance, galaxy.pgc)
+    this.backdrop = new GalaxyBackdropWebGPU(this.baseDistance, galaxy.pgc, this.quality)
     this.scene.add(this.backdrop.mesh)
 
     // ─── Particle renderer ─────────────────────────────────────────────

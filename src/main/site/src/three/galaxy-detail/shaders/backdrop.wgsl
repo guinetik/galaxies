@@ -118,7 +118,7 @@ fn spiralNoise(p_in: vec3<f32>, seed: f32) -> f32 {
   var it = 2.0;
   var p = p_in;
 
-  for (var i = 0; i < 5; i = i + 1) {
+  for (var i = 0; i < SPIRAL_NOISE_ITER; i = i + 1) {
     n = n - abs(sin(p.y * it) + cos(p.x * it)) / it;
     let xy1 = p.xy + vec2<f32>(p.y, -p.x) * 3.0;
     p = vec3<f32>(xy1 * normalizer, p.z);
@@ -134,7 +134,7 @@ fn spiralNoise(p_in: vec3<f32>, seed: f32) -> f32 {
 fn nebulaDensity(p: vec3<f32>, seed: f32) -> f32 {
   let k = 1.5 + seed * 0.5;
   let sp = spiralNoise(p * 0.5, seed);
-  let detail = fbm3D(p * 2.0, 4) * 0.35;
+  let detail = fbm3D(p * 2.0, FBM_DETAIL_OCTAVES) * 0.35;
   let fine = fbm3D(p * 6.0, 2) * 0.15;
   return k * (0.5 + sp * 0.5 + detail + fine);
 }
@@ -287,7 +287,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
 
   // ── Distant galaxies ──
   let numGalaxies = 2 + i32(sh5 * 3.0);
-  for (var i = 0; i < 4; i = i + 1) {
+  for (var i = 0; i < MAX_GALAXIES; i = i + 1) {
     if (i >= numGalaxies) { break; }
     let gs = seedHash(uSeed + f32(i) * 7.0 + 100.0);
     let gc = normalize(vec3<f32>(seedHash(gs) - 0.5, seedHash(gs + 0.1) - 0.5, seedHash(gs + 0.2) - 0.5));
@@ -323,29 +323,33 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
     }
   }
 
-  // Faint
-  let sc3 = floor(dir * 520.0);
-  let sh3v = seedHash(dot(sc3, vec3<f32>(41.1, 89.3, 173.7)) + uSeed * 3.0);
-  if (sh3v > 0.978) {
-    let j3 = hash33(sc3 + uSeed + 13.0) * 0.8 + 0.1;
-    let d3 = length(dir - normalize((sc3 + j3) / 520.0));
-    starField = max(starField, exp(-d3 * 1400.0) * 0.25);
+  // Faint (skipped on mobile: STAR_LAYERS <= 2)
+  if (STAR_LAYERS > 2) {
+    let sc3 = floor(dir * 520.0);
+    let sh3v = seedHash(dot(sc3, vec3<f32>(41.1, 89.3, 173.7)) + uSeed * 3.0);
+    if (sh3v > 0.978) {
+      let j3 = hash33(sc3 + uSeed + 13.0) * 0.8 + 0.1;
+      let d3 = length(dir - normalize((sc3 + j3) / 520.0));
+      starField = max(starField, exp(-d3 * 1400.0) * 0.25);
+    }
   }
 
-  // Very faint
-  let sc4 = floor(dir * 850.0);
-  let sh4v = seedHash(dot(sc4, vec3<f32>(17.3, 43.7, 97.1)) + uSeed * 4.0);
-  if (sh4v > 0.970) {
-    let j4 = hash33(sc4 + uSeed + 19.0) * 0.8 + 0.1;
-    let d4 = length(dir - normalize((sc4 + j4) / 850.0));
-    starField = max(starField, exp(-d4 * 2000.0) * 0.1);
+  // Very faint (skipped on mobile: STAR_LAYERS <= 3)
+  if (STAR_LAYERS > 3) {
+    let sc4 = floor(dir * 850.0);
+    let sh4v = seedHash(dot(sc4, vec3<f32>(17.3, 43.7, 97.1)) + uSeed * 4.0);
+    if (sh4v > 0.970) {
+      let j4 = hash33(sc4 + uSeed + 19.0) * 0.8 + 0.1;
+      let d4 = length(dir - normalize((sc4 + j4) / 850.0));
+      starField = max(starField, exp(-d4 * 2000.0) * 0.1);
+    }
   }
 
   finalColor = finalColor + starColor * starField;
 
   // ── Distant gas clouds ──
   let numClouds = 3 + i32(sh4 * 4.0);
-  for (var ci = 0; ci < 6; ci = ci + 1) {
+  for (var ci = 0; ci < MAX_CLOUDS; ci = ci + 1) {
     if (ci >= numClouds) { break; }
     let cs = seedHash(uSeed + f32(ci) * 13.0 + 50.0);
     let cc = normalize(vec3<f32>(seedHash(cs) - 0.5, seedHash(cs + 0.1) - 0.5, seedHash(cs + 0.2) - 0.5));
@@ -404,7 +408,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
 
   // ── Emission knots ──
   let numKnots = 2 + i32(sh3 * 4.0);
-  for (var ki = 0; ki < 5; ki = ki + 1) {
+  for (var ki = 0; ki < MAX_KNOTS; ki = ki + 1) {
     if (ki >= numKnots) { break; }
     let ks = seedHash(uSeed + f32(ki) * 23.0 + 300.0);
     let kc = normalize(vec3<f32>(
