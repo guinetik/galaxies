@@ -14,6 +14,9 @@
       <router-link to="/about" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.about') }}
       </router-link>
+      <router-link to="/tour" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.tour') }}
+      </router-link>
       <router-link to="/cosmography" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.cosmography') }}
       </router-link>
@@ -76,6 +79,9 @@
       <nav class="mobile-menu" @click.stop>
         <router-link to="/" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.home') }}
+        </router-link>
+        <router-link to="/tour" class="mobile-link" @click="menuOpen = false">
+          {{ t('nav.tour') }}
         </router-link>
         <router-link to="/cosmography" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.cosmography') }}

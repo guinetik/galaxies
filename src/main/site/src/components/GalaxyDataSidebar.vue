@@ -23,7 +23,7 @@
         </div>
         <div class="data-row">
           <div class="data-label">{{ t('pages.galaxy.fields.morphology.label') }}</div>
-          <div class="data-value">{{ t('morphology.' + morphology) }}</div>
+          <div class="data-value">{{ t('morphology.' + morphology) }} <span v-if="galaxy.morphology" class="catalog-type">({{ galaxy.morphology }})</span><sup v-else class="procedural-mark" title="Procedurally assigned">p</sup></div>
           <div class="data-desc">{{ t('pages.galaxy.fields.morphology.desc') }}</div>
         </div>
 
@@ -319,5 +319,17 @@ const distanceMethods = computed(() => {
   .data-sidebar {
     width: 100%;
   }
+}
+
+.catalog-type {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.procedural-mark {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: 2px;
+  cursor: help;
 }
 </style>

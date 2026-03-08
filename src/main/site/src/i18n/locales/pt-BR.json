@@ -15,7 +15,8 @@
     "map": "Mapa Cósmico",
     "cosmography": "Cosmografia",
     "spacetime": "Espaço-Tempo",
-    "localGroup": "Grupo Local"
+    "localGroup": "Grupo Local",
+    "tour": "Tour"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -462,6 +463,26 @@
         "coords": "Eixos de coordenadas",
         "groups": "Grupos de galáxias"
       }
+    },
+    "tour": {
+      "title": "Tour de Galáxias",
+      "subtitle": "Explore galáxias icônicas por morfologia — espirais, elípticas, barradas e mais.",
+      "shuffle": "Embaralhar",
+      "shuffleSubtitle": "Uma galáxia por tipo morfológico",
+      "shuffleEmpty": "Nenhuma seleção ainda. Clique em Embaralhar.",
+      "categories": {
+        "spiral": "Espiral",
+        "barred": "Espiral Barrada",
+        "elliptical": "Elíptica",
+        "lenticular": "Lenticular",
+        "irregular": "Irregular",
+        "unknown": "Outros"
+      },
+      "distance": "Distância",
+      "mly": "Mly",
+      "velocity": "km/s",
+      "type": "Tipo",
+      "viewGalaxy": "Ver Galáxia"
     }
   }
 }

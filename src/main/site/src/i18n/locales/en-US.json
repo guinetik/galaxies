@@ -15,7 +15,8 @@
     "map": "Cosmic Map",
     "cosmography": "Cosmography",
     "spacetime": "Spacetime",
-    "localGroup": "Local Group"
+    "localGroup": "Local Group",
+    "tour": "Tour"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -420,6 +421,26 @@
         "coords": "Coordinate axes",
         "groups": "Galaxy groups"
       }
+    },
+    "tour": {
+      "title": "Galaxy Tour",
+      "subtitle": "Explore iconic galaxies by morphology — spirals, ellipticals, bars, and more.",
+      "shuffle": "Shuffle",
+      "shuffleSubtitle": "One galaxy per morphology type",
+      "shuffleEmpty": "No picks yet. Click Shuffle.",
+      "categories": {
+        "spiral": "Spiral",
+        "barred": "Barred Spiral",
+        "elliptical": "Elliptical",
+        "lenticular": "Lenticular",
+        "irregular": "Irregular",
+        "unknown": "Other"
+      },
+      "distance": "Distance",
+      "mly": "Mly",
+      "velocity": "km/s",
+      "type": "Type",
+      "viewGalaxy": "View Galaxy"
     }
   }
 }
