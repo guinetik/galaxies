@@ -30,14 +30,18 @@ import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
 import type { IGalaxyScene } from '../IGalaxyScene'
 import { getInitialOrbitAngles } from '../initialOrbit'
+import { detectQuality, dprCap, type Quality } from '../qualityDetect'
 
 // Reusable math objects (avoid per-frame allocations)
 const _yAxis = new THREE.Vector3(0, 1, 0)
 const _qDrag = new THREE.Quaternion()
 const _mvpMatrix = new THREE.Matrix4()
 
-// WebGPU particle count — much higher than WebGL's 42k-120k
-const PARTICLE_COUNT = 500000
+// WebGPU particle count — scaled by device quality
+// Mobile (Z Fold Adreno 740): 150k is still 3.5× WebGL's desktop max
+function particleCount(quality: Quality): number {
+  return quality === 'mobile' ? 150_000 : 500_000
+}
 
 export class GalaxySceneWebGPU implements IGalaxyScene {
   private renderer!: THREE.WebGPURenderer
@@ -91,6 +95,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private intersectionPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private mousePressed = false
 
+  // Device quality tier
+  private quality: Quality
+
   // Renderer size cache
   private rendererSize = new THREE.Vector2()
   private dpr = 1
@@ -112,6 +119,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
     this.canvas = canvas
 
+    // ─── Quality detection ─────────────────────────────────────────────
+    this.quality = detectQuality()
+    const count = particleCount(this.quality)
+
     // ─── Scenes ────────────────────────────────────────────────────────
     this.scene = new THREE.Scene()
     this.bhScene = new THREE.Scene()
@@ -127,25 +138,25 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, this.baseDistance * 20)
 
     // ─── GPU buffers & uniforms ────────────────────────────────────────
-    this.buffers = createGalaxyBuffers(PARTICLE_COUNT)
+    this.buffers = createGalaxyBuffers(count)
     this.uniforms = createGalaxyUniforms(this.params)
 
     // ─── Compute shaders ───────────────────────────────────────────────
-    this.computeInit = createComputeInit(PARTICLE_COUNT, this.buffers, this.uniforms)
-    this.computeUpdate = createComputeUpdate(PARTICLE_COUNT, this.buffers, this.uniforms)
+    this.computeInit = createComputeInit(count, this.buffers, this.uniforms)
+    this.computeUpdate = createComputeUpdate(count, this.buffers, this.uniforms)
     this.fgUniforms = createForegroundUniforms()
-    this.computeForeground = createComputeForeground(PARTICLE_COUNT, this.buffers, this.fgUniforms)
+    this.computeForeground = createComputeForeground(count, this.buffers, this.fgUniforms)
 
     // ─── Backdrop (procedural sky) ──────────────────────────────────────
     this.backdrop = new GalaxyBackdropWebGPU(this.baseDistance, galaxy.pgc)
     this.scene.add(this.backdrop.mesh)
 
     // ─── Particle renderer ─────────────────────────────────────────────
-    this.particles = new GalaxyParticlesWebGPU(PARTICLE_COUNT, this.buffers, this.baseDistance)
+    this.particles = new GalaxyParticlesWebGPU(count, this.buffers, this.baseDistance)
     this.scene.add(this.particles.sprite)
 
     // ─── Dust clouds ─────────────────────────────────────────────────
-    this.clouds = new GalaxyClouds(this.uniforms, this.baseDistance)
+    this.clouds = new GalaxyClouds(this.uniforms, this.baseDistance, this.quality)
     this.scene.add(this.clouds.sprite)
 
     // ─── Black hole (separate scene — composited on top after lensing+bloom)
@@ -293,7 +304,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       canvas: this.canvas,
       antialias: true,
     })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, dprCap(this.quality)))
     this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight, false)
     this.dpr = this.renderer.getPixelRatio()
     this.renderer.getSize(this.rendererSize)

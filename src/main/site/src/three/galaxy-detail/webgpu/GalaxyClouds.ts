@@ -30,6 +30,7 @@ import {
   uniform,
 } from 'three/tsl'
 import type { GalaxyUniforms } from './GalaxyComputeInit'
+import type { Quality } from '../qualityDetect'
 import {
   hash,
   applyDifferentialRotation,
@@ -37,6 +38,10 @@ import {
 
 const TAU = 6.28318530718
 const CLOUD_COUNT = 30000
+
+function cloudCount(quality: Quality): number {
+  return quality === 'mobile' ? 10_000 : CLOUD_COUNT
+}
 
 export class GalaxyClouds {
   readonly sprite: THREE.Sprite
@@ -52,12 +57,14 @@ export class GalaxyClouds {
   readonly computeInit: any
   readonly computeUpdate: any
 
-  constructor(uniforms: GalaxyUniforms, baseDistance: number) {
+  constructor(uniforms: GalaxyUniforms, baseDistance: number, quality: Quality) {
+    const count = cloudCount(quality)
+
     // ─── Create cloud buffers ──────────────────────────────────────────
-    this.positionBuffer = instancedArray(CLOUD_COUNT, 'vec3')
-    this.originalPositionBuffer = instancedArray(CLOUD_COUNT, 'vec3')
-    this.colorBuffer = instancedArray(CLOUD_COUNT, 'vec3')
-    this.sizeBuffer = instancedArray(CLOUD_COUNT, 'float')
+    this.positionBuffer = instancedArray(count, 'vec3')
+    this.originalPositionBuffer = instancedArray(count, 'vec3')
+    this.colorBuffer = instancedArray(count, 'vec3')
+    this.sizeBuffer = instancedArray(count, 'float')
 
     const posBuffer = this.positionBuffer
     const origBuffer = this.originalPositionBuffer
@@ -165,7 +172,7 @@ export class GalaxyClouds {
       const densityFactor = float(1.0).sub(normalizedRadius.mul(0.5))
       const size = hash(seed.add(6)).mul(0.5).add(0.7).mul(densityFactor)
       szBuffer.element(idx).assign(size)
-    })().compute(CLOUD_COUNT)
+    })().compute(count)
 
     // ─── Update compute: same physics as stars but weaker spring ───────
     this.computeUpdate = Fn(() => {
@@ -188,7 +195,7 @@ export class GalaxyClouds {
       origBuffer.element(idx).assign(rotatedOriginal)
 
       posBuffer.element(idx).assign(position)
-    })().compute(CLOUD_COUNT)
+    })().compute(count)
 
     // ─── Cloud rendering material ──────────────────────────────────────
     this.material = new THREE.SpriteNodeMaterial()
@@ -213,12 +220,12 @@ export class GalaxyClouds {
     this.material.colorNode = cloudShape
 
     // Scale: larger than stars, proportional to galaxy size
-    const densityScale = Math.sqrt(60000 / CLOUD_COUNT)
+    const densityScale = Math.sqrt(60000 / count)
     const worldScale = baseDistance * 0.006 * densityScale
     this.material.scaleNode = cloudSize.mul(worldScale)
 
     this.sprite = new THREE.Sprite(this.material)
-    this.sprite.count = CLOUD_COUNT
+    this.sprite.count = count
     this.sprite.frustumCulled = false
     this.sprite.renderOrder = -1 // render before stars
   }
