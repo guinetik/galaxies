@@ -1,13 +1,14 @@
 import * as THREE from 'three'
 import vertexShader from './shaders/nebula.vert.glsl?raw'
 import fragmentShader from './shaders/nebula.frag.glsl?raw'
+import type { Quality } from './qualityDetect'
 
 export class GalaxyNebula {
   readonly mesh: THREE.Mesh
   private material: THREE.ShaderMaterial
   private densityTexture: THREE.DataTexture
 
-  constructor(stars: Array<{ radius: number; angle: number }>, galaxyRadius: number, seed: number) {
+  constructor(stars: Array<{ radius: number; angle: number }>, galaxyRadius: number, seed: number, quality: Quality) {
     // 1. Build density map from star positions (256x256 grid)
     const size = 256
     const grid = new Float32Array(size * size)
@@ -86,9 +87,15 @@ export class GalaxyNebula {
     // 2. Create fullscreen quad with custom ShaderMaterial
     const geometry = new THREE.PlaneGeometry(2, 2)
 
+    const isMobile = quality === 'mobile'
+
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
+      defines: {
+        FBM_MAX_OCTAVES: isMobile ? 2 : 4,
+        SPIRAL_ITERS:    isMobile ? 3 : 5,
+      },
       uniforms: {
         uInvViewProj: { value: new THREE.Matrix4() },
         uTime: { value: 0 },

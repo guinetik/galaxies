@@ -14,6 +14,14 @@ uniform sampler2D uDensityMap;
 #define PI 3.14159265359
 #define TAU 6.28318530718
 
+// Quality LOD — overridden by ShaderMaterial.defines
+#ifndef FBM_MAX_OCTAVES
+#define FBM_MAX_OCTAVES 4
+#endif
+#ifndef SPIRAL_ITERS
+#define SPIRAL_ITERS 5
+#endif
+
 // ─── Noise helpers ───────────────────────────────────────────────────────────
 
 const float MOD_DIVISOR = 289.0;
@@ -105,7 +113,7 @@ float fbm3D(vec3 p, int octaves) {
   float frequency = 1.0;
   vec3 shift = vec3(100.0);
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < FBM_MAX_OCTAVES; i++) {
     if (i >= octaves) break;
     value += amplitude * snoise3D(p * frequency);
     p += shift;
@@ -121,7 +129,7 @@ float spiralNoise(vec3 p, float seed) {
   float n = 1.5 - seed * 0.5;
   float iter = 2.0;
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < SPIRAL_ITERS; i++) {
     n += -abs(sin(p.y * iter) + cos(p.x * iter)) / iter;
     p.xy += vec2(p.y, -p.x) * NUDGE;
     p.xy *= normalizer;

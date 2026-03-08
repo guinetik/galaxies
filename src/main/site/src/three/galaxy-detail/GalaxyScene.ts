@@ -108,7 +108,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.haze = new GalaxyHaze(R)
     this.scene.add(this.haze.mesh)
 
-    this.nebula = new GalaxyNebula(stars, R, galaxy.pgc)
+    this.nebula = new GalaxyNebula(stars, R, galaxy.pgc, quality)
     this.scene.add(this.nebula.mesh)
 
     this.blackHole = new GalaxyBlackHole(null, R * 0.08)
