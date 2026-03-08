@@ -46,8 +46,8 @@ function expandDefines(source: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim()
-    // Strip preprocessor guard directives (#ifndef, #ifdef, #endif)
-    if (/^\s*#(ifndef|ifdef|endif)\b/.test(trimmed)) {
+    // Strip preprocessor directives (#ifndef, #ifdef, #if, #else, #endif)
+    if (/^\s*#(ifndef|ifdef|if|else|endif)\b/.test(trimmed)) {
       continue
     }
     const match = line.match(/^\s*#define\s+(\w+)\s+(.+)$/)

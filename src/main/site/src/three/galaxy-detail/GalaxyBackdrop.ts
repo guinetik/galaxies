@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import vertexShader from './shaders/backdrop.vert.glsl?raw'
 import fragmentShader from './shaders/backdrop.frag.glsl?raw'
+import type { Quality } from './qualityDetect'
 
 /**
  * Camera-centered procedural sky shell for the WebGL galaxy scene.
@@ -14,13 +15,23 @@ export class GalaxyBackdrop {
   /**
    * Creates a background sphere sized to stay inside the scene far plane.
    */
-  constructor(baseDistance: number, seed: number) {
+  constructor(baseDistance: number, seed: number, quality: Quality) {
     const radius = baseDistance * 12
     const geometry = new THREE.SphereGeometry(radius, 192, 128)
+
+    const isMobile = quality === 'mobile'
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
+      defines: {
+        SPIRAL_NOISE_ITER:  isMobile ? 3 : 5,
+        MAX_GALAXIES:       isMobile ? 2 : 4,
+        MAX_CLOUDS:         isMobile ? 3 : 6,
+        MAX_KNOTS:          isMobile ? 2 : 5,
+        STAR_LAYERS:        isMobile ? 2 : 4,
+        FBM_DETAIL_OCTAVES: isMobile ? 2 : 4,
+      },
       uniforms: {
         uTime: { value: 0 },
         uSeed: { value: seed },

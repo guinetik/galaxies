@@ -9,6 +9,27 @@ uniform float uNebulaIntensity;
 #define PI 3.14159265359
 #define TAU 6.28318530718
 
+// Quality LOD — set by ShaderMaterial at construction
+// Defaults are desktop values; mobile overrides via ShaderMaterial.defines
+#ifndef SPIRAL_NOISE_ITER
+#define SPIRAL_NOISE_ITER 5
+#endif
+#ifndef MAX_GALAXIES
+#define MAX_GALAXIES 4
+#endif
+#ifndef MAX_CLOUDS
+#define MAX_CLOUDS 6
+#endif
+#ifndef MAX_KNOTS
+#define MAX_KNOTS 5
+#endif
+#ifndef STAR_LAYERS
+#define STAR_LAYERS 4
+#endif
+#ifndef FBM_DETAIL_OCTAVES
+#define FBM_DETAIL_OCTAVES 4
+#endif
+
 // Noise constants
 const float MOD_DIVISOR = 289.0;
 const float NOISE_OUTPUT_SCALE_3D = 42.0;
@@ -17,7 +38,6 @@ const int FBM_MAX_OCTAVES = 8;
 // Nebula structure
 const float NEBULA_SCALE = 0.5;
 const float NEBULA_DETAIL = 2.0;
-const int SPIRAL_NOISE_ITER = 5;
 const float NUDGE = 3.0;
 const float DENSITY_THRESHOLD = 0.02;
 const float DENSITY_FALLOFF = 0.5;
@@ -167,7 +187,7 @@ float spiralNoise(vec3 p, float seed) {
 float nebulaDensity(vec3 p, float seed) {
   float k = 1.5 + seed * 0.5;
   float spiral = spiralNoise(p * NEBULA_SCALE, seed);
-  float detail = fbm3D(p * NEBULA_DETAIL, 4) * 0.35;
+  float detail = fbm3D(p * NEBULA_DETAIL, FBM_DETAIL_OCTAVES) * 0.35;
   float fine = fbm3D(p * NEBULA_DETAIL * 3.0, 2) * 0.15;
   return k * (0.5 + spiral * 0.5 + detail + fine);
 }
@@ -366,7 +386,7 @@ void main() {
 
   // === DISTANT GALAXIES (very far background) ===
   int numGalaxies = 2 + int(sh5 * 3.0);
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < MAX_GALAXIES; i++) {
     if (i >= numGalaxies) break;
     float galSeed = seedHash(uSeed + float(i) * 7.0 + 100.0);
     vec3 galCenter = normalize(vec3(
@@ -409,6 +429,7 @@ void main() {
     }
   }
 
+#if STAR_LAYERS >= 3
   // Faint stars (dense layer)
   vec3 starCell3 = floor(dir * 520.0);
   float starHash3 = seedHash(dot(starCell3, vec3(41.1, 89.3, 173.7)) + uSeed * 3.0);
@@ -419,7 +440,9 @@ void main() {
     float faint = exp(-dist3 * 1400.0) * 0.25;
     starField = max(starField, faint);
   }
+#endif
 
+#if STAR_LAYERS >= 4
   // Very faint stars (densest layer — fills the sky)
   vec3 starCell4 = floor(dir * 850.0);
   float starHash4 = seedHash(dot(starCell4, vec3(17.3, 43.7, 97.1)) + uSeed * 4.0);
@@ -429,12 +452,13 @@ void main() {
     float dist4 = length(dir - normalize(starCenter4));
     starField = max(starField, exp(-dist4 * 2000.0) * 0.1);
   }
+#endif
 
   finalColor += starColor * starField;
 
   // === DISTANT GAS CLOUDS (background nebula patches) ===
   int numClouds = 3 + int(sh4 * 4.0);
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < MAX_CLOUDS; i++) {
     if (i >= numClouds) break;
     float cloudSeed = seedHash(uSeed + float(i) * 13.0 + 50.0);
     vec3 cloudCenter = normalize(vec3(
@@ -500,10 +524,12 @@ void main() {
   float brightEdge = pow(max(brightSpots - 0.2, 0.0), 0.5);
   nebulaColor += nebulaEmissionColor(hue + 0.1, 0.8) * brightEdge * 0.3;
 
-  // Dust lanes
+#if STAR_LAYERS >= 3
+  // Dust lanes (skipped on mobile — subtle detail, expensive FBM call)
   float dustLane = fbm3D(animPos * 1.5 + vec3(sh2 * 5.0), 3);
   dustLane = smoothstep(0.2, 0.5, dustLane);
   nebulaColor *= 0.5 + dustLane * 0.5;
+#endif
 
   // Void regions dim
   nebulaColor *= 0.2 + voids * 0.8;
@@ -512,7 +538,7 @@ void main() {
 
   // === EMISSION KNOTS ===
   int numKnots = 2 + int(sh3 * 4.0);
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < MAX_KNOTS; i++) {
     if (i >= numKnots) break;
     float knotSeed = seedHash(uSeed + float(i) * 23.0 + 300.0);
     vec3 knotCenter = normalize(vec3(

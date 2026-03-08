@@ -98,7 +98,7 @@ export class GalaxyScene implements IGalaxyScene {
 
     // ─── Visual layers ─────────────────────────────────────────────────
 
-    this.backdrop = new GalaxyBackdrop(this.baseDistance, galaxy.pgc)
+    this.backdrop = new GalaxyBackdrop(this.baseDistance, galaxy.pgc, quality)
     this.scene.add(this.backdrop.mesh)
 
     this.particles = new GalaxyParticles(stars, this.baseDistance)
