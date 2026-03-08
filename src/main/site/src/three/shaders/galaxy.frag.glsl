@@ -51,7 +51,7 @@ void main() {
   if (length(galaxyColor) < 0.001) discard;
 
   vec3 finalColor = galaxyColor;
-  float finalAlpha = length(galaxyColor) * vAlpha;
+  float finalAlpha = min(1.0, length(galaxyColor) * vAlpha * 1.35);
 
   // Selected outline: cyan glow at sprite edge
   if (vSelected > 0.5) {

@@ -156,15 +156,15 @@ export class GalaxyField {
       let gC = palette[lo][1] + (palette[hi][1] - palette[lo][1]) * frac
       let b = palette[lo][2] + (palette[hi][2] - palette[lo][2]) * frac
 
-      const brightness = 0.75 + t3 * 0.45
+      const brightness = 0.95 + t3 * 0.25
       const saturation = 0.55 + t2 * 0.45
       // Desaturate toward warm white (not pure white)
       r = r * saturation + (1.0 - saturation) * 0.92
       gC = gC * saturation + (1.0 - saturation) * 0.87
       b = b * saturation + (1.0 - saturation) * 0.82
-      colors[i * 3] = Math.min(1, Math.max(0.08, r * brightness))
-      colors[i * 3 + 1] = Math.min(1, Math.max(0.08, gC * brightness))
-      colors[i * 3 + 2] = Math.min(1, Math.max(0.08, b * brightness))
+      colors[i * 3] = Math.min(1, Math.max(0.18, r * brightness))
+      colors[i * 3 + 1] = Math.min(1, Math.max(0.18, gC * brightness))
+      colors[i * 3 + 2] = Math.min(1, Math.max(0.18, b * brightness))
 
       // Size from distance — closer galaxies appear larger
       const K = 32.0
@@ -187,7 +187,8 @@ export class GalaxyField {
       angles[i * 3 + 2] = seededRandom(g.pgc, 3) * Math.PI * 2   // angleZ (rotation)
 
       // Pack physical params (axialRatio, mass_log10, velocity_kmps)
-      physicalParams[i * 3] = g.axial_ratio ?? 0.7
+      // Clamp axial ratio to avoid very thin/elongated ellipses (min 0.52 ≈ 2:1)
+      physicalParams[i * 3] = Math.max(g.axial_ratio ?? 0.7, 0.52)
       physicalParams[i * 3 + 1] = g.log_ms_t ?? 10.0
       physicalParams[i * 3 + 2] = g.vcmb ?? 0.0
 
@@ -340,6 +341,9 @@ export class GalaxyField {
     const cameraDistanceMpc = cameraDistanceMly / 3.26
     const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
 
+    /** Only pick galaxies with effective visibility above 25% (avoids very faint/edge galaxies) */
+    const PICK_ALPHA_THRESHOLD = 0.25
+
     for (let i = 0; i < this.galaxies.length; i++) {
       const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift, minRedshift)
       if (alpha < 0.01) continue
@@ -352,6 +356,9 @@ export class GalaxyField {
       const logOffset = galaxyLogLevel - cameraLogLevel
       const depthAlpha = this.computeDepthWindowAlpha(logOffset, fov) * this.computeForegroundFade(logOffset, fov)
       if (depthAlpha < 0.01) continue
+
+      const effectiveAlpha = alpha * depthAlpha
+      if (effectiveAlpha < PICK_ALPHA_THRESHOLD) continue
 
       // Outside clip volume.
       if (this.tempWorld.z < -1 || this.tempWorld.z > 1) continue
@@ -466,6 +473,7 @@ export class GalaxyField {
    * Derive the active depth shell for the current FOV.
    * The band stays asymmetric: a little room behind the focus distance, less room
    * in front, which reduces foreground clutter without flattening the zoom feel.
+   * Wider far band lets galaxies grow more before fading out.
    */
   private getDepthBandProfile(fov: number): {
     nearFadeStart: number
@@ -479,14 +487,14 @@ export class GalaxyField {
   } {
     const zoomMix = this.smoothstep(58, 18, fov)
     return {
-      nearFadeStart: this.mix(-0.08, -0.05, zoomMix),
-      nearFadeEnd: this.mix(-0.70, -0.44, zoomMix),
-      farFadeStart: this.mix(0.05, 0.03, zoomMix),
-      farFadeEnd: this.mix(0.14, 0.09, zoomMix),
-      foregroundFadeStart: this.mix(-0.12, -0.07, zoomMix),
-      foregroundFadeEnd: this.mix(-0.40, -0.25, zoomMix),
-      foregroundGrowthBoost: this.mix(2.7, 2.0, zoomMix),
-      backgroundMinScale: this.mix(1.08, 1.16, zoomMix),
+      nearFadeStart: this.mix(-0.10, -0.06, zoomMix),
+      nearFadeEnd: this.mix(-0.82, -0.52, zoomMix),
+      farFadeStart: this.mix(0.09, 0.06, zoomMix),
+      farFadeEnd: this.mix(0.24, 0.16, zoomMix),
+      foregroundFadeStart: this.mix(-0.14, -0.09, zoomMix),
+      foregroundFadeEnd: this.mix(-0.48, -0.30, zoomMix),
+      foregroundGrowthBoost: this.mix(3.0, 2.2, zoomMix),
+      backgroundMinScale: this.mix(1.12, 1.20, zoomMix),
     }
   }
 

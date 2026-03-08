@@ -78,7 +78,7 @@ void main() {
     float depthT = redshiftRange > 0.0
       ? (aRedshift - uMinRedshift) / redshiftRange
       : 0.0;
-    float depthDim = mix(1.0, 0.48, depthT);
+    float depthDim = mix(1.0, 0.88, depthT);
 
     vAlpha = min(farAlpha, nearAlpha) * aAlpha * depthDim;
 
@@ -125,11 +125,33 @@ void main() {
   vDetailMix = max(max(max(fovMix, proximityBoost * 0.95), sizeBoost), pixelSizeBoost);
 
   // Dim blurry galaxies to reduce overlap clutter; in-focus stay full opacity.
-  vAlpha *= mix(0.74, 1.0, smoothstep(0.18, 0.72, vDetailMix));
+  // Alpha is NOT affected by view center — same galaxies visible at each zoom.
+  vAlpha *= mix(0.96, 1.0, smoothstep(0.18, 0.72, vDetailMix));
   vAlpha *= mix(1.0, 1.28, homeViewBoost);
 
-  float detailBoost = mix(1.0, 1.18, vDetailMix);
-  float farBoost = mix(1.15, 1.0, vDetailMix);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  // Keep a baseline parallax even when zoomed far out.
+  float parallaxZoomMix = smoothstep(75.0, 16.0, uFov);
+  float parallaxMix = mix(0.32, 1.0, parallaxZoomMix);
+  float nearFactor = 1.0;
+  if (uMaxRedshift > uMinRedshift + 0.000001) {
+    nearFactor = 1.0 - smoothstep(uMinRedshift, uMaxRedshift, aRedshift);
+  }
+  float depthMix = mix(0.45, 1.0, nearFactor);
+  mvPosition.x += uParallaxX * parallaxMix * depthMix * 29.0;
+  mvPosition.y += uParallaxY * parallaxMix * depthMix * 21.0;
+
+  vec4 clipPos = projectionMatrix * mvPosition;
+  gl_Position = clipPos;
+
+  // View-center sharpness: galaxies near where you're looking appear sharper (larger sprites).
+  // Does NOT affect alpha — visibility unchanged; only blur/size varies with look direction.
+  vec2 ndc = clipPos.xy / max(clipPos.w, 0.0001);
+  float viewCenterMix = 1.0 - smoothstep(0.0, 0.85, length(ndc));
+  float effectiveDetailForSize = max(vDetailMix, viewCenterMix * 0.55);
+
+  float detailBoost = mix(1.0, 1.18, effectiveDetailForSize);
+  float farBoost = mix(1.15, 1.0, effectiveDetailForSize);
   float focusSize = basePx * detailBoost * farBoost * mix(1.0, 1.12, homeViewBoost);
 
   // Focus mode: dim non-focused galaxies, grow the focused one
@@ -144,17 +166,4 @@ void main() {
   }
 
   gl_PointSize = min(max(1.6 * uPixelRatio, focusSize), 140.0 * uPixelRatio);
-
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  // Keep a baseline parallax even when zoomed far out.
-  float parallaxZoomMix = smoothstep(75.0, 16.0, uFov);
-  float parallaxMix = mix(0.32, 1.0, parallaxZoomMix);
-  float nearFactor = 1.0;
-  if (uMaxRedshift > uMinRedshift + 0.000001) {
-    nearFactor = 1.0 - smoothstep(uMinRedshift, uMaxRedshift, aRedshift);
-  }
-  float depthMix = mix(0.45, 1.0, nearFactor);
-  mvPosition.x += uParallaxX * parallaxMix * depthMix * 29.0;
-  mvPosition.y += uParallaxY * parallaxMix * depthMix * 21.0;
-  gl_Position = projectionMatrix * mvPosition;
 }

@@ -2,15 +2,15 @@
   <div class="w-full h-full">
     <GalaxyCanvas ref="canvasRef" @ready="onCanvasReady" @hover="onHover" @select="onSelect" />
     
+    <!-- Radial glow that follows the cursor — persists after hero dismissal -->
+    <div
+      v-if="canvasReady && !isMobile"
+      class="hero-lens-glow"
+      :style="lensGlowStyle"
+    />
     <!-- Hero CTA overlay — visible at default zoom, dismissed on scroll or click -->
     <Transition name="hero">
       <div v-if="showHero && canvasReady" class="hero-overlay">
-        <!-- Radial glow that follows the cursor — the "mass" of the gravitational lens -->
-        <div
-          v-if="!isMobile"
-          class="hero-lens-glow"
-          :style="lensGlowStyle"
-        />
         <div class="hero-content">
           <h1 ref="titleRef" class="hero-title">
             <span
@@ -315,7 +315,7 @@ const lensGlowStyle = computed(() => {
 
 if (!isMobile) {
   watch(
-    () => showHero.value && canvasReady.value,
+    () => canvasReady.value,
     (active) => {
       if (active) {
         window.addEventListener('mousemove', onLensMouseMove)
@@ -373,6 +373,7 @@ if (!isMobile) {
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
+  z-index: 5;
   background: radial-gradient(
     circle,
     rgba(200, 220, 255, 0.18) 0%,

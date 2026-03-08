@@ -30,7 +30,7 @@ export class BackgroundStars {
       sizes[i] = POINT_SIZE * (0.5 + Math.random() * 0.8)
 
       // Visible base opacity with variation for depth
-      opacities[i] = 0.35 + Math.random() * 0.45
+      opacities[i] = 0.58 + Math.random() * 0.38
       phases[i] = Math.random() * Math.PI * 2
 
       // Color variation: cool whites, warm whites, occasional yellow/orange

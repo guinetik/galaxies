@@ -15,13 +15,14 @@
 #endif
 
 #define GAL_MAX_RADIUS 1.5
-#define GAL_MIN_COS_TILT 0.15
+/** Minimum cos(tilt) — caps max thinness; higher = less edge-on, galaxies stay thicker */
+#define GAL_MIN_COS_TILT 0.38
 #define GAL_RING_PHASE_OFFSET 100.0
 #define GAL_ORBIT_SPEED 0.1
 #define GAL_DUST_UV_SCALE 0.2
 #define GAL_DUST_NOISE_FREQ 4.0
 #define GAL_STAR_GLOW_RADIUS 0.5
-#define GAL_STAR_BRIGHTNESS 0.2
+#define GAL_STAR_BRIGHTNESS 0.32
 #define GAL_SUPERNOVA_THRESH 0.9999
 #define GAL_SUPERNOVA_MULT 10.0
 #define GAL_INNER_RADIUS 0.1
@@ -122,7 +123,7 @@ vec3 _galRenderRingLoop(Galaxy g, vec2 uv, GalaxyStyle style) {
     vec2 texUv = GAL_DUST_UV_SCALE * st * _galRot(i * GAL_RING_PHASE_OFFSET + t / r);
 
     vec3 dust = vec3(valueNoise2D((texUv + vec2(i)) * GAL_DUST_NOISE_FREQ));
-    vec3 dL = pow(max(ell * dust / r, vec3(0.0)), vec3(0.5 + style.dustContrast));
+    vec3 dL = pow(max(ell * dust / r, vec3(0.0)), vec3(0.4 + style.dustContrast));
 
     col += dL * dustCol;
 
