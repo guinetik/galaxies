@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-full">
-    <GalaxyDetail v-if="galaxy" :galaxy="galaxy" :renderer="renderer" :key="renderer" @active-renderer="activeRenderer = $event" />
+    <GalaxyDetail v-if="galaxy" :galaxy="galaxy" :renderer="renderer" :key="renderer" @active-renderer="activeRenderer = $event" @ready="sceneReady = true" />
     <GalaxyInfoCard v-if="galaxy" :galaxy="galaxy" />
     <div class="top-header">
       <div class="top-buttons">
@@ -12,6 +12,7 @@
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
     <GalaxyDataSidebar v-if="galaxy" :galaxy="galaxy" v-model:show="showData" />
+    <LoadingOverlay :is-loading="!sceneReady" />
     <div v-if="!galaxy && !isLoading" class="not-found">Galaxy not found</div>
   </div>
 </template>
@@ -23,6 +24,7 @@ import { useI18n } from 'vue-i18n'
 import GalaxyDetail from '@/components/GalaxyDetail.vue'
 import GalaxyInfoCard from '@/components/GalaxyInfoCard.vue'
 import GalaxyDataSidebar from '@/components/GalaxyDataSidebar.vue'
+import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { Galaxy } from '@/types/galaxy'
 
@@ -34,8 +36,10 @@ const showData = ref(false)
 const supportsWebGPU = !!navigator.gpu
 const renderer = ref<'webgpu' | 'webgl'>(supportsWebGPU ? 'webgpu' : 'webgl')
 const activeRenderer = ref<'webgpu' | 'webgl'>('webgl')
+const sceneReady = ref(false)
 
 function toggleRenderer() {
+  sceneReady.value = false
   renderer.value = renderer.value === 'webgpu' ? 'webgl' : 'webgpu'
 }
 

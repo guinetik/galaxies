@@ -14,7 +14,10 @@ const props = withDefaults(defineProps<{
   renderer: 'webgpu',
 })
 
-const emit = defineEmits<{ activeRenderer: [value: 'webgpu' | 'webgl'] }>()
+const emit = defineEmits<{
+  activeRenderer: [value: 'webgpu' | 'webgl']
+  ready: []
+}>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let scene: IGalaxyScene | null = null
 
@@ -29,6 +32,7 @@ onMounted(async () => {
       scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy)
       await scene.start()
       emit('activeRenderer', 'webgpu')
+      emit('ready')
       return
     } catch (e) {
       console.warn('WebGPU galaxy renderer failed, falling back to WebGL:', e)
@@ -40,6 +44,7 @@ onMounted(async () => {
   scene = new GalaxyScene(canvasRef.value, props.galaxy)
   scene.start()
   emit('activeRenderer', 'webgl')
+  emit('ready')
 })
 
 onUnmounted(() => {

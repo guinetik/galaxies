@@ -197,7 +197,7 @@
       "galaxies": "Galaxies",
       "showAxes": "Show Axes",
       "velocityLabel": "V_CMB (km/s)",
-      "loading": "Loading cosmic map...",
+      "loading": "Loading",
       "info": "Info",
       "infoTitle": "The Cosmic Web",
       "infoIntro": "You are looking at the three-dimensional distribution of galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside — the actual spatial arrangement of galaxies in cosmic space.",
