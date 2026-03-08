@@ -96,6 +96,10 @@
           </a>
           — {{ t('pages.about.credits.dataCitation') }}
         </p>
+        <p>
+          {{ t('pages.about.credits.consultant') }}
+          <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a>
+        </p>
         <div class="about-tech">
           <h3 class="about-tech-title">{{ t('pages.about.credits.techTitle') }}</h3>
           <div class="about-tech-list">
