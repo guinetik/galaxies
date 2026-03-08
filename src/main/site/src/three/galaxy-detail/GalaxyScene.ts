@@ -12,6 +12,7 @@ import { getInitialOrbitAngles } from './initialOrbit'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
 import type { IGalaxyScene } from './IGalaxyScene'
+import { detectQuality, dprCap, type Quality } from './qualityDetect'
 
 // ─── Reusable math objects (avoid per-frame allocations) ─────────────────────
 
@@ -74,7 +75,8 @@ export class GalaxyScene implements IGalaxyScene {
     // ─── Renderer ──────────────────────────────────────────────────────
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-    this.renderer.setPixelRatio(window.devicePixelRatio)
+    const quality: Quality = detectQuality()
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, dprCap(quality)))
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
 
     // ─── Scene ─────────────────────────────────────────────────────────
@@ -128,8 +130,8 @@ export class GalaxyScene implements IGalaxyScene {
     const w = canvas.clientWidth
     const h = canvas.clientHeight
     this.galaxyRT = new THREE.WebGLRenderTarget(
-      w * window.devicePixelRatio,
-      h * window.devicePixelRatio,
+      w * this.renderer.getPixelRatio(),
+      h * this.renderer.getPixelRatio(),
       { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter },
     )
 
