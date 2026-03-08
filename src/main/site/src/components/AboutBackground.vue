@@ -33,6 +33,7 @@ let heroGalaxy: THREE.Points
 let dataCloud: THREE.Points
 let morphologyGroup: THREE.Group
 let gridHelper: THREE.PolarGridHelper
+let cylinderWireframe: THREE.LineSegments
 
 // Textures
 const galaxyAtlas = generateGalaxyTextureAtlas()
@@ -94,11 +95,28 @@ function init() {
   // 4. Morphology Showcase (Section 3)
   createMorphologyShowcase()
 
-  // 5. Grid (Section 2)
+  // 5. Grid + Cylinder (Section 3 — From Data to Sky / mapping)
   gridHelper = new THREE.PolarGridHelper(30, 16, 8, 64, 0x22d3ee, 0x22d3ee)
   gridHelper.position.y = -10
   gridHelper.visible = false
   scene.add(gridHelper)
+
+  // 6. Cylinder wireframe (observation volume for celestial sphere)
+  const cylGeo = new THREE.CylinderGeometry(30, 30, 40, 32, 8, true)
+  const cylEdges = new THREE.EdgesGeometry(cylGeo)
+  cylinderWireframe = new THREE.LineSegments(
+    cylEdges,
+    new THREE.LineBasicMaterial({
+      color: 0x22d3ee,
+      transparent: true,
+      opacity: 0.15,
+      depthWrite: false,
+    })
+  )
+  cylinderWireframe.position.y = -10
+  cylinderWireframe.visible = false
+  scene.add(cylinderWireframe)
+  cylGeo.dispose()
 
   // Start loop
   animate()
@@ -358,6 +376,7 @@ function updateSceneState(elapsed: number) {
     heroGalaxy.visible = true
     dataCloud.visible = false
     gridHelper.visible = false
+    cylinderWireframe.visible = false
     morphologyGroup.visible = false
     
     heroGalaxy.rotation.y = elapsed * 0.1
@@ -371,6 +390,7 @@ function updateSceneState(elapsed: number) {
     heroGalaxy.visible = false
     dataCloud.visible = true
     gridHelper.visible = false
+    cylinderWireframe.visible = false
     morphologyGroup.visible = false
     
     // Fade in
@@ -382,23 +402,41 @@ function updateSceneState(elapsed: number) {
     targetCameraPos.set(0, 10, 60)
   }
   
-  // Section 2: Mapping — data cloud + grid
+  // Section 2: Measurements — data cloud only
   else if (props.currentSection === 2) {
     heroGalaxy.visible = false
     dataCloud.visible = true
-    gridHelper.visible = true
+    gridHelper.visible = false
+    cylinderWireframe.visible = false
     morphologyGroup.visible = false
 
+    dataCloud.rotation.y = elapsed * 0.05
+    targetCameraPos.set(0, 10, 60)
+  }
+
+  // Section 3: From Data to Sky (mapping) — cylinder + grid + data cloud
+  else if (props.currentSection === 3) {
+    heroGalaxy.visible = false
+    dataCloud.visible = true
+    gridHelper.visible = true
+    cylinderWireframe.visible = true
+    morphologyGroup.visible = false
+
+    const mat = dataCloud.material as THREE.PointsMaterial
+    mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.6, 0.05)
+    dataCloud.rotation.y = elapsed * 0.05
     gridHelper.rotation.y = elapsed * 0.1
+    cylinderWireframe.rotation.y = elapsed * 0.1
 
     targetCameraPos.set(0, 30, 40)
   }
 
-  // Sections 3 & 4: From Data to Sky + Procedural Rendering — galaxy deep field
-  else if (props.currentSection === 3 || props.currentSection === 4) {
+  // Section 4: Procedural Rendering — galaxy deep field
+  else if (props.currentSection === 4) {
     heroGalaxy.visible = false
     dataCloud.visible = false
     gridHelper.visible = false
+    cylinderWireframe.visible = false
     morphologyGroup.visible = true
 
     if (morphologyMaterial) {
@@ -408,11 +446,12 @@ function updateSceneState(elapsed: number) {
     targetCameraPos.set(0, 0, 50)
   }
   
-  // Section 4: Credits
+  // Section 5+: Credits
   else {
     heroGalaxy.visible = false
     dataCloud.visible = false
     gridHelper.visible = false
+    cylinderWireframe.visible = false
     morphologyGroup.visible = false
     
     // Continuous forward movement

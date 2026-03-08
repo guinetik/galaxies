@@ -40,7 +40,7 @@
     </div>
 
     <!-- Structures nav -->
-    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '300px' : 'calc(var(--header-height) + 130px)' }">
+    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '420px' : 'calc(var(--header-height) + 130px)' }">
       <div class="structures-nav-title">{{ t('pages.localGroup.structures') }}</div>
       <button
         v-for="name in structureNames"

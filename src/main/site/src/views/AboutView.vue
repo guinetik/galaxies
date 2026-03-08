@@ -51,7 +51,7 @@
         <div class="about-image-placeholder" :class="{ 'has-image': mappingImageLoaded }">
           <img
             v-show="mappingImageLoaded"
-            src="/about/mapping-celestial-sphere.webp"
+            src="/mapping-celestial-sphere.png"
             :alt="t('pages.about.mapping.imageAlt')"
             class="about-image"
             @load="mappingImageLoaded = true"
@@ -70,7 +70,7 @@
         <div class="about-image-placeholder" :class="{ 'has-image': renderingImageLoaded }">
           <img
             v-show="renderingImageLoaded"
-            src="/about/rendering-morphology.webp"
+            src="/rendering-morphology.png"
             :alt="t('pages.about.rendering.imageAlt')"
             class="about-image"
             @load="renderingImageLoaded = true"
@@ -284,7 +284,7 @@ onMounted(() => {
 /* Image placeholders */
 .about-image-placeholder {
   width: 100%;
-  min-height: 12rem;
+  min-height: 20rem;
   border-radius: 0.5rem;
   margin: 2rem 0;
   background: rgba(0, 0, 0, 0.5);
@@ -309,7 +309,7 @@ onMounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Credits */
@@ -385,7 +385,7 @@ onMounted(() => {
   }
 
   .about-image-placeholder {
-    min-height: 16rem;
+    min-height: 28rem;
   }
 }
 </style>
