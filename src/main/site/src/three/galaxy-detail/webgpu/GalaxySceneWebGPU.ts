@@ -356,7 +356,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Galaxy rotation (faster as we zoom in) ─────────────────────
     const zoomNorm = Math.min(this.zoom / 20, 1)
-    const rotSpeed = 0.02 + 0.18 * zoomNorm * zoomNorm
+    // Elliptical & irregular galaxies: no differential rotation
+    const m = this.params.morphology
+    const rotSpeed = (m.ellipticity > 0 || m.clumpCount > 0)
+      ? 0
+      : 0.02 + 0.18 * zoomNorm * zoomNorm
     this.galaxyRotation += dt * rotSpeed
     const time = this.uniforms.time.value + dt
 

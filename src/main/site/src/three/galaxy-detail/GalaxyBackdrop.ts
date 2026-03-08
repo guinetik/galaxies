@@ -17,9 +17,9 @@ export class GalaxyBackdrop {
    */
   constructor(baseDistance: number, seed: number, quality: Quality) {
     const radius = baseDistance * 12
-    const geometry = new THREE.SphereGeometry(radius, 192, 128)
-
     const isMobile = quality === 'mobile'
+    const segments = isMobile ? [48, 32] : [192, 128]
+    const geometry = new THREE.SphereGeometry(radius, segments[0], segments[1])
 
     this.material = new THREE.ShaderMaterial({
       vertexShader,

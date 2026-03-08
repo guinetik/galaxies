@@ -12,7 +12,7 @@ import { getInitialOrbitAngles } from './initialOrbit'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
 import type { IGalaxyScene } from './IGalaxyScene'
-import { detectQuality, dprCap, type Quality } from './qualityDetect'
+import { detectQuality, dprCap, rtScale, type Quality } from './qualityDetect'
 
 // ─── Reusable math objects (avoid per-frame allocations) ─────────────────────
 
@@ -37,6 +37,7 @@ export class GalaxyScene implements IGalaxyScene {
   private params: GalaxyRenderParams
 
   // Lensing post-process
+  private rtScaleFactor: number
   private galaxyRT: THREE.WebGLRenderTarget
   private lensingMaterial: THREE.ShaderMaterial
   private lensingScene: THREE.Scene
@@ -129,9 +130,10 @@ export class GalaxyScene implements IGalaxyScene {
 
     const w = canvas.clientWidth
     const h = canvas.clientHeight
+    this.rtScaleFactor = rtScale(quality)
     this.galaxyRT = new THREE.WebGLRenderTarget(
-      w * this.renderer.getPixelRatio(),
-      h * this.renderer.getPixelRatio(),
+      w * this.renderer.getPixelRatio() * this.rtScaleFactor,
+      h * this.renderer.getPixelRatio() * this.rtScaleFactor,
       { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter },
     )
 
@@ -259,7 +261,7 @@ export class GalaxyScene implements IGalaxyScene {
       this.camera.aspect = rw / rh
       this.camera.updateProjectionMatrix()
       const dpr = this.renderer.getPixelRatio()
-      this.galaxyRT.setSize(rw * dpr, rh * dpr)
+      this.galaxyRT.setSize(rw * dpr * this.rtScaleFactor, rh * dpr * this.rtScaleFactor)
       this.lensingMaterial.uniforms.uAspectRatio.value = rw / rh
     })
     this.resizeObserver.observe(canvas)

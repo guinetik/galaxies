@@ -13,3 +13,8 @@ export function detectQuality(): Quality {
 export function dprCap(quality: Quality): number {
   return quality === 'mobile' ? 1.5 : 2.0
 }
+
+/** Render-target resolution scale. Mobile renders to a half-res RT then upscales via bilinear. */
+export function rtScale(quality: Quality): number {
+  return quality === 'mobile' ? 0.5 : 1.0
+}

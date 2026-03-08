@@ -34,6 +34,7 @@ import type { Quality } from '../qualityDetect'
 import {
   hash,
   applyDifferentialRotation,
+  rotateXZ,
 } from './tsl-helpers'
 
 const TAU = 6.28318530718
@@ -174,25 +175,37 @@ export class GalaxyClouds {
       szBuffer.element(idx).assign(size)
     })().compute(count)
 
-    // ─── Update compute: same physics as stars but weaker spring ───────
+    // ─── Update compute: same rotation logic as stars ──────────────────
     this.computeUpdate = Fn(() => {
       const idx = instanceIndex
       const position = posBuffer.element(idx).toVar()
       const originalPos = origBuffer.element(idx)
 
-      const rotatedPos = applyDifferentialRotation(
-        position,
-        uniforms.rotationSpeed,
-        uniforms.deltaTime,
-      )
-      position.assign(rotatedPos)
+      // Bar region: rigid-body rotation to prevent shearing
+      If(uniforms.barLength.greaterThan(0), () => {
+        const distFromCenter = length(vec3(position.x, float(0), position.z))
+        const rigidAngle = uniforms.rotationSpeed.mul(uniforms.deltaTime).negate()
 
-      const rotatedOriginal = applyDifferentialRotation(
-        originalPos,
-        uniforms.rotationSpeed,
-        uniforms.deltaTime,
-      )
-      origBuffer.element(idx).assign(rotatedOriginal)
+        If(distFromCenter.lessThan(uniforms.barLength), () => {
+          position.assign(rotateXZ(position, rigidAngle))
+          origBuffer.element(idx).assign(rotateXZ(originalPos, rigidAngle))
+        }).Else(() => {
+          position.assign(applyDifferentialRotation(
+            position, uniforms.rotationSpeed, uniforms.deltaTime,
+          ))
+          origBuffer.element(idx).assign(applyDifferentialRotation(
+            originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+          ))
+        })
+      }).Else(() => {
+        // Non-barred: differential rotation (no-op when rotationSpeed=0)
+        position.assign(applyDifferentialRotation(
+          position, uniforms.rotationSpeed, uniforms.deltaTime,
+        ))
+        origBuffer.element(idx).assign(applyDifferentialRotation(
+          originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+        ))
+      })
 
       posBuffer.element(idx).assign(position)
     })().compute(count)
