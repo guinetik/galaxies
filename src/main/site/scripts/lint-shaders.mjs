@@ -16,12 +16,19 @@ const shaderDirs = [
 ]
 
 // Expand simple #define NAME value macros (glslx doesn't support preprocessor)
+// Conditional directives (#ifndef, #ifdef, #if, #else, #endif) are stripped so
+// both branches are compiled together — acceptable for syntax/type checking.
 function expandDefines(source) {
   const defines = []
   const lines = source.split('\n')
   const output = []
 
   for (const line of lines) {
+    const trimmed = line.trim()
+    // Strip preprocessor conditionals — glslx cannot parse them
+    if (/^\s*#(ifndef|ifdef|if|else|endif)\b/.test(trimmed)) {
+      continue
+    }
     const match = line.match(/^\s*#define\s+(\w+)\s+(.+)$/)
     if (match) {
       defines.push([new RegExp(`\\b${match[1]}\\b`, 'g'), match[2].trim()])
