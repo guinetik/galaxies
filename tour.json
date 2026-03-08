@@ -1,0 +1,154 @@
+{
+  "2557": {
+    "names": ["Andromeda Galaxy", "M31", "NGC 224", "UGC 454", "Great Andromeda Nebula"],
+    "type": "SA(s)b"
+  },
+  "2555": {
+    "names": ["Le Gentil", "M32", "NGC 221", "Andromeda companion"],
+    "type": "cE2"
+  },
+  "2429": {
+    "names": ["M110", "NGC 205", "Andromeda companion"],
+    "type": "E5 pec"
+  },
+  "5818": {
+    "names": ["Triangulum Galaxy", "M33", "NGC 598", "UGC 1117"],
+    "type": "SA(s)cd"
+  },
+  "5974": {
+    "names": ["Phantom Galaxy", "M74", "NGC 628", "UGC 1149"],
+    "type": "SA(s)c"
+  },
+  "2248": {
+    "names": ["Cartwheel Galaxy", "ESO 350-40"],
+    "type": "S pec (Ring)"
+  },
+  "2789": {
+    "names": ["Sculptor Galaxy", "Silver Coin Galaxy", "Silver Dollar Galaxy", "NGC 253", "Caldwell 65"],
+    "type": "SAB(s)c"
+  },
+  "3082": {
+    "names": ["Small Magellanic Cloud", "SMC", "NGC 292", "Nubecula Minor"],
+    "type": "SB(s)m pec"
+  },
+  "17223": {
+    "names": ["Large Magellanic Cloud", "LMC", "ESO 56-115", "Nubecula Major"],
+    "type": "SB(s)m"
+  },
+  "15172": {
+    "names": ["Carafe Galaxy"],
+    "type": "SA(s)b pec"
+  },
+  "20348": {
+    "names": ["Integral Sign Galaxy"],
+    "type": "SAB(s)dm"
+  },
+  "28630": {
+    "names": ["Bode's Galaxy", "M81", "NGC 3031", "UGC 5318"],
+    "type": "SA(s)ab"
+  },
+  "28655": {
+    "names": ["Cigar Galaxy", "M82", "NGC 3034", "UGC 5322", "Arp 337", "Ursa Major A"],
+    "type": "I0"
+  },
+  "29488": {
+    "names": ["NGC 3077", "UGC 5398", "M81 Group member"],
+    "type": "I0 pec"
+  },
+  "37229": {
+    "names": ["Antennae Galaxy A", "NGC 4038", "Caldwell 60", "Arp 244", "Ringtail Galaxy"],
+    "type": "SB(s)m pec"
+  },
+  "37230": {
+    "names": ["Antennae Galaxy B", "NGC 4039", "Caldwell 61", "Arp 244"],
+    "type": "SA(s)m pec"
+  },
+  "39225": {
+    "names": ["Centaurus A", "NGC 5128", "Caldwell 77", "Arp 153"],
+    "type": "S0 pec"
+  },
+  "40455": {
+    "names": ["M84", "NGC 4374"],
+    "type": "E1"
+  },
+  "40596": {
+    "names": ["M86", "NGC 4406"],
+    "type": "E3/S0"
+  },
+  "41361": {
+    "names": ["The Eyes A", "NGC 4435", "Markarian's Chain"],
+    "type": "SB0"
+  },
+  "41378": {
+    "names": ["The Eyes B", "NGC 4438", "Markarian's Chain"],
+    "type": "SA(s)0/a pec"
+  },
+  "41377": {
+    "names": ["Virgo A", "M87", "NGC 4486", "UGC 7658"],
+    "type": "E0-1 pec"
+  },
+  "42038": {
+    "names": ["Needle Galaxy", "NGC 4565", "UGC 7772", "Caldwell 38"],
+    "type": "SA(s)b"
+  },
+  "42407": {
+    "names": ["Sombrero Galaxy", "M104", "NGC 4594", "UGCA 293"],
+    "type": "SA(s)a"
+  },
+  "44182": {
+    "names": ["Black Eye Galaxy", "Evil Eye Galaxy", "Sleeping Beauty Galaxy", "M64", "NGC 4826", "UGC 8062"],
+    "type": "(R)SA(rs)ab"
+  },
+  "44536": {
+    "names": ["Sunflower Galaxy", "M63", "NGC 5055", "UGC 8334"],
+    "type": "SA(rs)bc"
+  },
+  "47404": {
+    "names": ["Whirlpool Galaxy", "M51", "M51a", "NGC 5194", "UGC 8493", "Rosse's Galaxy", "Question Mark Galaxy", "Arp 85"],
+    "type": "SA(s)bc pec"
+  },
+  "47413": {
+    "names": ["M51b", "NGC 5195", "UGC 8494", "Whirlpool companion"],
+    "type": "SB0 pec"
+  },
+  "48082": {
+    "names": ["Southern Pinwheel Galaxy", "M83", "NGC 5236", "UGCA 366"],
+    "type": "SAB(s)c"
+  },
+  "50063": {
+    "names": ["Pinwheel Galaxy", "M101", "NGC 5457", "UGC 8981", "Arp 26"],
+    "type": "SAB(rs)cd"
+  },
+  "65001": {
+    "names": ["Fireworks Galaxy", "NGC 6946", "UGC 11597", "Caldwell 12", "Arp 29"],
+    "type": "SAB(rs)cd"
+  },
+  "6830": {
+    "names": ["NGC 1300", "UGC 2684", "Barred spiral prototype"],
+    "type": "SB(rs)bc"
+  },
+  "9892": {
+    "names": ["Great Barred Spiral Galaxy", "Fornax Propeller Galaxy", "NGC 1365"],
+    "type": "(R')SB(s)b"
+  },
+  "34695": {
+    "names": ["Leo Triplet member", "M65", "NGC 3623", "UGC 6328"],
+    "type": "SAB(rs)a"
+  },
+  "34897": {
+    "names": ["Leo Triplet member", "M66", "NGC 3627", "UGC 6346", "Arp 16"],
+    "type": "SAB(s)b"
+  },
+  "35476": {
+    "names": ["Hamburger Galaxy", "Leo Triplet member", "NGC 3628", "UGC 6350", "Arp 317"],
+    "type": "Sb pec sp"
+  },
+  "39058": {
+    "names": ["PGC 39058", "UGC 7356"],
+    "type": "dIm"
+  },
+  "6240": {
+    "names": ["White Rose Galaxy", "AM 0634-640"],
+    "type": "S0 pec"
+  }
+}
