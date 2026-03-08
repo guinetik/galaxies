@@ -43,7 +43,8 @@ const gradeIntergalacticBackdrop = Fn(([color]: [any]) => {
     .mul(float(1.0).sub(smoothstep(float(0.28), float(0.95), peak)))
 
   const graded = pow(max(color, vec3(0.0)), vec3(1.14, 1.14, 1.14))
-  return graded.mul(mix(float(0.90), float(0.45), nebulaMask))
+  const gradedBackdrop = graded.mul(mix(float(0.90), float(0.45), nebulaMask))
+  return gradedBackdrop.mul(vec3(1.06, 0.93, 0.82))
 })
 
 export class GalaxyPostProcessing {
@@ -94,7 +95,7 @@ export class GalaxyPostProcessing {
       const lensZoom = clamp(uLensStrength.div(0.03), float(0.0), float(1.0))
 
       // Match the WebGL lensing falloff more closely.
-      const radius = mix(float(0.20), float(0.40), lensZoom)
+      const radius = mix(float(0.25), float(0.55), lensZoom)
       const falloff = smoothstep(radius, float(0.0), dist).toVar()
       falloff.mulAssign(falloff) // squared for steep drop-off
 
@@ -104,7 +105,7 @@ export class GalaxyPostProcessing {
       const deflection = uLensStrength
         .mul(falloff)
         .mul(innerMask)
-        .mul(mix(float(0.11), float(0.22), lensZoom).div(softDist))
+        .mul(mix(float(0.15), float(0.30), lensZoom).div(softDist))
 
       // Compute offset and undo aspect correction
       const offset = dir.mul(deflection).toVar()
@@ -124,7 +125,7 @@ export class GalaxyPostProcessing {
         .mul(innerMask)
         .mul(uLensStrength)
         .mul(mix(float(10.0), float(16.0), lensZoom))
-      col.rgb.addAssign(vec3(0.6, 0.7, 1.0).mul(ringIntensity.mul(0.05)))
+      col.rgb.addAssign(vec3(0.72, 0.62, 0.46).mul(ringIntensity.mul(0.02)))
 
       return col
     })
@@ -133,9 +134,9 @@ export class GalaxyPostProcessing {
 
     // ─── Bloom (galaxy only — BH excluded) ─────────────────────────
     this.bloomPassNode = bloom(galaxyColor)
-    this.bloomPassNode.threshold.value = 0.16
-    this.bloomPassNode.strength.value = 0.18
-    this.bloomPassNode.radius.value = 0.12
+    this.bloomPassNode.threshold.value = 0.2
+    this.bloomPassNode.strength.value = 0.12
+    this.bloomPassNode.radius.value = 0.08
 
     // ─── Composite: lensed galaxy + bloom → BH on top → fg additive ─
     const galaxyResult = lensedGalaxy.add(this.bloomPassNode)
@@ -146,7 +147,7 @@ export class GalaxyPostProcessing {
       const fg: any = fgColor
 
       // Step 1: Alpha-blend BH over the lensed+bloomed galaxy
-      const bhComposite = mix(bg.rgb, bh.rgb, bh.a)
+      const bhComposite = mix(bg.rgb, bh.rgb.mul(vec3(1.05, 0.95, 0.84)), bh.a)
 
       // Step 2: Add foreground star glow on top (additive)
       const outRGB = bhComposite.add(fg.rgb)

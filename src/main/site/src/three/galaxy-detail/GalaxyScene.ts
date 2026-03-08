@@ -17,6 +17,7 @@ import type { IGalaxyScene } from './IGalaxyScene'
 
 const _yAxis = new THREE.Vector3(0, 1, 0)
 const _qDrag = new THREE.Quaternion()
+const ENABLE_WEBGL_LENSING = true
 
 // ─── GalaxyScene ────────────────────────────────────────────────────────────
 
@@ -384,11 +385,17 @@ export class GalaxyScene implements IGalaxyScene {
 
       // ─── Render (3-pass lensing pipeline) ─────────────────────────
 
-      // LOD-driven lens strength: 0 when far, stronger when close
-      const lod = this.blackHole.getLOD()
-      const lensStrength = lod * lod * 0.045
-
-      this.renderGalaxyPostPass(bhU, bhV, lensStrength, lod)
+      if (ENABLE_WEBGL_LENSING) {
+        // LOD-driven lens strength: 0 when far, stronger when close
+        const lod = this.blackHole.getLOD()
+        const lensStrength = lod * lod * 0.045
+        this.renderGalaxyPostPass(bhU, bhV, lensStrength, lod)
+      } else {
+        this.camera.layers.set(1)
+        this.renderer.setRenderTarget(null)
+        this.renderer.clear()
+        this.renderer.render(this.scene, this.camera)
+      }
 
       // ─── Pass 3: Black hole billboard + foreground stars → screen ─────
       this.camera.layers.set(2)

@@ -18,7 +18,7 @@ export class GalaxyBlackHole {
   constructor(_activityClass: string | null, quadSize = 60) {
     this.quadSize = quadSize
 
-    // ─── Pass 1: Depth sphere (disabled — shader handles the visual) ────
+    // ─── Pass 1: Depth sphere (shader handles the shadow visually) ────
     const depthGeometry = new THREE.SphereGeometry(1, 4, 4)
     const depthMaterial = new THREE.MeshBasicMaterial({ visible: false })
     this.depthMesh = new THREE.Mesh(depthGeometry, depthMaterial)

@@ -1,8 +1,14 @@
 /**
- * WebGPU Black Hole — Ray-marched accretion disk on billboard quad (native TSL).
+ * WebGPU Black Hole — Volumetric ray-marched accretion disk on billboard quad.
  *
- * Ports blackhole.frag.glsl to TSL Fn() nodes on a MeshBasicNodeMaterial.
- * Visual output matches the WebGL version.
+ * Faithfully ported from singularity study project:
+ *   - Direction-based gravity steering (normalize each step, power=0.3)
+ *   - Double advance per iteration for proper ray deflection
+ *   - Y-band volumetric disk with front-to-back compositing
+ *   - Hard core capture for pure black center
+ *
+ * The strong direction steering (~170° total deflection) creates the 3D
+ * Einstein ring arcs that curve above and below the black hole shadow.
  */
 
 import * as THREE from 'three/webgpu'
@@ -25,16 +31,13 @@ import {
   cos,
   sin,
   atan,
-  abs,
   sqrt,
-  exp,
+  max,
   mix,
   smoothstep,
-  max,
   clamp,
-  pow,
 } from 'three/tsl'
-import { hash13, noise2d } from './tsl-helpers'
+import { hash13, noise3d } from './tsl-helpers'
 
 export class GalaxyBlackHoleWebGPU {
   readonly mesh: THREE.Mesh
@@ -66,12 +69,12 @@ export class GalaxyBlackHoleWebGPU {
       const pp = uv().sub(0.5).mul(2.0)
       const screenR = length(pp)
 
-      // Early discard outside circle
       If(screenR.greaterThan(1.0), () => {
         Discard()
       })
 
-      // Camera setup
+      // ─── Camera ─────────────────────────────────────────────────────────
+
       const lookAt = vec3(0.0, -0.1, 0.0)
       const eyer = float(2.0)
       const eyea = uRotY
@@ -88,224 +91,156 @@ export class GalaxyBlackHoleWebGPU {
       const up = normalize(cross(front, left))
       const rd = normalize(front.mul(1.5).add(left.mul(pp.x)).add(up.mul(pp.y)))
 
-      // Black hole parameters
-      const bh = vec3(0.0, 0.0, 0.0)
-      const bhr = float(0.1)
-      const bhmass = float(0.008)
+      // ─── Black hole parameters (from singularity) ──────────────────────
 
-      // Mutable ray state
-      const p = ro.toVar()
-      const pv = rd.toVar()
+      const originRadius = float(0.13) // event horizon radius
+      const power = float(0.3) // gravity steering strength
+      const bandWidth = float(0.04) // disk Y-band half-width
+
+      // Step size: LOD-adaptive
+      const stepSize = mix(float(0.018), float(0.012), uLOD)
+
+      // Ray state — direction-based (singularity model)
+      const rayPos = ro.toVar()
+      const rayDir = rd.toVar()
 
       // Jitter to reduce banding
-      p.addAssign(pv.mul(hash13(rd.add(uTime)).mul(0.02)))
+      rayPos.addAssign(rayDir.mul(hash13(rd.add(uTime)).mul(0.01)))
 
-      // LOD-driven parameters
+      // LOD
       const intensity = mix(float(0.3), float(1.0), uLOD)
-      const stepSz = mix(float(0.012), float(0.005), uLOD)
       const animSpeed = mix(float(0.005), float(0.02), uLOD)
       const grainMix = mix(float(0.1), float(0.5), uLOD)
 
-      const baseDt = float(0.02)
+      // Front-to-back accumulators
       const col = vec3(0.0, 0.0, 0.0).toVar()
-      const noncaptured = float(1.0).toVar()
+      const alphaAcc = float(0.0).toVar()
       const captured = float(0.0).toVar()
 
-      // Disk colors: inner hot white → mid orange → outer deep red
-      const cInner = vec3(1.0, 0.72, 0.28)
-      const cMid = vec3(1.0, 0.55, 0.12)
-      const cOuter = vec3(0.5, 0.12, 0.02)
-      const diskInner = float(0.32)
-      const diskOuter = float(2.6)
-      const diskHalfThickness = float(0.04)
-      const ringRadius = float(0.40)
-      const captureSoftness = float(0.10)
-      const viewTop = abs(sin(uTiltX))
-      const diskFlatten = mix(float(4.2), float(1.0), viewTop)
-      const bandWidth = mix(float(0.007), float(0.018), viewTop)
-
+      // Disk colors — hot orange palette
+      const cInner = vec3(1.0, 0.55, 0.12)
+      const cMid = vec3(1.0, 0.3, 0.03)
+      const cOuter = vec3(0.45, 0.1, 0.01)
+      const emissionColor = vec3(0.25, 0.15, 0.05)
       const diskRotSpeed = uTime.mul(animSpeed).mul(30.0)
 
-      // Ray march with gravity
-      const t = float(0.0).toVar()
+      // ─── Ray march with direction-based gravity steering ────────────────
+
       Loop(200, () => {
-        If(t.greaterThanEqual(1.0), () => {
+        // ── Gravity steering (singularity model) ──
+        // Steer direction toward center, normalized each step
+        const rNorm = normalize(rayPos)
+        const rLen = length(rayPos)
+        const steerMag = stepSize.mul(power).div(max(rLen.mul(rLen), float(0.001)))
+        const steer = rNorm.mul(steerMag)
+        const steeredDir = normalize(rayDir.sub(steer))
+
+        // ── First advance (with current direction) ──
+        const advance = rayDir.mul(stepSize)
+        rayPos.addAssign(advance)
+
+        // ── Hard core capture ──
+        const rLenNow = length(rayPos)
+        If(rLenNow.lessThan(originRadius), () => {
+          captured.assign(1.0)
           Break()
         })
 
-        const toBH = bh.sub(p)
-        const distSq = dot(toBH, toBH)
-        const dist = sqrt(distSq)
-        const holeShadow = smoothstep(bhr.mul(1.15), bhr.mul(2.8), dist)
+        // ── Volumetric accretion disk ──
 
-        // Adaptive step: smaller near BH for accuracy
-        const adaptDt = baseDt.mul(
-          mix(float(0.8), float(1.5), smoothstep(float(0.2), float(1.5), dist)),
-        )
-        p.addAssign(pv.mul(adaptDt).mul(noncaptured))
+        // XZ-plane radial distance (disk lies in XZ plane)
+        const xyLen = length(vec2(rayPos.x, rayPos.z))
 
-        // Gravity: Newton's inverse-square
-        pv.addAssign(toBH.mul(bhmass.div(dist.mul(distSq))))
+        // Y-band parabolic mask (volumetric disk thickness)
+        const yNorm = rayPos.y.div(bandWidth)
+        const yBand = max(float(0.0), float(1.0).sub(yNorm.mul(yNorm)))
 
-        // Capture test (wide smoothstep for natural photon ring dimming)
-        const distToHorizon = dist.sub(bhr)
-        noncaptured.assign(
-          smoothstep(float(0.0), captureSoftness, distToHorizon),
-        )
-        captured.assign(max(captured, float(1.0).sub(noncaptured)))
+        // Radial falloff
+        const radialFade = smoothstep(float(1.3), float(0.16), xyLen)
+        const diskMask = yBand.mul(radialFade)
 
-        // Early exit if captured
-        If(noncaptured.lessThan(0.001), () => {
-          Break()
-        })
+        // 3D noise at rotated position (differential rotation like singularity)
+        const rotPhase = xyLen.mul(4.27).sub(diskRotSpeed)
+        const cosRot = cos(rotPhase)
+        const sinRot = sin(rotPhase)
+        const rotPos = vec3(
+          rayPos.x.mul(cosRot).sub(rayPos.z.mul(sinRot)),
+          rayPos.y.mul(8.0),
+          rayPos.x.mul(sinRot).add(rayPos.z.mul(cosRot)),
+        ).mul(14.0)
 
-        // ── Accretion disk ──────────────────────────────────────────
+        // FBM — 3 octaves for dust-like detail
+        const n1 = noise3d(rotPos).mul(0.5).add(0.5)
+        const n2 = noise3d(rotPos.mul(2.03)).mul(0.5).add(0.5)
+        const n3 = noise3d(rotPos.mul(4.01)).mul(0.5).add(0.5)
+        const diskTex = n1.mul(0.25).add(n2.mul(0.12)).add(n3.mul(0.06)).add(0.55)
 
-        const diskRadius = length(toBH.xz)
-        const diskT = clamp(
-          diskRadius.sub(diskInner).div(diskOuter.sub(diskInner)),
+        // Doppler beaming
+        const diskAngle = atan(rayPos.x.negate(), rayPos.z.negate())
+        const doppler = float(1.0).add(cos(diskAngle.add(diskRotSpeed)).mul(0.7))
+
+        // Color ramp (radial + noise variation)
+        const rampInput = clamp(
+          xyLen.add(diskTex.sub(0.5).mul(0.4)),
           float(0.0),
           float(1.0),
         )
-        const diskY = abs(p.y).mul(diskFlatten)
-        const verticalMask = float(1.0).sub(
-          smoothstep(diskHalfThickness, diskHalfThickness.mul(2.0), diskY),
-        )
-        const radialIn = smoothstep(diskInner.sub(0.08), diskInner.add(0.12), diskRadius)
-        const radialOut = float(1.0).sub(
-          smoothstep(diskOuter.sub(0.7), diskOuter.add(0.2), diskRadius),
-        )
-        const midRingSuppression = float(1.0).sub(
-          float(1.0).sub(smoothstep(float(0.55), float(0.95), diskRadius))
-            .mul(float(1.0).sub(smoothstep(float(0.01), float(0.045), diskY))),
-        )
-        const diskMask = verticalMask.mul(radialIn).mul(radialOut).mul(midRingSuppression)
-
-        const diskAngle = atan(toBH.x, toBH.z)
-        const rotAngle = diskAngle.add(diskRotSpeed)
-
-        // Procedural noise texture
-        const diskUV = vec2(
-          mix(float(0.2), float(1.0), diskT).mul(12.0),
-          rotAngle.mul(5.0),
-        )
-        const turbulence = max(
-          float(0.0),
-          noise2d(diskUV.mul(vec2(0.1, 0.5))).add(0.05),
-        )
-        const grain = noise2d(diskUV.mul(vec2(1.5, 3.0)).add(77.0))
-        const streaks = noise2d(
-          vec2(
-            rotAngle.mul(18.0).sub(uTime.mul(animSpeed).mul(140.0)),
-            diskT.mul(36.0).add(11.0),
-          ),
-        )
-        const clumps = noise2d(
-          vec2(
-            rotAngle.mul(34.0).add(grain.mul(2.0)),
-            diskT.mul(80.0).sub(uTime.mul(animSpeed).mul(40.0)),
-          ),
-        )
-        const innerMask = float(1.0).sub(smoothstep(float(0.08), float(0.42), diskT))
-        const innerTexture = mix(float(0.45), float(1.15), streaks.mul(clumps))
-        const darkLanes = mix(
-          float(1.0),
-          mix(float(0.32), float(1.0), smoothstep(float(0.18), float(0.82), grain)),
-          innerMask,
-        )
-        const diskTexBase = turbulence.mul(
-          float(1.0).sub(grainMix).add(grainMix.mul(grain)),
-        )
-        const diskTex = diskTexBase.mul(
-          mix(float(1.0), innerTexture.mul(darkLanes), innerMask),
+        const diskColor = mix(
+          mix(cInner, cMid, smoothstep(float(0.05), float(0.425), rampInput)),
+          cOuter,
+          smoothstep(float(0.425), float(1.0), rampInput),
         )
 
-        // Doppler beaming — approaching side brighter
-        const doppler = float(1.0).add(cos(rotAngle).mul(0.7))
-
-        // 3-color radial gradient
-        const diskColor1 = mix(cInner, cMid, smoothstep(float(0.0), float(0.28), diskT))
-        const diskColor2 = mix(diskColor1, cOuter, smoothstep(float(0.35), float(1.0), diskT))
-        const radialBoost = mix(float(0.30), float(0.42), pow(diskT, float(0.7)))
-        const innerSuppression = mix(
-          float(0.14),
-          float(1.0),
-          smoothstep(float(0.02), float(0.3), diskT),
-        )
-        const outerLift = mix(
-          float(0.88),
-          float(1.16),
-          smoothstep(float(0.45), float(1.0), diskT),
-        )
-        const diskColor = diskColor2
-          .mul(diskTex)
+        // Emission (bright, minimum floor so noise doesn't kill it)
+        const texBright = max(diskTex, float(0.3))
+        const emissiveCol = diskColor
+          .mul(texBright)
           .mul(doppler)
-          .mul(radialBoost)
-          .mul(innerSuppression)
-          .mul(outerLift)
+          .mul(3.0)
+          .add(emissionColor.mul(diskMask).mul(2.0))
 
-        col.addAssign(
-          max(vec3(0.0, 0.0, 0.0), diskColor.mul(diskMask).mul(noncaptured).mul(holeShadow)),
-        )
-
-        const midBand = exp(pow(diskY.div(bandWidth), float(2.0)).negate())
-        const midBandRadial = smoothstep(float(0.48), float(0.72), diskRadius).mul(
-          float(1.0).sub(smoothstep(float(1.05), float(1.38), diskRadius)),
-        )
-        const midBandNoise = mix(float(0.65), float(1.55), streaks.mul(0.7).add(clumps.mul(0.3)))
-        const midBandColor = mix(cInner, cMid, float(0.45))
-          .mul(diskTex)
-          .mul(midBandNoise)
-        col.addAssign(
-          midBandColor
-            .mul(midBand)
-            .mul(midBandRadial)
-            .mul(noncaptured)
-            .mul(holeShadow)
-            .mul(0.42),
+        // Alpha from disk mask
+        const diskAlpha = diskMask.mul(
+          clamp(texBright.mul(2.0), float(0.0), float(1.0)),
         )
 
-        // Ambient glow near event horizon
-        col.addAssign(
-          vec3(0.8, 0.5, 0.2)
-            .mul(float(1.0).div(distSq))
-            .mul(0.000003)
-            .mul(noncaptured)
-            .mul(holeShadow),
+        // Front-to-back compositing
+        const oneMinusA = float(1.0).sub(alphaAcc)
+        const weight = oneMinusA.mul(diskAlpha)
+        col.assign(mix(col, emissiveCol, weight))
+        alphaAcc.assign(
+          clamp(
+            mix(alphaAcc, float(1.0), diskAlpha),
+            float(0.0),
+            float(1.0),
+          ),
         )
 
-        // Photon ring at photon sphere (~1.5× event horizon)
-        const ringCore = exp(
-          pow(dist.sub(ringRadius).div(0.028), float(2.0)).negate(),
-        )
-        const ringHalo = exp(
-          pow(dist.sub(ringRadius.add(0.08)).div(0.08), float(2.0)).negate(),
-        )
-        col.addAssign(
-          vec3(1.0, 0.78, 0.42)
-            .mul(ringCore.mul(0.035).add(ringHalo.mul(0.004)))
-            .mul(noncaptured)
-            .mul(holeShadow),
-        )
+        // ── Second advance + direction update (singularity double-step) ──
+        rayPos.addAssign(advance)
+        rayDir.assign(steeredDir)
 
-        t.addAssign(stepSz)
+        // Escape: ray is far and heading outward
+        If(
+          dot(rayPos, rayPos).greaterThan(16.0).and(
+            dot(rayDir, rayPos).greaterThan(0.0),
+          ),
+          () => {
+            Break()
+          },
+        )
       })
 
       // Apply LOD intensity
       col.mulAssign(intensity)
-      col.mulAssign(float(1.0).sub(captured.mul(0.98)))
 
-      // Output with alpha
+      // ─── Output with alpha ──────────────────────────────────────────────
+
       const feather = float(1.0).sub(
         smoothstep(float(0.3), float(1.0), screenR),
       )
-      const lum = dot(col, vec3(0.299, 0.587, 0.114))
-      const glowAlpha = pow(
-        clamp(lum.mul(3.0), float(0.0), float(1.0)),
-        float(1.5),
-      ).mul(feather)
-      const alpha = max(glowAlpha, captured)
       col.mulAssign(feather)
+      const alpha = max(alphaAcc.mul(feather), captured)
 
       return vec4(col, alpha)
     })

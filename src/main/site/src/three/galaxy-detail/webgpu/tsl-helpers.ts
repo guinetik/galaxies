@@ -72,6 +72,34 @@ export const noise2d = Fn(([p]: [any]) => {
   )
 })
 
+/**
+ * 3D value noise with smooth trilinear interpolation.
+ * Returns approximately -1..1, matching the GLSL helper used by the BH shader.
+ */
+export const noise3d = Fn(([p]: [any]) => {
+  const i: any = floor(p)
+  const f: any = fract(p)
+  const u: any = f.mul(f).mul(float(3.0).sub(f.mul(2.0)))
+
+  const n000 = hash13(i.add(vec3(0.0, 0.0, 0.0)))
+  const n100 = hash13(i.add(vec3(1.0, 0.0, 0.0)))
+  const n010 = hash13(i.add(vec3(0.0, 1.0, 0.0)))
+  const n110 = hash13(i.add(vec3(1.0, 1.0, 0.0)))
+  const n001 = hash13(i.add(vec3(0.0, 0.0, 1.0)))
+  const n101 = hash13(i.add(vec3(1.0, 0.0, 1.0)))
+  const n011 = hash13(i.add(vec3(0.0, 1.0, 1.0)))
+  const n111 = hash13(i.add(vec3(1.0, 1.0, 1.0)))
+
+  const nx00 = mix(n000, n100, u.x)
+  const nx10 = mix(n010, n110, u.x)
+  const nx01 = mix(n001, n101, u.x)
+  const nx11 = mix(n011, n111, u.x)
+  const nxy0 = mix(nx00, nx10, u.y)
+  const nxy1 = mix(nx01, nx11, u.y)
+
+  return mix(nxy0, nxy1, u.z).mul(2.0).sub(1.0)
+})
+
 // ==============================================================================
 // SIGNED DISTANCE FIELDS
 // ==============================================================================
