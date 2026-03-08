@@ -1,4 +1,4 @@
-import{W as ze}from"./three.module-1IXlXC5N.js";import{m as De}from"./morphologyMapper-DirS7Qm3.js";import{c as Z,B as le,a as W,A as oe,b as ce,m as I,h as Re,x as ee,$ as ge,y as ye,M as E,d as xe,ab as Ae,D as ke,u as Pe,aS as Te,L as $,w as he,f as de,N as Ie,K as J,C as Ee,V,Q as K,S as ue,P as Le,dh as Ne,aQ as He}from"./three.core-Bozt1HMY.js";import{g as _e}from"./initialOrbit-BPNXFfis.js";const b=Math.PI*2,L={rotation:{baseSpeed:.033,falloff:.35,referenceRadius:20},visual:{diskThicknessRatio:.06,dustFraction:.65,brightFraction:.03,dustHueRange:[240,280],brightHueRange:[10,45],hiiRegionChance:.15}},me=[{hue:10,spread:8,wInner:.35,wOuter:.05},{hue:25,spread:8,wInner:.3,wOuter:.1},{hue:42,spread:6,wInner:.25,wOuter:.15},{hue:55,spread:5,wInner:.08,wOuter:.2},{hue:210,spread:15,wInner:.02,wOuter:.35},{hue:225,spread:10,wInner:0,wOuter:.15}];function D(l){const e=L.visual.dustFraction,o=L.visual.brightFraction;return l<e?"dust":l>1-o?"bright":"star"}function R(l){switch(l){case"dust":return{size:.8+Math.random()*1.5,brightness:.08+Math.random()*.16,alpha:.12+Math.random()*.2};case"bright":return{size:4+Math.random()*6,brightness:.64+Math.random()*.16,alpha:.56+Math.random()*.24};default:return{size:1.5+Math.random()*3,brightness:.32+Math.random()*.4,alpha:.4+Math.random()*.4}}}function A(l,e,o){const t=L.visual;if(l==="dust")return t.dustHueRange[0]+Math.random()*(t.dustHueRange[1]-t.dustHueRange[0]);if(l==="bright")return t.brightHueRange[0]+Math.random()*(t.brightHueRange[1]-t.brightHueRange[0]);const n=Math.pow(e,.6);let a=0;for(const h of me)a+=h.wInner*(1-n)+h.wOuter*n;let i=Math.random()*a;for(const h of me)if(i-=h.wInner*(1-n)+h.wOuter*n,i<=0)return h.hue+(Math.random()-.5)*h.spread;return 42}function k(l){const{baseSpeed:e,falloff:o,referenceRadius:t}=L.rotation;return e/Math.pow(Math.max(l,t)/t,o)}function Oe(l){return l.galaxyRadius*.06}function Fe(l,e){const o=Oe(e);return l.filter(t=>t.radius>=o)}function ne(l){const e=Math.random()*b,o=Math.sqrt(Math.random())*l,t=(Math.random()-.5)*l*.08,n=D(Math.random()),a=R(n),i=o/l;return{radius:o,angle:e,y:t,rotationSpeed:k(o),hue:A(n,i),brightness:a.brightness,size:a.size,alpha:a.alpha,layer:n,twinklePhase:Math.random()*b}}function fe(l,e){const o=[],t=l.morphology,n=l.galaxyRadius,a=t.numArms,i=Math.floor(e/a),h=t.armWidth*n,d=t.spiralTightness,m=t.spiralStart*n,c=t.irregularity,s=t.barLength>0,v=t.barLength*n,g=2.5,f=Math.min(Math.max(m,s?v*.5:0),n*.98),r=f*f,p=n*n;for(let u=0;u<a;u++){const y=u/a*b;for(let S=0;S<i;S++){const M=Math.sqrt(Math.random()*(p-r)+r),w=Math.max(m,.001),N=Math.log(Math.max(M/w,1))/Math.max(d,.001)*g+y,X=M/n*.5+.5,Y=(Math.random()-.5+Math.random()-.5)*h*X,q=N+Math.PI/2,x=c*(Math.random()-.5)*30,C=Math.cos(N)*(M+x)+Math.cos(q)*Y,P=Math.sin(N)*(M+x)+Math.sin(q)*Y,H=M/n,_=n*L.visual.diskThicknessRatio*(1-H*.7),O=(Math.random()-.5)*_,z=Math.sqrt(C*C+P*P),F=Math.atan2(P,C),U=z/n,T=k(z),B=D(Math.random()),G=R(B),j=A(B,U);o.push({radius:z,angle:F,y:O,rotationSpeed:T,hue:j,brightness:G.brightness,size:G.size,alpha:G.alpha,layer:B,twinklePhase:Math.random()*b})}}return o}function Ue(l,e){const o=[],t=l.galaxyRadius,n=l.morphology.barLength*t,a=l.morphology.barWidth*t;for(let i=0;i<e;i++){const h=(Math.random()-.5)*2*n,d=(Math.random()-.5)*a,m=h,c=d,s=Math.sqrt(m*m+c*c);if(s>t)continue;const v=Math.atan2(c,m),g=D(Math.random()),f=R(g),r=A(g,.1);o.push({radius:s,angle:v,y:(Math.random()-.5)*t*.04,rotationSpeed:k(s),hue:r,brightness:f.brightness,size:f.size,alpha:f.alpha,layer:g,twinklePhase:Math.random()*b})}return o}function pe(l,e){const o=[],t=l.morphology.bulgeRadius*l.galaxyRadius;for(let n=0;n<e;n++){const a=Math.pow(Math.random(),.6)*t,i=Math.random()*b,h=(Math.random()-.5)*t*.5,d=a/t,m=1+(1-d)*.5,c=D(Math.random()),s=R(c);o.push({radius:a,angle:i,y:h,rotationSpeed:k(a)*.5,hue:A(c,.1),brightness:Math.min(s.brightness*m,.95),size:s.size*(1+(1-d)*.3),alpha:Math.min(s.alpha*m,.95),layer:c,twinklePhase:Math.random()*b})}return o}function Be(l,e){const o=[],t=l.galaxyRadius,n=l.morphology.axisRatio;for(let a=0;a<e;a++){const i=Math.random(),h=Math.random(),d=Math.pow(i,.4)*t,m=h*b,c=d*Math.cos(m),s=d*Math.sin(m)*n,v=Math.sqrt(c*c+s*s),g=Math.atan2(s,c),f=v/t,r=D(Math.random()),p=R(r),u=A(r,f);o.push({radius:v,angle:g,y:(Math.random()-.5)*t*.1*(1-f*.5),rotationSpeed:k(v)*.3,hue:u,brightness:p.brightness,size:p.size,alpha:p.alpha,layer:r,twinklePhase:Math.random()*b})}return o}function Ge(l,e){const o=[],t=l.galaxyRadius,n=l.morphology.bulgeRadius*t;for(let a=0;a<e;a++){const i=Math.pow(Math.random(),.55)*t,h=Math.random()*b,d=i/t,m=t*.06*Math.pow(Math.max(1-d,0),2),c=(Math.random()-.5)*m,s=Math.max(0,Math.min(1,1-i/Math.max(n,1))),v=1+s*.4,g=D(Math.random()),f=R(g);o.push({radius:i,angle:h,y:c,rotationSpeed:k(i)*(s>0?.5:1),hue:A(g,d*.2),brightness:Math.min(f.brightness*v,.95),size:f.size*(1+s*.3),alpha:Math.min(f.alpha*v,.95),layer:g,twinklePhase:Math.random()*b})}return o}function Ve(l,e){const o=[],t=l.galaxyRadius,n=l.morphology.irregularity,a=l.morphology.clumpCount,i=[];for(let h=0;h<a;h++){const d=h/a*b+Math.random()*.5,m=(.2+Math.random()*.6)*t;i.push({x:Math.cos(d)*m,z:Math.sin(d)*m,sigma:30+Math.random()*80,weight:.5+Math.random(),isHII:Math.random()<L.visual.hiiRegionChance})}for(let h=0;h<e;h++){let d,m;if(Math.random()<1-n){const p=Math.floor(Math.random()*a),u=i[p],y=()=>(Math.random()-.5+Math.random()-.5)*2;d=u.x+y()*u.sigma,m=u.z+y()*u.sigma,u.isHII&&Math.random()<.4}else{const p=Math.random()*b,u=Math.sqrt(Math.random())*t;d=Math.cos(p)*u+(Math.random()-.5)*60,m=Math.sin(p)*u+(Math.random()-.5)*60}const c=Math.sqrt(d*d+m*m);if(c>t*1.1)continue;const s=Math.atan2(m,d),v=c/t,g=D(Math.random()),f=R(g),r=A(g,v);o.push({radius:c,angle:s,y:(Math.random()-.5)*t*.12,rotationSpeed:k(c)*(.5+Math.random()*.5),hue:r,brightness:f.brightness,size:f.size,alpha:f.alpha,layer:g,twinklePhase:Math.random()*b})}return o}function We(l){const e=l.morphology,o=l.starCount,t=l.galaxyRadius;let n=[];const a=e.barLength>0,i=e.numArms>0,h=e.clumpCount>0&&e.irregularity>0,d=e.ellipticity>0&&!i&&!a&&!h,m=!i&&!a&&!h&&e.ellipticity===0&&e.bulgeFraction>0;if(d)n.push(...Be(l,o));else if(m)n.push(...Ge(l,o));else if(h){const c=Math.floor(o*e.fieldStarFraction),s=o-c;n.push(...Ve(l,s));for(let v=0;v<c;v++)n.push(ne(t))}else if(a&&i){const c=Math.floor(o*.25),s=o-c;n.push(...Ue(l,c));const v=Math.floor(s*.9);n.push(...fe(l,v));const g=e.bulgeRadius*t;if(g>0){const r=Math.min(.2,.08+.18*(g/t)),p=Math.floor(o*r);n.push(...pe(l,p))}const f=Math.floor(s*.1);for(let r=0;r<f;r++)n.push(ne(t))}else if(i){const c=e.fieldStarFraction,s=Math.floor(o*(1-c));n.push(...fe(l,s));const v=e.bulgeRadius*t;if(v>0){const f=Math.min(.25,.1+.2*(v/t)),r=Math.floor(o*f);n.push(...pe(l,r))}const g=Math.floor(o*c);for(let f=0;f<g;f++)n.push(ne(t))}return Fe(n,l)}const Xe=`attribute float aSize;
+import{W as Ae}from"./three.module-1IXlXC5N.js";import{m as De}from"./morphologyMapper-DirS7Qm3.js";import{c as ze,a as Re,g as Te,d as Pe}from"./qualityDetect-DwnHmhDA.js";import{c as Q,B as le,a as Y,A as oe,b as ce,m as _,h as ke,x as ne,$ as ge,y as ye,M as L,d as xe,ab as Ie,D as Ee,u as _e,aS as Le,L as J,w as he,f as de,N as Oe,K as ee,C as Ne,V as X,Q as $,S as ue,P as He,dh as Fe,aQ as Be}from"./three.core-Bozt1HMY.js";const b=Math.PI*2,O={rotation:{baseSpeed:.033,falloff:.35,referenceRadius:20},visual:{diskThicknessRatio:.06,dustFraction:.65,brightFraction:.03,dustHueRange:[240,280],brightHueRange:[10,45],hiiRegionChance:.15}},me=[{hue:10,spread:8,wInner:.35,wOuter:.05},{hue:25,spread:8,wInner:.3,wOuter:.1},{hue:42,spread:6,wInner:.25,wOuter:.15},{hue:55,spread:5,wInner:.08,wOuter:.2},{hue:210,spread:15,wInner:.02,wOuter:.35},{hue:225,spread:10,wInner:0,wOuter:.15}];function R(i){const e=O.visual.dustFraction,o=O.visual.brightFraction;return i<e?"dust":i>1-o?"bright":"star"}function T(i){switch(i){case"dust":return{size:.8+Math.random()*1.5,brightness:.08+Math.random()*.16,alpha:.12+Math.random()*.2};case"bright":return{size:4+Math.random()*6,brightness:.64+Math.random()*.16,alpha:.56+Math.random()*.24};default:return{size:1.5+Math.random()*3,brightness:.32+Math.random()*.4,alpha:.4+Math.random()*.4}}}function P(i,e,o){const n=O.visual;if(i==="dust")return n.dustHueRange[0]+Math.random()*(n.dustHueRange[1]-n.dustHueRange[0]);if(i==="bright")return n.brightHueRange[0]+Math.random()*(n.brightHueRange[1]-n.brightHueRange[0]);const t=Math.pow(e,.6);let s=0;for(const h of me)s+=h.wInner*(1-t)+h.wOuter*t;let a=Math.random()*s;for(const h of me)if(a-=h.wInner*(1-t)+h.wOuter*t,a<=0)return h.hue+(Math.random()-.5)*h.spread;return 42}function k(i){const{baseSpeed:e,falloff:o,referenceRadius:n}=O.rotation;return e/Math.pow(Math.max(i,n)/n,o)}function Ue(i){return i.galaxyRadius*.06}function Ge(i,e){const o=Ue(e);return i.filter(n=>n.radius>=o)}function te(i){const e=Math.random()*b,o=Math.sqrt(Math.random())*i,n=(Math.random()-.5)*i*.08,t=R(Math.random()),s=T(t),a=o/i;return{radius:o,angle:e,y:n,rotationSpeed:k(o),hue:P(t,a),brightness:s.brightness,size:s.size,alpha:s.alpha,layer:t,twinklePhase:Math.random()*b}}function fe(i,e){const o=[],n=i.morphology,t=i.galaxyRadius,s=n.numArms,a=Math.floor(e/s),h=n.armWidth*t,u=n.spiralTightness,f=n.spiralStart*t,r=n.irregularity,d=n.barLength>0,g=n.barLength*t,m=2.5,p=Math.min(Math.max(f,d?g*.5:0),t*.98),y=p*p,c=t*t;for(let l=0;l<s;l++){const v=l/s*b;for(let M=0;M<a;M++){const S=Math.sqrt(Math.random()*(c-y)+y),w=Math.max(f,.001),C=Math.log(Math.max(S/w,1))/Math.max(u,.001)*m+v,W=S/t*.5+.5,q=(Math.random()-.5+Math.random()-.5)*h*W,j=C+Math.PI/2,x=r*(Math.random()-.5)*30,A=Math.cos(C)*(S+x)+Math.cos(j)*q,I=Math.sin(C)*(S+x)+Math.sin(j)*q,N=S/t,H=t*O.visual.diskThicknessRatio*(1-N*.7),F=(Math.random()-.5)*H,z=Math.sqrt(A*A+I*I),B=Math.atan2(I,A),U=z/t,E=k(z),G=R(Math.random()),V=T(G),Z=P(G,U);o.push({radius:z,angle:B,y:F,rotationSpeed:E,hue:Z,brightness:V.brightness,size:V.size,alpha:V.alpha,layer:G,twinklePhase:Math.random()*b})}}return o}function Ve(i,e){const o=[],n=i.galaxyRadius,t=i.morphology.barLength*n,s=i.morphology.barWidth*n;for(let a=0;a<e;a++){const h=(Math.random()-.5)*2*t,u=(Math.random()-.5)*s,f=h,r=u,d=Math.sqrt(f*f+r*r);if(d>n)continue;const g=Math.atan2(r,f),m=R(Math.random()),p=T(m),y=P(m,.1);o.push({radius:d,angle:g,y:(Math.random()-.5)*n*.04,rotationSpeed:k(d),hue:y,brightness:p.brightness,size:p.size,alpha:p.alpha,layer:m,twinklePhase:Math.random()*b})}return o}function pe(i,e){const o=[],n=i.morphology.bulgeRadius*i.galaxyRadius;for(let t=0;t<e;t++){const s=Math.pow(Math.random(),.6)*n,a=Math.random()*b,h=(Math.random()-.5)*n*.5,u=s/n,f=1+(1-u)*.5,r=R(Math.random()),d=T(r);o.push({radius:s,angle:a,y:h,rotationSpeed:k(s)*.5,hue:P(r,.1),brightness:Math.min(d.brightness*f,.95),size:d.size*(1+(1-u)*.3),alpha:Math.min(d.alpha*f,.95),layer:r,twinklePhase:Math.random()*b})}return o}function Xe(i,e){const o=[],n=i.galaxyRadius,t=i.morphology.axisRatio;for(let s=0;s<e;s++){const a=Math.random(),h=Math.random(),u=Math.pow(a,.4)*n,f=h*b,r=u*Math.cos(f),d=u*Math.sin(f)*t,g=Math.sqrt(r*r+d*d),m=Math.atan2(d,r),p=g/n,y=R(Math.random()),c=T(y),l=P(y,p);o.push({radius:g,angle:m,y:(Math.random()-.5)*n*.1*(1-p*.5),rotationSpeed:k(g)*.3,hue:l,brightness:c.brightness,size:c.size,alpha:c.alpha,layer:y,twinklePhase:Math.random()*b})}return o}function Ye(i,e){const o=[],n=i.galaxyRadius,t=i.morphology.bulgeRadius*n;for(let s=0;s<e;s++){const a=Math.pow(Math.random(),.55)*n,h=Math.random()*b,u=a/n,f=n*.06*Math.pow(Math.max(1-u,0),2),r=(Math.random()-.5)*f,d=Math.max(0,Math.min(1,1-a/Math.max(t,1))),g=1+d*.4,m=R(Math.random()),p=T(m);o.push({radius:a,angle:h,y:r,rotationSpeed:k(a)*(d>0?.5:1),hue:P(m,u*.2),brightness:Math.min(p.brightness*g,.95),size:p.size*(1+d*.3),alpha:Math.min(p.alpha*g,.95),layer:m,twinklePhase:Math.random()*b})}return o}function We(i,e){const o=[],n=i.galaxyRadius,t=i.morphology.irregularity,s=i.morphology.clumpCount,a=[];for(let h=0;h<s;h++){const u=h/s*b+Math.random()*.5,f=(.2+Math.random()*.6)*n;a.push({x:Math.cos(u)*f,z:Math.sin(u)*f,sigma:30+Math.random()*80,weight:.5+Math.random(),isHII:Math.random()<O.visual.hiiRegionChance})}for(let h=0;h<e;h++){let u,f;if(Math.random()<1-t){const c=Math.floor(Math.random()*s),l=a[c],v=()=>(Math.random()-.5+Math.random()-.5)*2;u=l.x+v()*l.sigma,f=l.z+v()*l.sigma,l.isHII&&Math.random()<.4}else{const c=Math.random()*b,l=Math.sqrt(Math.random())*n;u=Math.cos(c)*l+(Math.random()-.5)*60,f=Math.sin(c)*l+(Math.random()-.5)*60}const r=Math.sqrt(u*u+f*f);if(r>n*1.1)continue;const d=Math.atan2(f,u),g=r/n,m=R(Math.random()),p=T(m),y=P(m,g);o.push({radius:r,angle:d,y:(Math.random()-.5)*n*.12,rotationSpeed:k(r)*(.5+Math.random()*.5),hue:y,brightness:p.brightness,size:p.size,alpha:p.alpha,layer:m,twinklePhase:Math.random()*b})}return o}function qe(i){const e=i.morphology,o=i.starCount,n=i.galaxyRadius;let t=[];const s=e.barLength>0,a=e.numArms>0,h=e.clumpCount>0&&e.irregularity>0,u=e.ellipticity>0&&!a&&!s&&!h,f=!a&&!s&&!h&&e.ellipticity===0&&e.bulgeFraction>0;if(u)t.push(...Xe(i,o));else if(f)t.push(...Ye(i,o));else if(h){const r=Math.floor(o*e.fieldStarFraction),d=o-r;t.push(...We(i,d));for(let g=0;g<r;g++)t.push(te(n))}else if(s&&a){const r=Math.floor(o*.25),d=o-r;t.push(...Ve(i,r));const g=Math.floor(d*.9);t.push(...fe(i,g));const m=e.bulgeRadius*n;if(m>0){const y=Math.min(.2,.08+.18*(m/n)),c=Math.floor(o*y);t.push(...pe(i,c))}const p=Math.floor(d*.1);for(let y=0;y<p;y++)t.push(te(n))}else if(a){const r=e.fieldStarFraction,d=Math.floor(o*(1-r));t.push(...fe(i,d));const g=e.bulgeRadius*n;if(g>0){const p=Math.min(.25,.1+.2*(g/n)),y=Math.floor(o*p);t.push(...pe(i,y))}const m=Math.floor(o*r);for(let p=0;p<m;p++)t.push(te(n))}return Ge(t,i)}const je=`attribute float aSize;
 attribute vec4 aColor;
 
 uniform float uPixelRatio;
@@ -16,43 +16,26 @@ void main() {
   gl_PointSize = clamp(pointSize, 1.0 * uPixelRatio, 24.0 * uPixelRatio);
   gl_Position = projectionMatrix * mvPosition;
 }
-`,Ye=`precision highp float;
+`,Ze=`precision highp float;
 
 varying vec4 vColor;
-
-float saturate(float value) {
-    return clamp(value, 0.0, 1.0);
-}
+uniform sampler2D uGlowTex;
 
 void main() {
-    vec2 coord = gl_PointCoord * 2.0 - vec2(1.0);
-    float dist = length(coord);
+    vec4 glow = texture2D(uGlowTex, gl_PointCoord);
 
-    if (dist > 1.0) {
-        discard;
-    }
+    // glow.a = pre-baked alpha envelope
+    float alpha = vColor.a * glow.a;
+    if (alpha < 0.004) discard;
 
-    float edge = 1.0 - smoothstep(0.62, 1.0, dist);
-    float core = exp(-dist * dist * 34.0);
-    float innerCorona = exp(-dist * dist * 5.2) * 0.42;
-    float outerCorona = exp(-dist * dist * 1.55) * 0.28;
-
-    // Subtle diffraction-style streaking to keep bright stars lively without
-    // turning the whole sprite into a fuzzy disc.
-    float rays = pow(max(0.0, 1.0 - abs(coord.x * coord.y) * 7.0), 5.0);
-    rays *= exp(-dist * dist * 5.0) * 0.07;
-
-    float corona = innerCorona + outerCorona + rays;
+    // glow.r = corona intensity, glow.g = core intensity
     vec3 coronaColor = mix(vColor.rgb * 1.32, vec3(1.0), 0.12);
-    vec3 coreColor = mix(coronaColor, vec3(1.0), 0.92);
-    vec3 litRgb = coronaColor * corona + coreColor * (core * 1.35);
-    float alpha = vColor.a * saturate((core * 1.2 + innerCorona + outerCorona * 0.95 + rays) * edge);
+    vec3 coreColor   = mix(coronaColor, vec3(1.0), 0.92);
+    vec3 litRgb = coronaColor * glow.r + coreColor * (glow.g * 1.35);
 
-    // Keep the output un-premultiplied so additive blending preserves hue and
-    // does not effectively square the alpha contribution.
     gl_FragColor = vec4(litRgb, alpha);
 }
-`;function qe(l,e,o){l/=360;const t=e*Math.min(o,1-o),n=a=>{const i=(a+l*12)%12;return o-t*Math.max(Math.min(i-3,9-i,1),-1)};return[n(0),n(8),n(4)]}function je(l){switch(l){case"dust":return .3;case"star":return .65;case"bright":return .5}}function Ze(l,e){switch(l){case"dust":return e*.4;case"star":return e*.6;case"bright":return e*.85}}class Qe{constructor(e,o=600){this.stars=e,this.baseDistance=o;const t=e.length,n=new Float32Array(t*3),a=new Float32Array(t*4),i=new Float32Array(t*4),h=new Float32Array(t);this.angleOffsets=new Float32Array(t),this.baseAlphas=new Float32Array(t);for(let c=0;c<t;c++){const s=e[c],v=s.radius*Math.cos(s.angle),g=s.radius*Math.sin(s.angle);n[c*3]=v,n[c*3+1]=s.y,n[c*3+2]=g;const f=je(s.layer),r=Ze(s.layer,s.brightness),[p,u,y]=qe(s.hue,f,r);a[c*4]=i[c*4]=p,a[c*4+1]=i[c*4+1]=u,a[c*4+2]=i[c*4+2]=y,a[c*4+3]=s.alpha,i[c*4+3]=0,h[c]=s.size,this.angleOffsets[c]=s.angle,this.baseAlphas[c]=s.alpha}const d=new Z(n,3),m=new Z(h,1);this.backgroundGeometry=new le,this.backgroundGeometry.setAttribute("position",d),this.backgroundGeometry.setAttribute("aColor",new Z(a,4)),this.backgroundGeometry.setAttribute("aSize",m),this.foregroundGeometry=new le,this.foregroundGeometry.setAttribute("position",d),this.foregroundGeometry.setAttribute("aColor",new Z(i,4)),this.foregroundGeometry.setAttribute("aSize",m),this.material=new W({vertexShader:Xe,fragmentShader:Ye,uniforms:{uPixelRatio:{value:Math.min(window.devicePixelRatio,2)},uBaseDistance:{value:o}},transparent:!0,depthWrite:!1,blending:oe}),this.foregroundMaterial=this.material.clone(),this.foregroundMaterial.uniforms={uPixelRatio:{value:Math.min(window.devicePixelRatio,2)},uBaseDistance:{value:o}},this.points=new ce(this.backgroundGeometry,this.material),this.points.frustumCulled=!1,this.foregroundPoints=new ce(this.foregroundGeometry,this.foregroundMaterial),this.foregroundPoints.frustumCulled=!1,this.foregroundPoints.renderOrder=2}update(e,o,t,n,a,i,h,d){const m=this.stars,c=m.length,s=this.backgroundGeometry.getAttribute("position"),v=this.backgroundGeometry.getAttribute("aColor"),g=this.foregroundGeometry.getAttribute("aColor"),f=s.array,r=v.array,p=g.array,u=t.matrixWorldInverse.elements,y=t.projectionMatrix.elements,S=u[14],M=t.position.length(),w=I.smoothstep(1-Math.abs(t.position.y)/Math.max(M,1e-4),.55,.95),te=I.lerp(Math.max(this.baseDistance*.03,6),Math.max(this.baseDistance*.004,.75),w),N=I.lerp(Math.max(this.baseDistance*.06,10),Math.max(this.baseDistance*.018,3),w),X=I.lerp(.75,1.2,w),Y=Math.max(i*X/Math.max(h*.5,1),.04),q=Math.max(i*X/Math.max(d*.5,1),.04);for(let x=0;x<c;x++){const C=m[x];this.angleOffsets[x]+=C.rotationSpeed*e;const P=this.angleOffsets[x];f[x*3]=C.radius*Math.cos(P),f[x*3+2]=C.radius*Math.sin(P);let H=this.baseAlphas[x];if(C.layer==="bright"){const Ce=Math.sin(o*2+C.twinklePhase)*.15+.85;H*=Ce}const _=f[x*3],O=f[x*3+1],z=f[x*3+2],F=u[0]*_+u[4]*O+u[8]*z+u[12],U=u[1]*_+u[5]*O+u[9]*z+u[13],T=u[2]*_+u[6]*O+u[10]*z+u[14],B=y[0]*F+y[4]*U+y[8]*T+y[12],G=y[1]*F+y[5]*U+y[9]*T+y[13],j=y[3]*F+y[7]*U+y[11]*T+y[15],ae=j!==0?1/j:0,be=B*ae,Me=G*ae,se=(be-n)/Y,ie=(Me-a)/q,Se=1-I.smoothstep(.75,1.25,Math.sqrt(se*se+ie*ie)),we=I.smoothstep(T-S,te,te+N),re=Se*we;r[x*4+3]=H*(1-re),p[x*4+3]=H*re}s.needsUpdate=!0,v.needsUpdate=!0,g.needsUpdate=!0}dispose(){this.backgroundGeometry.dispose(),this.foregroundGeometry.dispose(),this.material.dispose(),this.foregroundMaterial.dispose()}}class Ke{constructor(e){const t=document.createElement("canvas");t.width=512,t.height=512;const n=t.getContext("2d"),a=512/2,i=512/2,h=n.createRadialGradient(a,i,0,a,i,a*.3);h.addColorStop(0,"hsla(35, 80%, 65%, 0.45)"),h.addColorStop(.3,"hsla(30, 70%, 50%, 0.25)"),h.addColorStop(.7,"hsla(25, 60%, 40%, 0.08)"),h.addColorStop(1,"hsla(20, 50%, 30%, 0)"),n.fillStyle=h,n.fillRect(0,0,512,512);const d=n.createRadialGradient(a,i,0,a,i,a*.7);d.addColorStop(0,"hsla(30, 60%, 55%, 0.15)"),d.addColorStop(.3,"hsla(210, 40%, 45%, 0.08)"),d.addColorStop(.6,"hsla(220, 30%, 35%, 0.03)"),d.addColorStop(1,"hsla(0, 0%, 0%, 0)"),n.fillStyle=d,n.fillRect(0,0,512,512);const m=n.createRadialGradient(a,i,0,a,i,a);m.addColorStop(0,"hsla(25, 40%, 40%, 0.04)"),m.addColorStop(.5,"hsla(220, 30%, 30%, 0.02)"),m.addColorStop(1,"hsla(0, 0%, 0%, 0)"),n.fillStyle=m,n.fillRect(0,0,512,512);const c=new Re(t);c.needsUpdate=!0;const s=e*3,v=new ee(s,s);this.material=new ge({map:c,transparent:!0,depthWrite:!1,blending:oe,side:ye}),this.mesh=new E(v,this.material),this.mesh.rotation.x=-Math.PI/2,this.mesh.position.set(0,0,0)}dispose(){var e;(e=this.material.map)==null||e.dispose(),this.material.dispose(),this.mesh.geometry.dispose()}}const $e=`precision highp float;
+`;function Qe(i,e,o){i/=360;const n=e*Math.min(o,1-o),t=s=>{const a=(s+i*12)%12;return o-n*Math.max(Math.min(a-3,9-a,1),-1)};return[t(0),t(8),t(4)]}function Ke(i){switch(i){case"dust":return .3;case"star":return .65;case"bright":return .5}}function $e(i,e){switch(i){case"dust":return e*.4;case"star":return e*.6;case"bright":return e*.85}}class Je{constructor(e,o=600){this.stars=e,this.baseDistance=o;const n=e.length,t=new Float32Array(n*3),s=new Float32Array(n*4),a=new Float32Array(n*4),h=new Float32Array(n);this.angleOffsets=new Float32Array(n),this.baseAlphas=new Float32Array(n);for(let r=0;r<n;r++){const d=e[r],g=d.radius*Math.cos(d.angle),m=d.radius*Math.sin(d.angle);t[r*3]=g,t[r*3+1]=d.y,t[r*3+2]=m;const p=Ke(d.layer),y=$e(d.layer,d.brightness),[c,l,v]=Qe(d.hue,p,y);s[r*4]=a[r*4]=c,s[r*4+1]=a[r*4+1]=l,s[r*4+2]=a[r*4+2]=v,s[r*4+3]=d.alpha,a[r*4+3]=0,h[r]=d.size,this.angleOffsets[r]=d.angle,this.baseAlphas[r]=d.alpha}const u=new Q(t,3),f=new Q(h,1);this.backgroundGeometry=new le,this.backgroundGeometry.setAttribute("position",u),this.backgroundGeometry.setAttribute("aColor",new Q(s,4)),this.backgroundGeometry.setAttribute("aSize",f),this.foregroundGeometry=new le,this.foregroundGeometry.setAttribute("position",u),this.foregroundGeometry.setAttribute("aColor",new Q(a,4)),this.foregroundGeometry.setAttribute("aSize",f),this.glowTexture=ze(),this.material=new Y({vertexShader:je,fragmentShader:Ze,uniforms:{uPixelRatio:{value:Math.min(window.devicePixelRatio,2)},uBaseDistance:{value:o},uGlowTex:{value:this.glowTexture}},transparent:!0,depthWrite:!1,blending:oe}),this.foregroundMaterial=this.material.clone(),this.foregroundMaterial.uniforms={uPixelRatio:{value:Math.min(window.devicePixelRatio,2)},uBaseDistance:{value:o},uGlowTex:{value:this.glowTexture}},this.points=new ce(this.backgroundGeometry,this.material),this.points.frustumCulled=!1,this.foregroundPoints=new ce(this.foregroundGeometry,this.foregroundMaterial),this.foregroundPoints.frustumCulled=!1,this.foregroundPoints.renderOrder=2}update(e,o,n,t,s,a,h,u){const f=this.stars,r=f.length,d=this.backgroundGeometry.getAttribute("position"),g=this.backgroundGeometry.getAttribute("aColor"),m=this.foregroundGeometry.getAttribute("aColor"),p=d.array,y=g.array,c=m.array,l=n.matrixWorldInverse.elements,v=n.projectionMatrix.elements,M=l[14],S=n.position.length(),w=_.smoothstep(1-Math.abs(n.position.y)/Math.max(S,1e-4),.55,.95),D=_.lerp(Math.max(this.baseDistance*.03,6),Math.max(this.baseDistance*.004,.75),w),C=_.lerp(Math.max(this.baseDistance*.06,10),Math.max(this.baseDistance*.018,3),w),W=_.lerp(.75,1.2,w),q=Math.max(a*W/Math.max(h*.5,1),.04),j=Math.max(a*W/Math.max(u*.5,1),.04);for(let x=0;x<r;x++){const A=f[x];this.angleOffsets[x]+=A.rotationSpeed*e;const I=this.angleOffsets[x];p[x*3]=A.radius*Math.cos(I),p[x*3+2]=A.radius*Math.sin(I);let N=this.baseAlphas[x];if(A.layer==="bright"){const Ce=Math.sin(o*2+A.twinklePhase)*.15+.85;N*=Ce}const H=p[x*3],F=p[x*3+1],z=p[x*3+2],B=l[0]*H+l[4]*F+l[8]*z+l[12],U=l[1]*H+l[5]*F+l[9]*z+l[13],E=l[2]*H+l[6]*F+l[10]*z+l[14],G=v[0]*B+v[4]*U+v[8]*E+v[12],V=v[1]*B+v[5]*U+v[9]*E+v[13],Z=v[3]*B+v[7]*U+v[11]*E+v[15],ae=Z!==0?1/Z:0,be=G*ae,Se=V*ae,se=(be-t)/q,ie=(Se-s)/j,Me=1-_.smoothstep(.75,1.25,Math.sqrt(se*se+ie*ie)),we=_.smoothstep(E-M,D,D+C),re=Me*we;y[x*4+3]=N*(1-re),c[x*4+3]=N*re}d.needsUpdate=!0,g.needsUpdate=!0,m.needsUpdate=!0}dispose(){this.backgroundGeometry.dispose(),this.foregroundGeometry.dispose(),this.material.dispose(),this.foregroundMaterial.dispose(),this.glowTexture.dispose()}}class en{constructor(e){const n=document.createElement("canvas");n.width=512,n.height=512;const t=n.getContext("2d"),s=512/2,a=512/2,h=t.createRadialGradient(s,a,0,s,a,s*.3);h.addColorStop(0,"hsla(35, 80%, 65%, 0.45)"),h.addColorStop(.3,"hsla(30, 70%, 50%, 0.25)"),h.addColorStop(.7,"hsla(25, 60%, 40%, 0.08)"),h.addColorStop(1,"hsla(20, 50%, 30%, 0)"),t.fillStyle=h,t.fillRect(0,0,512,512);const u=t.createRadialGradient(s,a,0,s,a,s*.7);u.addColorStop(0,"hsla(30, 60%, 55%, 0.15)"),u.addColorStop(.3,"hsla(210, 40%, 45%, 0.08)"),u.addColorStop(.6,"hsla(220, 30%, 35%, 0.03)"),u.addColorStop(1,"hsla(0, 0%, 0%, 0)"),t.fillStyle=u,t.fillRect(0,0,512,512);const f=t.createRadialGradient(s,a,0,s,a,s);f.addColorStop(0,"hsla(25, 40%, 40%, 0.04)"),f.addColorStop(.5,"hsla(220, 30%, 30%, 0.02)"),f.addColorStop(1,"hsla(0, 0%, 0%, 0)"),t.fillStyle=f,t.fillRect(0,0,512,512);const r=new ke(n);r.needsUpdate=!0;const d=e*3,g=new ne(d,d);this.material=new ge({map:r,transparent:!0,depthWrite:!1,blending:oe,side:ye}),this.mesh=new L(g,this.material),this.mesh.rotation.x=-Math.PI/2,this.mesh.position.set(0,0,0)}dispose(){var e;(e=this.material.map)==null||e.dispose(),this.material.dispose(),this.mesh.geometry.dispose()}}const nn=`precision highp float;
 
 varying vec3 vDirection;
 
@@ -60,7 +43,7 @@ void main() {
   vDirection = normalize(position);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
-`,Je=`precision highp float;
+`,tn=`precision highp float;
 
 varying vec3 vDirection;
 
@@ -71,6 +54,27 @@ uniform float uNebulaIntensity;
 #define PI 3.14159265359
 #define TAU 6.28318530718
 
+// Quality LOD — set by ShaderMaterial at construction
+// Defaults are desktop values; mobile overrides via ShaderMaterial.defines
+#ifndef SPIRAL_NOISE_ITER
+#define SPIRAL_NOISE_ITER 5
+#endif
+#ifndef MAX_GALAXIES
+#define MAX_GALAXIES 4
+#endif
+#ifndef MAX_CLOUDS
+#define MAX_CLOUDS 6
+#endif
+#ifndef MAX_KNOTS
+#define MAX_KNOTS 5
+#endif
+#ifndef STAR_LAYERS
+#define STAR_LAYERS 4
+#endif
+#ifndef FBM_DETAIL_OCTAVES
+#define FBM_DETAIL_OCTAVES 4
+#endif
+
 // Noise constants
 const float MOD_DIVISOR = 289.0;
 const float NOISE_OUTPUT_SCALE_3D = 42.0;
@@ -79,7 +83,6 @@ const int FBM_MAX_OCTAVES = 8;
 // Nebula structure
 const float NEBULA_SCALE = 0.5;
 const float NEBULA_DETAIL = 2.0;
-const int SPIRAL_NOISE_ITER = 5;
 const float NUDGE = 3.0;
 const float DENSITY_THRESHOLD = 0.02;
 const float DENSITY_FALLOFF = 0.5;
@@ -229,7 +232,7 @@ float spiralNoise(vec3 p, float seed) {
 float nebulaDensity(vec3 p, float seed) {
   float k = 1.5 + seed * 0.5;
   float spiral = spiralNoise(p * NEBULA_SCALE, seed);
-  float detail = fbm3D(p * NEBULA_DETAIL, 4) * 0.35;
+  float detail = fbm3D(p * NEBULA_DETAIL, FBM_DETAIL_OCTAVES) * 0.35;
   float fine = fbm3D(p * NEBULA_DETAIL * 3.0, 2) * 0.15;
   return k * (0.5 + spiral * 0.5 + detail + fine);
 }
@@ -428,7 +431,7 @@ void main() {
 
   // === DISTANT GALAXIES (very far background) ===
   int numGalaxies = 2 + int(sh5 * 3.0);
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < MAX_GALAXIES; i++) {
     if (i >= numGalaxies) break;
     float galSeed = seedHash(uSeed + float(i) * 7.0 + 100.0);
     vec3 galCenter = normalize(vec3(
@@ -471,6 +474,7 @@ void main() {
     }
   }
 
+#if STAR_LAYERS >= 3
   // Faint stars (dense layer)
   vec3 starCell3 = floor(dir * 520.0);
   float starHash3 = seedHash(dot(starCell3, vec3(41.1, 89.3, 173.7)) + uSeed * 3.0);
@@ -481,7 +485,9 @@ void main() {
     float faint = exp(-dist3 * 1400.0) * 0.25;
     starField = max(starField, faint);
   }
+#endif
 
+#if STAR_LAYERS >= 4
   // Very faint stars (densest layer — fills the sky)
   vec3 starCell4 = floor(dir * 850.0);
   float starHash4 = seedHash(dot(starCell4, vec3(17.3, 43.7, 97.1)) + uSeed * 4.0);
@@ -491,12 +497,13 @@ void main() {
     float dist4 = length(dir - normalize(starCenter4));
     starField = max(starField, exp(-dist4 * 2000.0) * 0.1);
   }
+#endif
 
   finalColor += starColor * starField;
 
   // === DISTANT GAS CLOUDS (background nebula patches) ===
   int numClouds = 3 + int(sh4 * 4.0);
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < MAX_CLOUDS; i++) {
     if (i >= numClouds) break;
     float cloudSeed = seedHash(uSeed + float(i) * 13.0 + 50.0);
     vec3 cloudCenter = normalize(vec3(
@@ -562,10 +569,12 @@ void main() {
   float brightEdge = pow(max(brightSpots - 0.2, 0.0), 0.5);
   nebulaColor += nebulaEmissionColor(hue + 0.1, 0.8) * brightEdge * 0.3;
 
-  // Dust lanes
+#if STAR_LAYERS >= 3
+  // Dust lanes (skipped on mobile — subtle detail, expensive FBM call)
   float dustLane = fbm3D(animPos * 1.5 + vec3(sh2 * 5.0), 3);
   dustLane = smoothstep(0.2, 0.5, dustLane);
   nebulaColor *= 0.5 + dustLane * 0.5;
+#endif
 
   // Void regions dim
   nebulaColor *= 0.2 + voids * 0.8;
@@ -574,7 +583,7 @@ void main() {
 
   // === EMISSION KNOTS ===
   int numKnots = 2 + int(sh3 * 4.0);
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < MAX_KNOTS; i++) {
     if (i >= numKnots) break;
     float knotSeed = seedHash(uSeed + float(i) * 23.0 + 300.0);
     vec3 knotCenter = normalize(vec3(
@@ -610,13 +619,13 @@ void main() {
 
   gl_FragColor = vec4(finalColor, 1.0);
 }
-`;class et{constructor(e,o){const t=e*12,n=new xe(t,192,128);this.material=new W({vertexShader:$e,fragmentShader:Je,uniforms:{uTime:{value:0},uSeed:{value:o},uNebulaIntensity:{value:2.4}},side:Ae,depthWrite:!1,depthTest:!1}),this.mesh=new E(n,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-10}update(e,o){this.material.uniforms.uTime.value=e,this.mesh.position.copy(o.position)}dispose(){this.material.dispose(),this.mesh.geometry.dispose()}}const tt=`varying vec2 vUV;
+`;class on{constructor(e,o,n){const t=e*12,s=new xe(t,192,128),a=n==="mobile";this.material=new Y({vertexShader:nn,fragmentShader:tn,defines:{SPIRAL_NOISE_ITER:a?3:5,MAX_GALAXIES:a?2:4,MAX_CLOUDS:a?3:6,MAX_KNOTS:a?2:5,STAR_LAYERS:a?2:4,FBM_DETAIL_OCTAVES:a?2:4},uniforms:{uTime:{value:0},uSeed:{value:o},uNebulaIntensity:{value:2.4}},side:Ie,depthWrite:!1,depthTest:!1}),this.mesh=new L(s,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-10}update(e,o){this.material.uniforms.uTime.value=e,this.mesh.position.copy(o.position)}dispose(){this.material.dispose(),this.mesh.geometry.dispose()}}const an=`varying vec2 vUV;
 
 void main() {
   vUV = uv;
   gl_Position = vec4(position, 1.0);
 }
-`,nt=`precision highp float;
+`,sn=`precision highp float;
 
 varying vec2 vUV;
 
@@ -631,6 +640,14 @@ uniform sampler2D uDensityMap;
 
 #define PI 3.14159265359
 #define TAU 6.28318530718
+
+// Quality LOD — overridden by ShaderMaterial.defines
+#ifndef FBM_MAX_OCTAVES
+#define FBM_MAX_OCTAVES 4
+#endif
+#ifndef SPIRAL_ITERS
+#define SPIRAL_ITERS 5
+#endif
 
 // ─── Noise helpers ───────────────────────────────────────────────────────────
 
@@ -723,7 +740,7 @@ float fbm3D(vec3 p, int octaves) {
   float frequency = 1.0;
   vec3 shift = vec3(100.0);
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < FBM_MAX_OCTAVES; i++) {
     if (i >= octaves) break;
     value += amplitude * snoise3D(p * frequency);
     p += shift;
@@ -739,7 +756,7 @@ float spiralNoise(vec3 p, float seed) {
   float n = 1.5 - seed * 0.5;
   float iter = 2.0;
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < SPIRAL_ITERS; i++) {
     n += -abs(sin(p.y * iter) + cos(p.x * iter)) / iter;
     p.xy += vec2(p.y, -p.x) * NUDGE;
     p.xy *= normalizer;
@@ -878,12 +895,12 @@ void main() {
   // Premultiplied alpha
   gl_FragColor = vec4(color * alpha, alpha);
 }
-`;class ot{constructor(e,o,t){const a=new Float32Array(65536),i=o*1.3;for(let s=0;s<e.length;s++){const v=e[s],g=Math.cos(v.angle)*v.radius,f=Math.sin(v.angle)*v.radius,r=Math.floor((g/i*.5+.5)*255),p=Math.floor((f/i*.5+.5)*255);r>=0&&r<256&&p>=0&&p<256&&(a[p*256+r]+=1)}const h=new Float32Array(256*256);for(let s=0;s<3;s++){const v=s%2===0?a:h,g=s%2===0?h:a;for(let f=0;f<256;f++)for(let r=0;r<256;r++){let p=0,u=0;for(let y=-2;y<=2;y++)for(let S=-2;S<=2;S++){const M=r+S,w=f+y;M>=0&&M<256&&w>=0&&w<256&&(p+=v[w*256+M],u++)}g[f*256+r]=p/u}}a.set(h);let d=0;for(let s=0;s<a.length;s++)a[s]>d&&(d=a[s]);const m=new Uint8Array(256*256);if(d>0)for(let s=0;s<a.length;s++)m[s]=Math.min(255,Math.floor(a[s]/d*255));this.densityTexture=new ke(m,256,256,Pe,Te),this.densityTexture.minFilter=$,this.densityTexture.magFilter=$,this.densityTexture.wrapS=he,this.densityTexture.wrapT=he,this.densityTexture.needsUpdate=!0;const c=new ee(2,2);this.material=new W({vertexShader:tt,fragmentShader:nt,uniforms:{uInvViewProj:{value:new de},uTime:{value:0},uGalaxyRadius:{value:o},uSeed:{value:t},uNebulaIntensity:{value:.4},uGalaxyRotation:{value:0},uAxisRatio:{value:1},uDensityMap:{value:this.densityTexture}},transparent:!0,depthWrite:!1,depthTest:!1,blending:oe}),this.mesh=new E(c,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-1}update(e,o,t,n,a){const i=this.material.uniforms;i.uTime.value=e,i.uGalaxyRotation.value=t,i.uGalaxyRadius.value=n,i.uAxisRatio.value=a;const h=new de;h.multiplyMatrices(o.projectionMatrix,o.matrixWorldInverse),i.uInvViewProj.value.copy(h).invert()}dispose(){this.densityTexture.dispose(),this.material.dispose(),this.mesh.geometry.dispose()}}const at=`varying vec2 vUV;
+`;class rn{constructor(e,o,n,t){const a=new Float32Array(65536),h=o*1.3;for(let m=0;m<e.length;m++){const p=e[m],y=Math.cos(p.angle)*p.radius,c=Math.sin(p.angle)*p.radius,l=Math.floor((y/h*.5+.5)*255),v=Math.floor((c/h*.5+.5)*255);l>=0&&l<256&&v>=0&&v<256&&(a[v*256+l]+=1)}const u=new Float32Array(256*256);for(let m=0;m<3;m++){const p=m%2===0?a:u,y=m%2===0?u:a;for(let c=0;c<256;c++)for(let l=0;l<256;l++){let v=0,M=0;for(let S=-2;S<=2;S++)for(let w=-2;w<=2;w++){const D=l+w,C=c+S;D>=0&&D<256&&C>=0&&C<256&&(v+=p[C*256+D],M++)}y[c*256+l]=v/M}}a.set(u);let f=0;for(let m=0;m<a.length;m++)a[m]>f&&(f=a[m]);const r=new Uint8Array(256*256);if(f>0)for(let m=0;m<a.length;m++)r[m]=Math.min(255,Math.floor(a[m]/f*255));this.densityTexture=new Ee(r,256,256,_e,Le),this.densityTexture.minFilter=J,this.densityTexture.magFilter=J,this.densityTexture.wrapS=he,this.densityTexture.wrapT=he,this.densityTexture.needsUpdate=!0;const d=new ne(2,2),g=t==="mobile";this.material=new Y({vertexShader:an,fragmentShader:sn,defines:{FBM_MAX_OCTAVES:g?2:4,SPIRAL_ITERS:g?3:5},uniforms:{uInvViewProj:{value:new de},uTime:{value:0},uGalaxyRadius:{value:o},uSeed:{value:n},uNebulaIntensity:{value:.4},uGalaxyRotation:{value:0},uAxisRatio:{value:1},uDensityMap:{value:this.densityTexture}},transparent:!0,depthWrite:!1,depthTest:!1,blending:oe}),this.mesh=new L(d,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-1}update(e,o,n,t,s){const a=this.material.uniforms;a.uTime.value=e,a.uGalaxyRotation.value=n,a.uGalaxyRadius.value=t,a.uAxisRatio.value=s;const h=new de;h.multiplyMatrices(o.projectionMatrix,o.matrixWorldInverse),a.uInvViewProj.value.copy(h).invert()}dispose(){this.densityTexture.dispose(),this.material.dispose(),this.mesh.geometry.dispose()}}const ln=`varying vec2 vUV;
 void main() {
   vUV = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
-`,st=`precision highp float;
+`,cn=`precision highp float;
 
 varying vec2 vUV;
 uniform vec2 uResolution;
@@ -1043,13 +1060,13 @@ void main() {
 
     gl_FragColor = vec4(col, alpha);
 }
-`;class it{constructor(e,o=60){this.apparentPx=0,this.quadSize=o;const t=new xe(1,4,4),n=new ge({visible:!1});this.depthMesh=new E(t,n),this.depthMesh.layers.set(2),this.material=new W({vertexShader:at,fragmentShader:st,uniforms:{uResolution:{value:new J(512,512)},uTime:{value:0},uTiltX:{value:0},uRotY:{value:0},uLOD:{value:0}},transparent:!0,depthWrite:!1,depthTest:!0,blending:Ie,side:ye}),this.mesh=new E(new ee(1,1),this.material),this.mesh.scale.set(o,o,1),this.mesh.renderOrder=1,this.mesh.layers.set(2)}update(e,o,t,n,a){if(this.material.uniforms.uTime.value=e,this.material.uniforms.uTiltX.value=o,this.material.uniforms.uRotY.value=t,a){const i=a.getSize(new J),h=a.getPixelRatio();this.material.uniforms.uResolution.value.set(i.x*h,i.y*h)}if(n){this.mesh.quaternion.copy(n.quaternion);const i=n.position.length(),d=(n.fov??60)*Math.PI/180,m=this.material.uniforms.uResolution.value.y;this.apparentPx=this.quadSize/i*(m/(2*Math.tan(d/2)));const c=Math.min(Math.max((this.apparentPx-6)/220,0),1);this.material.uniforms.uLOD.value=c}}getLOD(){return this.material.uniforms.uLOD.value}getApparentPx(){return this.apparentPx}dispose(){this.material.dispose(),this.mesh.geometry.dispose(),this.depthMesh.geometry.dispose(),this.depthMesh.material.dispose()}}const rt=`varying vec2 vUV;
+`;class hn{constructor(e,o=60){this.apparentPx=0,this.quadSize=o;const n=new xe(1,4,4),t=new ge({visible:!1});this.depthMesh=new L(n,t),this.depthMesh.layers.set(2),this.material=new Y({vertexShader:ln,fragmentShader:cn,uniforms:{uResolution:{value:new ee(512,512)},uTime:{value:0},uTiltX:{value:0},uRotY:{value:0},uLOD:{value:0}},transparent:!0,depthWrite:!1,depthTest:!0,blending:Oe,side:ye}),this.mesh=new L(new ne(1,1),this.material),this.mesh.scale.set(o,o,1),this.mesh.renderOrder=1,this.mesh.layers.set(2)}update(e,o,n,t,s){if(this.material.uniforms.uTime.value=e,this.material.uniforms.uTiltX.value=o,this.material.uniforms.uRotY.value=n,s){const a=s.getSize(new ee),h=s.getPixelRatio();this.material.uniforms.uResolution.value.set(a.x*h,a.y*h)}if(t){this.mesh.quaternion.copy(t.quaternion);const a=t.position.length(),u=(t.fov??60)*Math.PI/180,f=this.material.uniforms.uResolution.value.y;this.apparentPx=this.quadSize/a*(f/(2*Math.tan(u/2)));const r=Math.min(Math.max((this.apparentPx-6)/220,0),1);this.material.uniforms.uLOD.value=r}}getLOD(){return this.material.uniforms.uLOD.value}getApparentPx(){return this.apparentPx}dispose(){this.material.dispose(),this.mesh.geometry.dispose(),this.depthMesh.geometry.dispose(),this.depthMesh.material.dispose()}}const dn=`varying vec2 vUV;
 
 void main() {
   vUV = uv;
   gl_Position = vec4(position, 1.0);
 }
-`,lt=`precision highp float;
+`,un=`precision highp float;
 
 uniform sampler2D uSceneTexture;
 uniform vec2      uBHScreenPos;   // black hole position in UV space (0–1)
@@ -1108,4 +1125,4 @@ void main() {
 
   gl_FragColor = color;
 }
-`,ve=new V(0,1,0),Q=new K;class mt{constructor(e,o){this.animationId=0,this.clock=new Ee,this.galaxyRotation=0,this._bhScreenVec=new V,this.orbitQuat=new K,this.zoom=4,this.targetZoom=4,this.isDragging=!1,this.isPinching=!1,this.lastX=0,this.lastY=0,this.velocityX=0,this.velocityY=0,this.lastPinchDist=0,this.renderer=new ze({canvas:e,antialias:!0,alpha:!0}),this.renderer.setPixelRatio(window.devicePixelRatio),this.renderer.setSize(e.clientWidth,e.clientHeight,!1),this.scene=new ue,this.renderer.setClearColor(0,1),this.params=De(o);const t=We(this.params),n=this.params.galaxyRadius;this.baseDistance=n*1.7;const a=e.clientWidth/e.clientHeight;this.camera=new Le(60,a,.1,this.baseDistance*20),this.backdrop=new et(this.baseDistance,o.pgc),this.scene.add(this.backdrop.mesh),this.particles=new Qe(t,this.baseDistance),this.scene.add(this.particles.points),this.scene.add(this.particles.foregroundPoints),this.haze=new Ke(n),this.scene.add(this.haze.mesh),this.nebula=new ot(t,n,o.pgc),this.scene.add(this.nebula.mesh),this.blackHole=new it(null,n*.08),this.scene.add(this.blackHole.depthMesh),this.scene.add(this.blackHole.mesh),this.backdrop.mesh.layers.set(1),this.particles.points.layers.set(1),this.particles.foregroundPoints.layers.set(2),this.haze.mesh.layers.set(1),this.nebula.mesh.layers.set(1);const i=e.clientWidth,h=e.clientHeight;this.galaxyRT=new Ne(i*window.devicePixelRatio,h*window.devicePixelRatio,{minFilter:$,magFilter:$}),this.lensingMaterial=new W({vertexShader:rt,fragmentShader:lt,uniforms:{uSceneTexture:{value:this.galaxyRT.texture},uBHScreenPos:{value:new J(.5,.5)},uLensStrength:{value:0},uLensZoom:{value:0},uAspectRatio:{value:i/h}},depthTest:!1,depthWrite:!1});const d=new E(new ee(2,2),this.lensingMaterial);this.lensingScene=new ue,this.lensingScene.add(d),this.lensingCamera=new He(-1,1,1,-1,0,1);const c=typeof window<"u"&&window.innerWidth<768?2:4;this.zoom=c,this.targetZoom=c;const{initRotY:s,initTiltX:v}=_e(o.pgc),g=new K().setFromAxisAngle(new V(1,0,0),v),f=new K().setFromAxisAngle(ve,s);this.orbitQuat.multiplyQuaternions(f,g),this.onPointerDown=r=>{this.isPinching||(this.isDragging=!0,this.lastX=r.clientX,this.lastY=r.clientY,this.velocityX=0,this.velocityY=0)},this.onPointerMove=r=>{if(this.isPinching||!this.isDragging)return;const p=r.clientX-this.lastX,u=r.clientY-this.lastY;this.velocityX=p*.005,this.velocityY=u*.005,this.applyOrbitDelta(this.velocityX,this.velocityY),this.lastX=r.clientX,this.lastY=r.clientY},this.onPointerUp=()=>{this.isDragging=!1},this.onPointerCancel=()=>{this.isDragging=!1,this.isPinching=!1},this.onWheel=r=>{r.preventDefault();const p=this.targetZoom*.12;this.targetZoom+=r.deltaY>0?-p:p,this.targetZoom=Math.max(.1,Math.min(20,this.targetZoom))},this.onTouchStart=r=>{if(r.touches.length===2){r.preventDefault(),this.isPinching=!0,this.isDragging=!1;const p=r.touches[0].clientX-r.touches[1].clientX,u=r.touches[0].clientY-r.touches[1].clientY;this.lastPinchDist=Math.sqrt(p*p+u*u)}},this.onTouchMove=r=>{if(r.touches.length===2){r.preventDefault();const p=r.touches[0].clientX-r.touches[1].clientX,u=r.touches[0].clientY-r.touches[1].clientY,y=Math.sqrt(p*p+u*u),S=(y-this.lastPinchDist)*.01;this.lastPinchDist=y,this.targetZoom=Math.max(.1,Math.min(20,this.targetZoom+S))}},this.onTouchEnd=()=>{this.lastPinchDist>0&&(this.lastPinchDist=0),this.isPinching=!1},e.addEventListener("pointerdown",this.onPointerDown),e.addEventListener("pointermove",this.onPointerMove),e.addEventListener("pointerup",this.onPointerUp),e.addEventListener("pointercancel",this.onPointerCancel),e.addEventListener("pointerleave",this.onPointerUp),e.addEventListener("wheel",this.onWheel,{passive:!1}),e.addEventListener("touchstart",this.onTouchStart,{passive:!1}),e.addEventListener("touchmove",this.onTouchMove,{passive:!1}),e.addEventListener("touchend",this.onTouchEnd),this.resizeObserver=new ResizeObserver(()=>{const r=e.clientWidth,p=e.clientHeight;if(r===0||p===0)return;this.renderer.setSize(r,p,!1),this.camera.aspect=r/p,this.camera.updateProjectionMatrix();const u=this.renderer.getPixelRatio();this.galaxyRT.setSize(r*u,p*u),this.lensingMaterial.uniforms.uAspectRatio.value=r/p}),this.resizeObserver.observe(e)}applyOrbitDelta(e,o){Q.setFromAxisAngle(ve,-e),this.orbitQuat.premultiply(Q);const t=new V(1,0,0).applyQuaternion(this.orbitQuat);Q.setFromAxisAngle(t,-o),this.orbitQuat.premultiply(Q),this.orbitQuat.normalize()}renderGalaxyPostPass(e,o,t,n){this.camera.layers.set(1),this.renderer.setRenderTarget(this.galaxyRT),this.renderer.clear(),this.renderer.render(this.scene,this.camera),this.lensingMaterial.uniforms.uBHScreenPos.value.set(e,o),this.lensingMaterial.uniforms.uLensStrength.value=t,this.lensingMaterial.uniforms.uLensZoom.value=n,this.renderer.setRenderTarget(null),this.renderer.clear(),this.renderer.render(this.lensingScene,this.lensingCamera)}start(){this.clock.start();const e=()=>{this.animationId=requestAnimationFrame(e);const o=this.clock.getDelta(),t=this.clock.getElapsedTime();this.isDragging||(Math.abs(this.velocityX)>1e-4||Math.abs(this.velocityY)>1e-4)&&(this.applyOrbitDelta(this.velocityX,this.velocityY),this.velocityX*=.92,this.velocityY*=.92),this.zoom+=(this.targetZoom-this.zoom)*.08;const n=this.baseDistance/this.zoom,a=new V(0,0,n).applyQuaternion(this.orbitQuat);this.camera.position.copy(a),this.camera.lookAt(0,0,0),this.camera.updateMatrixWorld(!0);const i=Math.min(this.zoom/20,1),h=.02+.18*i*i;this.galaxyRotation+=o*h;const d=this.camera.position,m=Math.sqrt(d.x*d.x+d.z*d.z),c=Math.atan2(d.y,m),s=Math.atan2(d.x,d.z);this.backdrop.update(t,this.camera),this.blackHole.update(t,c,s,this.camera,this.renderer),this._bhScreenVec.set(0,0,0).project(this.camera);const v=this._bhScreenVec.x*.5+.5,g=this._bhScreenVec.y*.5+.5,f=this.renderer.getSize(new J),r=this.renderer.getPixelRatio();this.particles.update(o,t,this.camera,this._bhScreenVec.x,this._bhScreenVec.y,this.blackHole.getApparentPx(),f.x*r,f.y*r);const p=this.params.morphology.ellipticity>0?this.params.morphology.axisRatio:1;this.nebula.update(t,this.camera,this.galaxyRotation,this.params.galaxyRadius,p);{const u=this.blackHole.getLOD(),y=u*u*.045;this.renderGalaxyPostPass(v,g,y,u)}this.camera.layers.set(2),this.renderer.autoClear=!1,this.renderer.render(this.scene,this.camera),this.renderer.autoClear=!0};e()}dispose(){cancelAnimationFrame(this.animationId);const e=this.renderer.domElement;e.removeEventListener("pointerdown",this.onPointerDown),e.removeEventListener("pointermove",this.onPointerMove),e.removeEventListener("pointerup",this.onPointerUp),e.removeEventListener("pointercancel",this.onPointerCancel),e.removeEventListener("pointerleave",this.onPointerUp),e.removeEventListener("wheel",this.onWheel),e.removeEventListener("touchstart",this.onTouchStart),e.removeEventListener("touchmove",this.onTouchMove),e.removeEventListener("touchend",this.onTouchEnd),this.resizeObserver.disconnect(),this.backdrop.dispose(),this.particles.dispose(),this.haze.dispose(),this.nebula.dispose(),this.blackHole.dispose(),this.galaxyRT.dispose(),this.lensingMaterial.dispose(),this.renderer.dispose()}}export{mt as GalaxyScene};
+`,ve=new X(0,1,0),K=new $;class gn{constructor(e,o){this.animationId=0,this.clock=new Ne,this.galaxyRotation=0,this._bhScreenVec=new X,this.orbitQuat=new $,this.zoom=4,this.targetZoom=4,this.isDragging=!1,this.isPinching=!1,this.lastX=0,this.lastY=0,this.velocityX=0,this.velocityY=0,this.lastPinchDist=0,this.renderer=new Ae({canvas:e,antialias:!0,alpha:!0});const n=Pe();this.renderer.setPixelRatio(Math.min(window.devicePixelRatio,Re(n))),this.renderer.setSize(e.clientWidth,e.clientHeight,!1),this.scene=new ue,this.renderer.setClearColor(0,1),this.params=De(o);const t=qe(this.params),s=this.params.galaxyRadius;this.baseDistance=s*1.7;const a=e.clientWidth/e.clientHeight;this.camera=new He(60,a,.1,this.baseDistance*20),this.backdrop=new on(this.baseDistance,o.pgc,n),this.scene.add(this.backdrop.mesh),this.particles=new Je(t,this.baseDistance),this.scene.add(this.particles.points),this.scene.add(this.particles.foregroundPoints),this.haze=new en(s),this.scene.add(this.haze.mesh),this.nebula=new rn(t,s,o.pgc,n),this.scene.add(this.nebula.mesh),this.blackHole=new hn(null,s*.08),this.scene.add(this.blackHole.depthMesh),this.scene.add(this.blackHole.mesh),this.backdrop.mesh.layers.set(1),this.particles.points.layers.set(1),this.particles.foregroundPoints.layers.set(2),this.haze.mesh.layers.set(1),this.nebula.mesh.layers.set(1);const h=e.clientWidth,u=e.clientHeight;this.galaxyRT=new Fe(h*this.renderer.getPixelRatio(),u*this.renderer.getPixelRatio(),{minFilter:J,magFilter:J}),this.lensingMaterial=new Y({vertexShader:dn,fragmentShader:un,uniforms:{uSceneTexture:{value:this.galaxyRT.texture},uBHScreenPos:{value:new ee(.5,.5)},uLensStrength:{value:0},uLensZoom:{value:0},uAspectRatio:{value:h/u}},depthTest:!1,depthWrite:!1});const f=new L(new ne(2,2),this.lensingMaterial);this.lensingScene=new ue,this.lensingScene.add(f),this.lensingCamera=new Be(-1,1,1,-1,0,1);const d=typeof window<"u"&&window.innerWidth<768?2:4;this.zoom=d,this.targetZoom=d;const{initRotY:g,initTiltX:m}=Te(o.pgc),p=new $().setFromAxisAngle(new X(1,0,0),m),y=new $().setFromAxisAngle(ve,g);this.orbitQuat.multiplyQuaternions(y,p),this.onPointerDown=c=>{this.isPinching||(this.isDragging=!0,this.lastX=c.clientX,this.lastY=c.clientY,this.velocityX=0,this.velocityY=0)},this.onPointerMove=c=>{if(this.isPinching||!this.isDragging)return;const l=c.clientX-this.lastX,v=c.clientY-this.lastY;this.velocityX=l*.005,this.velocityY=v*.005,this.applyOrbitDelta(this.velocityX,this.velocityY),this.lastX=c.clientX,this.lastY=c.clientY},this.onPointerUp=()=>{this.isDragging=!1},this.onPointerCancel=()=>{this.isDragging=!1,this.isPinching=!1},this.onWheel=c=>{c.preventDefault();const l=this.targetZoom*.12;this.targetZoom+=c.deltaY>0?-l:l,this.targetZoom=Math.max(.1,Math.min(20,this.targetZoom))},this.onTouchStart=c=>{if(c.touches.length===2){c.preventDefault(),this.isPinching=!0,this.isDragging=!1;const l=c.touches[0].clientX-c.touches[1].clientX,v=c.touches[0].clientY-c.touches[1].clientY;this.lastPinchDist=Math.sqrt(l*l+v*v)}},this.onTouchMove=c=>{if(c.touches.length===2){c.preventDefault();const l=c.touches[0].clientX-c.touches[1].clientX,v=c.touches[0].clientY-c.touches[1].clientY,M=Math.sqrt(l*l+v*v),S=(M-this.lastPinchDist)*.01;this.lastPinchDist=M,this.targetZoom=Math.max(.1,Math.min(20,this.targetZoom+S))}},this.onTouchEnd=()=>{this.lastPinchDist>0&&(this.lastPinchDist=0),this.isPinching=!1},e.addEventListener("pointerdown",this.onPointerDown),e.addEventListener("pointermove",this.onPointerMove),e.addEventListener("pointerup",this.onPointerUp),e.addEventListener("pointercancel",this.onPointerCancel),e.addEventListener("pointerleave",this.onPointerUp),e.addEventListener("wheel",this.onWheel,{passive:!1}),e.addEventListener("touchstart",this.onTouchStart,{passive:!1}),e.addEventListener("touchmove",this.onTouchMove,{passive:!1}),e.addEventListener("touchend",this.onTouchEnd),this.resizeObserver=new ResizeObserver(()=>{const c=e.clientWidth,l=e.clientHeight;if(c===0||l===0)return;this.renderer.setSize(c,l,!1),this.camera.aspect=c/l,this.camera.updateProjectionMatrix();const v=this.renderer.getPixelRatio();this.galaxyRT.setSize(c*v,l*v),this.lensingMaterial.uniforms.uAspectRatio.value=c/l}),this.resizeObserver.observe(e)}applyOrbitDelta(e,o){K.setFromAxisAngle(ve,-e),this.orbitQuat.premultiply(K);const n=new X(1,0,0).applyQuaternion(this.orbitQuat);K.setFromAxisAngle(n,-o),this.orbitQuat.premultiply(K),this.orbitQuat.normalize()}renderGalaxyPostPass(e,o,n,t){this.camera.layers.set(1),this.renderer.setRenderTarget(this.galaxyRT),this.renderer.clear(),this.renderer.render(this.scene,this.camera),this.lensingMaterial.uniforms.uBHScreenPos.value.set(e,o),this.lensingMaterial.uniforms.uLensStrength.value=n,this.lensingMaterial.uniforms.uLensZoom.value=t,this.renderer.setRenderTarget(null),this.renderer.clear(),this.renderer.render(this.lensingScene,this.lensingCamera)}start(){this.clock.start();const e=()=>{this.animationId=requestAnimationFrame(e);const o=this.clock.getDelta(),n=this.clock.getElapsedTime();this.isDragging||(Math.abs(this.velocityX)>1e-4||Math.abs(this.velocityY)>1e-4)&&(this.applyOrbitDelta(this.velocityX,this.velocityY),this.velocityX*=.92,this.velocityY*=.92),this.zoom+=(this.targetZoom-this.zoom)*.08;const t=this.baseDistance/this.zoom,s=new X(0,0,t).applyQuaternion(this.orbitQuat);this.camera.position.copy(s),this.camera.lookAt(0,0,0),this.camera.updateMatrixWorld(!0);const a=Math.min(this.zoom/20,1),h=.02+.18*a*a;this.galaxyRotation+=o*h;const u=this.camera.position,f=Math.sqrt(u.x*u.x+u.z*u.z),r=Math.atan2(u.y,f),d=Math.atan2(u.x,u.z);this.backdrop.update(n,this.camera),this.blackHole.update(n,r,d,this.camera,this.renderer),this._bhScreenVec.set(0,0,0).project(this.camera);const g=this._bhScreenVec.x*.5+.5,m=this._bhScreenVec.y*.5+.5,p=this.renderer.getSize(new ee),y=this.renderer.getPixelRatio();this.particles.update(o,n,this.camera,this._bhScreenVec.x,this._bhScreenVec.y,this.blackHole.getApparentPx(),p.x*y,p.y*y);const c=this.params.morphology.ellipticity>0?this.params.morphology.axisRatio:1;this.nebula.update(n,this.camera,this.galaxyRotation,this.params.galaxyRadius,c);{const l=this.blackHole.getLOD(),v=l*l*.045;this.renderGalaxyPostPass(g,m,v,l)}this.camera.layers.set(2),this.renderer.autoClear=!1,this.renderer.render(this.scene,this.camera),this.renderer.autoClear=!0};e()}dispose(){cancelAnimationFrame(this.animationId);const e=this.renderer.domElement;e.removeEventListener("pointerdown",this.onPointerDown),e.removeEventListener("pointermove",this.onPointerMove),e.removeEventListener("pointerup",this.onPointerUp),e.removeEventListener("pointercancel",this.onPointerCancel),e.removeEventListener("pointerleave",this.onPointerUp),e.removeEventListener("wheel",this.onWheel),e.removeEventListener("touchstart",this.onTouchStart),e.removeEventListener("touchmove",this.onTouchMove),e.removeEventListener("touchend",this.onTouchEnd),this.resizeObserver.disconnect(),this.backdrop.dispose(),this.particles.dispose(),this.haze.dispose(),this.nebula.dispose(),this.blackHole.dispose(),this.galaxyRT.dispose(),this.lensingMaterial.dispose(),this.renderer.dispose()}}export{gn as GalaxyScene};
