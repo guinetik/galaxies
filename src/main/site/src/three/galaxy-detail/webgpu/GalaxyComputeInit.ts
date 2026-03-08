@@ -252,7 +252,10 @@ export function createComputeInit(
           .mul(uniforms.armWidth).mul(scatterScale)
         const irr = uniforms.irregularity.mul(hash(seed.add(35)).sub(0.5)).mul(30)
 
-        const baseAngle = theta.add(armOffset)
+        // Angular scatter along arm direction — breaks up the dense radial
+        // concentration at spiral starts that creates visible straight lines
+        const angleScatter = hash(seed.add(34)).sub(0.5).mul(0.3)
+        const baseAngle = theta.add(armOffset).add(angleScatter)
         const scatterAngle = baseAngle.add(float(Math.PI / 2))
 
         const x = cos(baseAngle).mul(armR.add(irr))

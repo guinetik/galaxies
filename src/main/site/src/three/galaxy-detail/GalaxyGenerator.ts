@@ -221,7 +221,9 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
         / Math.max(spiralTightness, 0.001)
         * windingFactor
 
-      const baseAngle = theta + armOffset
+      // Angular scatter along arm to break up radial concentration at spiral start
+      const angleScatter = (Math.random() - 0.5) * 0.3
+      const baseAngle = theta + armOffset + angleScatter
       const scatterScale = (armRadius / galaxyRadius) * 0.5 + 0.5
       const scatter = (Math.random() - 0.5 + Math.random() - 0.5) * armWidth * scatterScale
       const scatterAngle = baseAngle + Math.PI / 2

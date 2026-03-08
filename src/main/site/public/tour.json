@@ -1,0 +1,268 @@
+{
+  "2557": {
+    "names": ["Andromeda Galaxy", "M31", "NGC 224", "UGC 454", "Great Andromeda Nebula"],
+    "type": "SA(s)b",
+    "category": "spiral",
+    "constellation": "Andromeda",
+    "description": "The nearest major galaxy to the Milky Way — a barred spiral containing ~1 trillion stars. Visible to the naked eye on moonless nights. On a collision course with our galaxy; they may merge in ~4 billion years."
+  },
+  "2555": {
+    "names": ["Le Gentil", "M32", "NGC 221", "Andromeda companion"],
+    "type": "cE2",
+    "category": "elliptical",
+    "constellation": "Andromeda",
+    "description": "A compact elliptical dwarf satellite of Andromeda. One of the brightest companions of M31, discovered by Guillaume Le Gentil in 1749."
+  },
+  "2429": {
+    "names": ["M110", "NGC 205", "Andromeda companion"],
+    "type": "E5 pec",
+    "category": "elliptical",
+    "constellation": "Andromeda",
+    "description": "Dwarf elliptical satellite of Andromeda with a peculiar elongated shape. Contains dust lanes unusual for ellipticals, hinting at past interactions."
+  },
+  "5818": {
+    "names": ["Triangulum Galaxy", "M33", "NGC 598", "UGC 1117"],
+    "type": "SA(s)cd",
+    "category": "spiral",
+    "constellation": "Triangulum",
+    "description": "The third-largest member of the Local Group. A face-on spiral with loose arms and vigorous star formation — one of the most distant objects visible to the naked eye."
+  },
+  "5974": {
+    "names": ["Phantom Galaxy", "M74", "NGC 628", "UGC 1149"],
+    "type": "SA(s)c",
+    "category": "spiral",
+    "constellation": "Pisces",
+    "description": "A grand-design spiral often called the Phantom for its low surface brightness. Host to multiple supernovae, making it a key calibrator for the distance ladder."
+  },
+  "2248": {
+    "names": ["Cartwheel Galaxy", "ESO 350-40"],
+    "type": "S pec (Ring)",
+    "category": "spiral",
+    "constellation": "Sculptor",
+    "description": "A spectacular ring galaxy formed when a smaller galaxy punched through its disk ~200 million years ago. The collision sent a density wave outward, creating the iconic cartwheel shape."
+  },
+  "2789": {
+    "names": ["Sculptor Galaxy", "Silver Coin Galaxy", "Silver Dollar Galaxy", "NGC 253", "Caldwell 65"],
+    "type": "SAB(s)c",
+    "category": "barred",
+    "constellation": "Sculptor",
+    "description": "A starburst barred spiral — one of the brightest galaxies beyond the Local Group. Its dusty disk and intense star formation make it a favorite target for amateur astronomers."
+  },
+  "3082": {
+    "names": ["Small Magellanic Cloud", "SMC", "NGC 292", "Nubecula Minor"],
+    "type": "SB(s)m pec",
+    "category": "irregular",
+    "constellation": "Tucana",
+    "description": "A dwarf irregular galaxy and satellite of the Milky Way. Visible from the southern hemisphere, it was used by Henrietta Leavitt to discover the period-luminosity relation of Cepheids."
+  },
+  "17223": {
+    "names": ["Large Magellanic Cloud", "LMC", "ESO 56-115", "Nubecula Major"],
+    "type": "SB(s)m",
+    "category": "irregular",
+    "constellation": "Dorado",
+    "description": "The Milky Way's largest satellite — a barred Magellanic spiral. Home to the Tarantula Nebula, the most active star-forming region in the Local Group."
+  },
+  "15172": {
+    "names": ["Carafe Galaxy"],
+    "type": "SA(s)b pec",
+    "category": "spiral",
+    "constellation": "Eridanus",
+    "description": "A peculiar spiral with a warped, bottle-like shape. Its distorted morphology suggests gravitational interactions with neighboring galaxies."
+  },
+  "20348": {
+    "names": ["Integral Sign Galaxy"],
+    "type": "SAB(s)dm",
+    "category": "barred",
+    "constellation": "Ursa Major",
+    "description": "A low-surface-brightness barred spiral named for its ∫-shaped appearance. Its diffuse structure makes it a challenge for observers but a valuable probe of dark matter."
+  },
+  "28630": {
+    "names": ["Bode's Galaxy", "M81", "NGC 3031", "UGC 5318"],
+    "type": "SA(s)ab",
+    "category": "spiral",
+    "constellation": "Ursa Major",
+    "description": "A grand-design spiral and dominant member of the M81 Group. Its bright nucleus and well-defined arms make it a classic example of the Hubble sequence."
+  },
+  "28655": {
+    "names": ["Cigar Galaxy", "M82", "NGC 3034", "UGC 5322", "Arp 337", "Ursa Major A"],
+    "type": "I0",
+    "category": "irregular",
+    "constellation": "Ursa Major",
+    "description": "A starburst galaxy shaped like a cigar, tilted edge-on. Gravitational encounters with M81 triggered a massive burst of star formation — a nearby laboratory for understanding distant starbursts."
+  },
+  "29488": {
+    "names": ["NGC 3077", "UGC 5398", "M81 Group member"],
+    "type": "I0 pec",
+    "category": "irregular",
+    "constellation": "Ursa Major",
+    "description": "A peculiar dwarf in the M81 Group with an irregular, disturbed structure. Tidal interactions with M81 and M82 have stripped gas and reshaped its morphology."
+  },
+  "37229": {
+    "names": ["Antennae Galaxy A", "NGC 4038", "Caldwell 60", "Arp 244", "Ringtail Galaxy"],
+    "type": "SB(s)m pec",
+    "category": "irregular",
+    "constellation": "Corvus",
+    "description": "One half of the famous Antennae — a pair of colliding galaxies. The merger has triggered a firestorm of star formation and produced long tidal tails of ejected stars."
+  },
+  "37230": {
+    "names": ["Antennae Galaxy B", "NGC 4039", "Caldwell 61", "Arp 244"],
+    "type": "SA(s)m pec",
+    "category": "irregular",
+    "constellation": "Corvus",
+    "description": "The other half of the Antennae merger. Together with NGC 4038, it offers a preview of the Milky Way–Andromeda collision billions of years from now."
+  },
+  "39225": {
+    "names": ["Centaurus A", "NGC 5128", "Caldwell 77", "Arp 153"],
+    "type": "S0 pec",
+    "category": "lenticular",
+    "constellation": "Centaurus",
+    "description": "The nearest radio galaxy — a peculiar lenticular with a dramatic dust lane. A past merger left a supermassive black hole that powers enormous radio lobes."
+  },
+  "40455": {
+    "names": ["M84", "NGC 4374"],
+    "type": "E1",
+    "category": "elliptical",
+    "constellation": "Virgo",
+    "description": "A giant elliptical in the Virgo Cluster and part of Markarian's Chain. Its smooth, featureless appearance typifies old stellar populations in dense cluster environments."
+  },
+  "40596": {
+    "names": ["M86", "NGC 4406"],
+    "type": "E3/S0",
+    "category": "lenticular",
+    "constellation": "Virgo",
+    "description": "A lenticular or elliptical galaxy in the Virgo Cluster. One of the brightest members, moving rapidly through the cluster — its motion creates a bow shock in the intracluster medium."
+  },
+  "41361": {
+    "names": ["The Eyes A", "NGC 4435", "Markarian's Chain"],
+    "type": "SB0",
+    "category": "lenticular",
+    "constellation": "Virgo",
+    "description": "One of the 'Eyes' — a barred lenticular paired with NGC 4438. Part of the striking Markarian's Chain, a line of galaxies in the Virgo Cluster."
+  },
+  "41378": {
+    "names": ["The Eyes B", "NGC 4438", "Markarian's Chain"],
+    "type": "SA(s)0/a pec",
+    "category": "lenticular",
+    "constellation": "Virgo",
+    "description": "The other 'Eye' — a peculiar lenticular with distorted arms. Tidal interactions with M86 have stripped gas and created a complex, disturbed morphology."
+  },
+  "41377": {
+    "names": ["Virgo A", "M87", "NGC 4486", "UGC 7658"],
+    "type": "E0-1 pec",
+    "category": "elliptical",
+    "constellation": "Virgo",
+    "description": "A supergiant elliptical and the dominant galaxy of the Virgo Cluster. Host to the first black hole ever imaged — 6.5 billion solar masses at the center of a galaxy."
+  },
+  "42038": {
+    "names": ["Needle Galaxy", "NGC 4565", "UGC 7772", "Caldwell 38"],
+    "type": "SA(s)b",
+    "category": "spiral",
+    "constellation": "Coma Berenices",
+    "description": "A classic edge-on spiral — a thin needle of light. Its prominent dust lane bisects the disk, revealing the structure of spiral galaxies seen from the side."
+  },
+  "42407": {
+    "names": ["Sombrero Galaxy", "M104", "NGC 4594", "UGCA 293"],
+    "type": "SA(s)a",
+    "category": "spiral",
+    "constellation": "Virgo",
+    "description": "One of the most photographed galaxies — a spiral with a brilliant bulge and a dark dust lane that gives it a sombrero profile. Host to ~2,000 globular clusters."
+  },
+  "44182": {
+    "names": ["Black Eye Galaxy", "Evil Eye Galaxy", "Sleeping Beauty Galaxy", "M64", "NGC 4826", "UGC 8062"],
+    "type": "(R)SA(rs)ab",
+    "category": "spiral",
+    "constellation": "Coma Berenices",
+    "description": "A spiral with a dramatic dark band of dust across its bright nucleus — the 'black eye.' Formed by a merger; the inner and outer regions rotate in opposite directions."
+  },
+  "44536": {
+    "names": ["Sunflower Galaxy", "M63", "NGC 5055", "UGC 8334"],
+    "type": "SA(rs)bc",
+    "category": "spiral",
+    "constellation": "Canes Venatici",
+    "description": "A flocculent spiral with patchy, sunflower-petal arms. Member of the M51 Group, with a bright core and numerous star-forming regions scattered across the disk."
+  },
+  "47404": {
+    "names": ["Whirlpool Galaxy", "M51", "M51a", "NGC 5194", "UGC 8493", "Rosse's Galaxy", "Question Mark Galaxy", "Arp 85"],
+    "type": "SA(s)bc pec",
+    "category": "spiral",
+    "constellation": "Canes Venatici",
+    "description": "The prototypical grand-design spiral — two sweeping arms winding from a bright core. Interacting with NGC 5195; the encounter has amplified its spiral structure."
+  },
+  "47413": {
+    "names": ["M51b", "NGC 5195", "UGC 8494", "Whirlpool companion"],
+    "type": "SB0 pec",
+    "category": "lenticular",
+    "constellation": "Canes Venatici",
+    "description": "The Whirlpool's companion — a peculiar barred lenticular. Its gravitational pull has distorted M51's arms and triggered enhanced star formation in the Whirlpool."
+  },
+  "48082": {
+    "names": ["Southern Pinwheel Galaxy", "M83", "NGC 5236", "UGCA 366"],
+    "type": "SAB(s)c",
+    "category": "barred",
+    "constellation": "Hydra",
+    "description": "A barred spiral with multiple spiral arms and intense star formation. One of the closest barred spirals, hosting numerous supernovae and a double nucleus."
+  },
+  "50063": {
+    "names": ["Pinwheel Galaxy", "M101", "NGC 5457", "UGC 8981", "Arp 26"],
+    "type": "SAB(rs)cd",
+    "category": "barred",
+    "constellation": "Ursa Major",
+    "description": "A face-on spiral with asymmetric, loosely wound arms. One of the largest and most detailed spirals in the sky — 170,000 light-years across."
+  },
+  "65001": {
+    "names": ["Fireworks Galaxy", "NGC 6946", "UGC 11597", "Caldwell 12", "Arp 29"],
+    "type": "SAB(rs)cd",
+    "category": "barred",
+    "constellation": "Cepheus",
+    "description": "A spiral with an extraordinary rate of supernovae — ten in the past century. Its face-on orientation reveals a fireworks display of star formation and stellar explosions."
+  },
+  "6830": {
+    "names": ["NGC 1300", "UGC 2684", "Barred spiral prototype"],
+    "type": "SB(rs)bc",
+    "category": "barred",
+    "constellation": "Eridanus",
+    "description": "The textbook barred spiral — a majestic bar with spiral arms emerging from its ends. The bar does not contain a classical bulge, challenging theories of galaxy evolution."
+  },
+  "9892": {
+    "names": ["Great Barred Spiral Galaxy", "Fornax Propeller Galaxy", "NGC 1365"],
+    "type": "(R')SB(s)b",
+    "category": "barred",
+    "constellation": "Fornax",
+    "description": "A dominant barred spiral in the Fornax Cluster. Its bar drives gas inward, fueling a central starburst and an active galactic nucleus."
+  },
+  "34695": {
+    "names": ["Leo Triplet member", "M65", "NGC 3623", "UGC 6328"],
+    "type": "SAB(rs)a",
+    "category": "barred",
+    "constellation": "Leo",
+    "description": "One of the Leo Triplet — a barred spiral with tightly wound arms. Interacting with M66 and NGC 3628; the trio offers a snapshot of galaxy group dynamics."
+  },
+  "34897": {
+    "names": ["Leo Triplet member", "M66", "NGC 3627", "UGC 6346", "Arp 16"],
+    "type": "SAB(s)b",
+    "category": "barred",
+    "constellation": "Leo",
+    "description": "A barred spiral in the Leo Triplet with asymmetric arms. Tidal forces from its neighbors have distorted its structure and displaced its nucleus."
+  },
+  "35476": {
+    "names": ["Hamburger Galaxy", "Leo Triplet member", "NGC 3628", "UGC 6350", "Arp 317"],
+    "type": "Sb pec sp",
+    "category": "barred",
+    "constellation": "Leo",
+    "description": "An edge-on spiral with a thick dust lane — the 'hamburger.' Tidal tails extend far beyond the disk, evidence of a past encounter with M65 and M66."
+  },
+  "39058": {
+    "names": ["PGC 39058", "UGC 7356"],
+    "type": "dIm",
+    "category": "irregular",
+    "constellation": "Leo",
+    "description": "A dwarf irregular galaxy — a small, chaotic system with no spiral or elliptical structure. Such galaxies are common in the local universe and key to understanding galaxy formation."
+  },
+  "6240": {
+    "names": ["White Rose Galaxy", "AM 0634-640"],
+    "type": "S0 pec",
+    "category": "lenticular",
+    "constellation": "Volans",
+    "description": "A ring galaxy with a central lens — the 'white rose.' Formed when a companion passed through its center, sending a density wave outward to create the ring of star formation."
+  }
+}

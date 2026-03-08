@@ -1,7 +1,10 @@
 <template>
   <div class="galaxy-info-card">
     <div class="info-row">
-      <span class="info-label">{{ t('pages.galaxy.fields.morphology.label') }}</span> {{ t('morphology.' + morphology) }}<sup v-if="!galaxy.morphology" class="procedural-mark" title="Procedurally assigned">p</sup>
+      <span class="info-label">{{ t('pages.galaxy.fields.morphology.label') }}</span> {{ t('morphology.' + morphology) }}<span v-if="galaxy.morphology" class="catalog-type">({{ galaxy.morphology }})</span><sup v-else class="procedural-mark" title="Procedurally assigned">p</sup>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Constellation</span> {{ constellation }}
     </div>
     <div class="info-row">
       <span class="info-label">Distance</span> {{ galaxy.distance_mpc.toFixed(1) }} Mpc ({{ Math.round(galaxy.distance_mly).toLocaleString() }} Mly)
@@ -34,12 +37,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
 import { selectPreset, assignPresetFromPgc, presetToCategory, mapGalaxyToRenderParams } from '@/three/galaxy-detail/morphology'
+import { getConstellation } from '@/three/constellationLookup'
 
 const { t } = useI18n()
 
 const props = defineProps<{
   galaxy: Galaxy
 }>()
+
+const constellation = computed(() => getConstellation(props.galaxy.ra, props.galaxy.dec))
 
 const morphology = computed(() => {
   const preset = props.galaxy.morphology ? selectPreset(props.galaxy.morphology) : assignPresetFromPgc(props.galaxy.pgc)
@@ -142,6 +148,12 @@ const methodEntries = computed(() => {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.4);
   font-style: italic;
+}
+
+.catalog-type {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-left: 4px;
 }
 
 .procedural-mark {
