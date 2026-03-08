@@ -18,7 +18,7 @@
         </RouterLink>
       </li>
     </ul>
-    <p v-else-if="!isLoading && ready" class="tour-empty">No picks yet. Click Shuffle.</p>
+    <p v-else-if="!isLoading" class="tour-empty">No picks yet. Click Shuffle.</p>
   </div>
 </template>
 

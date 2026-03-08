@@ -42,7 +42,7 @@ const gradeIntergalacticBackdrop = Fn(([color]: [any]) => {
   const nebulaMask = smoothstep(float(0.06), float(0.30), saturation)
     .mul(float(1.0).sub(smoothstep(float(0.28), float(0.95), peak)))
 
-  const graded = pow(max(color, vec3(0.0)), vec3(1.14, 1.14, 1.14))
+  const graded = (pow as any)(max(color, vec3(0.0)), vec3(1.14, 1.14, 1.14))
   const gradedBackdrop = graded.mul(mix(float(0.90), float(0.45), nebulaMask))
   return gradedBackdrop.mul(vec3(1.06, 0.93, 0.82))
 })

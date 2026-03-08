@@ -61,7 +61,7 @@ function getAllGalaxiesCount() {
   return allGalaxies.length
 }
 
-const INTRO_DURATION_MS = 4000
+const INTRO_DURATION_MS = 10000
 
 /** Cubic ease-in-out: slow start (deep field lingers during hero fade), rush through mid-range, gentle landing. */
 function easeInOutCubic(t: number): number {

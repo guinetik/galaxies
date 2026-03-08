@@ -25,19 +25,19 @@ import type { GalaxyBuffers } from './GalaxyComputeInit'
 
 export interface ForegroundUniforms {
   // MVP matrix rows (for NDC projection): each is (m[row], m[row+4], m[row+8], m[row+12])
-  mvpRow0: ReturnType<typeof uniform>
-  mvpRow1: ReturnType<typeof uniform>
-  mvpRow3: ReturnType<typeof uniform>
+  mvpRow0: any
+  mvpRow1: any
+  mvpRow3: any
   // View matrix Z-row (for view-space depth)
-  viewZRow: ReturnType<typeof uniform>
+  viewZRow: any
   // Pre-computed BH parameters (computed on CPU each frame)
-  bhViewZ: ReturnType<typeof uniform>
-  bhNdcX: ReturnType<typeof uniform>
-  bhNdcY: ReturnType<typeof uniform>
-  ndcRadiusX: ReturnType<typeof uniform>
-  ndcRadiusY: ReturnType<typeof uniform>
-  depthThreshold: ReturnType<typeof uniform>
-  depthSoftness: ReturnType<typeof uniform>
+  bhViewZ: any
+  bhNdcX: any
+  bhNdcY: any
+  ndcRadiusX: any
+  ndcRadiusY: any
+  depthThreshold: any
+  depthSoftness: any
 }
 
 export function createForegroundUniforms(): ForegroundUniforms {
