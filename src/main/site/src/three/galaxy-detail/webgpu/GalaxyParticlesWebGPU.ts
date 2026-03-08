@@ -14,14 +14,11 @@ import {
   vec3,
   vec4,
   float,
-  Fn,
-  length,
-  smoothstep,
   mix,
-  max,
-  exp,
   uv,
+  texture,
 } from 'three/tsl'
+import { createGlowTexture } from '../createGlowTexture'
 import type { GalaxyBuffers } from './GalaxyComputeInit'
 
 export class GalaxyParticlesWebGPU {
@@ -29,6 +26,7 @@ export class GalaxyParticlesWebGPU {
   readonly foregroundSprite: THREE.Sprite
   private material: THREE.SpriteNodeMaterial
   private foregroundMaterial: THREE.SpriteNodeMaterial
+  private glowTexture: THREE.DataTexture
 
   constructor(count: number, buffers: GalaxyBuffers, baseDistance: number) {
     // Shared buffer attributes
@@ -40,27 +38,25 @@ export class GalaxyParticlesWebGPU {
     const densityScale = Math.sqrt(60000 / count)
     const worldScale = baseDistance * 0.003 * densityScale
 
+    // ─── Baked glow texture ───────────────────────────────────────────────
+    const glowDataTexture = createGlowTexture()
+    this.glowTexture = glowDataTexture
+    const glowTex = texture(glowDataTexture)
+
     // ─── Glow fragment (shared by both sprites) ──────────────────────────
     // Returns vec4(litRgb * alpha, alpha) — premultiplied for additive blending
-    const glowFragment = (alphaMultiplier: any) =>
-      Fn(() => {
-        const coord = uv().sub(0.5).mul(2.0)
-        const dist = length(coord)
-
-        const edge = smoothstep(1.0, 0.8, dist)
-        const core = smoothstep(0.36, 0.0, dist)
-        const halo = exp(dist.mul(dist).mul(-4.5)).mul(0.6)
-        const intensity = max(core, halo).mul(edge)
-
-        const litRgb = mix(
-          vec3(starColor.x, starColor.y, starColor.z),
-          vec3(1.0, 1.0, 1.0),
-          core.mul(0.6),
-        )
-
-        const alpha = starColor.w.mul(intensity).mul(alphaMultiplier)
-        return vec4(litRgb.mul(alpha), alpha)
-      })()
+    const glowFragment = (alphaMultiplier: any) => {
+      const glow = glowTex.sample(uv())   // vec4: r=corona, g=core, b=0, a=alpha
+      const alpha = starColor.w.mul(glow.w).mul(alphaMultiplier)
+      const coronaColor = mix(
+        vec3(starColor.x, starColor.y, starColor.z).mul(1.32),
+        vec3(1.0, 1.0, 1.0),
+        float(0.12),
+      )
+      const coreColor = mix(coronaColor, vec3(1.0, 1.0, 1.0), float(0.92))
+      const litRgb = coronaColor.mul(glow.x).add(coreColor.mul(glow.y.mul(1.35)))
+      return vec4(litRgb.mul(alpha), alpha)
+    }
 
     // ─── Main sprite (galaxy scene — dimmed where foreground) ────────────
     this.material = new THREE.SpriteNodeMaterial()
@@ -95,5 +91,6 @@ export class GalaxyParticlesWebGPU {
   dispose(): void {
     this.material.dispose()
     this.foregroundMaterial.dispose()
+    this.glowTexture.dispose()
   }
 }
