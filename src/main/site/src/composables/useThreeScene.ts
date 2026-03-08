@@ -38,8 +38,8 @@ export function useThreeScene() {
   let lastX = 0
   let lastY = 0
   const DRAG_SENSITIVITY = 0.003
-  /** Touch base sensitivity — scaled down more at high zoom */
-  const DRAG_SENSITIVITY_TOUCH = 0.005
+  /** Touch base sensitivity — lower than mouse for finer control on mobile */
+  const DRAG_SENSITIVITY_TOUCH = 0.0018
 
   // Drag momentum / inertia
   let velocityTheta = 0
@@ -49,7 +49,7 @@ export function useThreeScene() {
   const VELOCITY_THRESHOLD = 0.00001
   const DRAG_SENSITIVITY_MIN_SCALE = 0.08
   /** Touch: much slower at high zoom for precise telescope-like panning */
-  const DRAG_SENSITIVITY_MIN_SCALE_TOUCH = 0.025
+  const DRAG_SENSITIVITY_MIN_SCALE_TOUCH = 0.012
   const DRAG_SENSITIVITY_POWER = 0.85
   const DRAG_VELOCITY_CAP = 0.03
 
