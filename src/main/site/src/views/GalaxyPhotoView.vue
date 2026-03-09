@@ -566,16 +566,19 @@ async function onCanvasClick(e: MouseEvent) {
   }
 
   // Query SIMBAD
-  await simbadQuery(coords.ra, coords.dec, 30) // 30 arcsec radius
-
-  // Update tooltip with results
-  if (simbadError.value) {
-    simbadTooltip.value.error = simbadError.value
-  } else {
-    simbadTooltip.value.objects = simbadResults.value.map(obj => ({
-      name: obj.name,
-      type: obj.type,
-    }))
+  try {
+    await simbadQuery(coords.ra, coords.dec, 30)
+    if (simbadError.value) {
+      simbadTooltip.value.error = simbadError.value
+    } else {
+      simbadTooltip.value.objects = simbadResults.value.map(obj => ({
+        name: obj.name,
+        type: obj.type,
+      }))
+    }
+  } catch (err) {
+    simbadTooltip.value.error = 'Failed to query SIMBAD'
+    console.error('SIMBAD query error:', err)
   }
 }
 

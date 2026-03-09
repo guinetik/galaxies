@@ -56,13 +56,15 @@ export function useSimbadLookup() {
       // Expected format: { resources: [{ table: { data: { rows: [...] } } }] }
       if (data.resources && data.resources[0]?.table?.data?.rows) {
         const rows = data.resources[0].table.data.rows
-        results.value = rows.map((row: any) => ({
-          name: row.MAIN_ID || 'Unknown',
-          type: row.OTYPE || 'Unknown',
-          ra: parseFloat(row.RA_d),
-          dec: parseFloat(row.DEC_d),
-          distance: parseFloat(row.DISTANCE), // in degrees
-        }))
+        results.value = rows
+          .filter((row: any) => row.MAIN_ID) // Only include objects with names
+          .map((row: any) => ({
+            name: row.MAIN_ID || 'Unknown',
+            type: row.OTYPE || 'Star',
+            ra: row.RA_d ? parseFloat(row.RA_d) : undefined,
+            dec: row.DEC_d ? parseFloat(row.DEC_d) : undefined,
+          }))
+          .slice(0, 20) // Limit to 20 results for UI
       } else {
         results.value = []
       }
