@@ -20,6 +20,7 @@ const shaderDirs = [
   'src/three/shaders',
   'src/three/galaxy-detail/shaders',
   'src/three/cosmic-map/shaders',
+  'src/three/nsa/shaders',
 ]
 
 // Discover all .glsl files across shader directories
