@@ -193,9 +193,11 @@
     },
     "galaxyPhoto": {
       "title": "NSA True Color",
+      "back": "Back to Galaxy",
       "notAvailable": "No NSA imaging data available for this galaxy.",
       "bands": "Spectral Bands",
       "params": {
+        "title": "Rendering Parameters",
         "q": "Contrast (Q)",
         "alpha": "Brightness (α)"
       }
