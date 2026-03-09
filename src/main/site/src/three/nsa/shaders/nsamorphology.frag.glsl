@@ -122,6 +122,10 @@ void main() {
     0.0, 1.0
   );
 
+  // Noise floor: fade out sub-signal points so background noise doesn't accumulate
+  float signal = smoothstep(0.04, 0.12, vIntensity);
+  alpha *= signal;
+
   float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));
   gl_FragColor = vec4(mix(col, vec3(gray), uGrayscale), alpha);
 }
