@@ -781,6 +781,11 @@ onMounted(async () => {
       scene.value.setTheme(theme.value)
       // Apply auto-calibrated params for the initial mode
       resetToAutoParams()
+      // Sync luptonDefaults to the calibrated initial values so the first
+      // mode switch away from lupton and back correctly restores auto params
+      luptonDefaults.Q = paramQ.value
+      luptonDefaults.alpha = paramAlpha.value
+      luptonDefaults.sensitivity = paramSensitivity.value
 
       // Handle canvas resize
       resizeObserver.value = new ResizeObserver(() => {
