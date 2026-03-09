@@ -30,16 +30,42 @@
           <div class="card-header">
             <h2 class="card-title">Composite Imaging</h2>
             <div class="header-actions">
-              <div class="live-indicator">
-                <span class="dot"></span> Live Render
-              </div>
+              <select v-model="shaderMode" class="shader-select">
+                <option value="lupton">Lupton et al.</option>
+                <option value="custom">Custom</option>
+              </select>
+              <button
+                class="find-objects-btn"
+                :class="{ active: findObjectsMode }"
+                @click="toggleFindObjectsMode"
+                aria-label="Find objects at location"
+                title="Click to activate, then click canvas to query SIMBAD"
+              >
+                ✦
+              </button>
               <button class="info-btn" @click="showInfo = !showInfo" aria-label="Info">
                 i
               </button>
             </div>
           </div>
           <div class="canvas-wrapper">
-            <canvas ref="canvasEl" class="composite-canvas"></canvas>
+            <canvas
+              ref="canvasEl"
+              class="composite-canvas"
+              @wheel.prevent="onWheel"
+              @pointerdown="onPointerDown"
+              @pointermove="onPointerMove"
+              @pointerup="onPointerUp"
+              @pointercancel="onPointerUp"
+              @pointerleave="onPointerUp"
+              @mousemove="onCanvasMouseMove"
+              @mouseleave="onCanvasMouseLeave"
+            ></canvas>
+            <div v-if="cursorRa !== null && cursorDec !== null" class="coord-hud">
+              <span class="coord-label">RA</span> {{ formatRA(cursorRa) }}
+              &nbsp;
+              <span class="coord-label">Dec</span> {{ formatDec(cursorDec!) }}
+            </div>
           </div>
         </div>
 
@@ -47,18 +73,24 @@
         <div class="sidebar-stack">
           <!-- Parameters Card -->
           <div class="glass-card controls-card">
-            <h2 class="card-title">{{ t('pages.galaxyPhoto.params.title') || 'Rendering Parameters' }}</h2>
+            <div class="card-header">
+              <h2 class="card-title">{{ t('pages.galaxyPhoto.params.title') || 'Rendering Parameters' }}</h2>
+            </div>
             
             <div class="control-group">
               <label>Spectral Theme</label>
               <div class="theme-toggle">
-                <button 
-                  v-for="t in ['infra', 'astral']" 
-                  :key="t"
-                  :class="['theme-btn', { active: theme === t }]"
-                  @click="theme = t as any"
+                <button
+                  v-for="th in [
+                    { id: 'grayscale', label: 'Grayscale' },
+                    { id: 'infra', label: 'Infrared' },
+                    { id: 'astral', label: 'Astral' },
+                  ]"
+                  :key="th.id"
+                  :class="['theme-btn', { active: theme === th.id }]"
+                  @click="theme = th.id as any"
                 >
-                  {{ t === 'infra' ? 'Infrared' : 'Visible Light' }}
+                  {{ th.label }}
                 </button>
               </div>
             </div>
@@ -81,15 +113,31 @@
 
             <div class="control-group">
               <div class="label-row">
-                <label>{{ t('pages.galaxyPhoto.params.alpha') }} (Softness)</label>
+                <label>{{ t('pages.galaxyPhoto.params.alpha') }} (Brightness)</label>
                 <span class="param-value">{{ paramAlpha.toFixed(4) }}</span>
               </div>
               <input
                 v-model.number="paramAlpha"
                 type="range"
                 min="0.001"
-                max="0.1"
-                step="0.001"
+                max="1.0"
+                step="0.0005"
+                class="custom-range"
+                @input="onParamChange"
+              />
+            </div>
+
+            <div class="control-group">
+              <div class="label-row">
+                <label>Sensitivity</label>
+                <span class="param-value">{{ paramSensitivity.toFixed(2) }}</span>
+              </div>
+              <input
+                v-model.number="paramSensitivity"
+                type="range"
+                min="0.01"
+                max="1.0"
+                step="0.01"
                 class="custom-range"
                 @input="onParamChange"
               />
@@ -98,7 +146,9 @@
 
           <!-- Bands Card -->
           <div class="glass-card bands-card">
-            <h2 class="card-title">{{ t('pages.galaxyPhoto.bands') }}</h2>
+            <div class="card-header">
+              <h2 class="card-title">{{ t('pages.galaxyPhoto.bands') }}</h2>
+            </div>
             <div class="bands-grid">
               <div
                 v-for="band in allBands"
@@ -129,12 +179,50 @@
             <h2 class="lightbox-title">{{ lightboxBand }}-band Raw Data</h2>
             <span class="lightbox-subtitle">Sloan Digital Sky Survey</span>
           </div>
-          <div class="lightbox-image-wrap">
-            <img
-              class="lightbox-image"
-              :src="`/galaxy-img/${pgc}/${lightboxBand}.webp`"
-              :alt="`${lightboxBand}-band`"
-            />
+          
+          <div class="lightbox-body">
+            <div class="lightbox-image-wrap">
+              <img
+                class="lightbox-image"
+                :src="`/galaxy-img/${pgc}/${lightboxBand}.webp`"
+                :alt="`${lightboxBand}-band`"
+                :style="lightboxStyle"
+              />
+
+              <!-- Lightbox Controls -->
+              <div class="lightbox-controls">
+                <div class="lb-control-group">
+                  <label>Filter</label>
+                  <select v-model="lbFilter" class="lb-select">
+                    <option v-for="f in filterPresets" :key="f.label" :value="f.value">
+                      {{ f.label }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="lb-control-group">
+                  <label>Brightness</label>
+                  <input 
+                    type="range" 
+                    v-model.number="lbBrightness" 
+                    min="0" 
+                    max="200" 
+                    class="custom-range"
+                  />
+                </div>
+
+                <div class="lb-control-group">
+                  <label>Contrast</label>
+                  <input 
+                    type="range" 
+                    v-model.number="lbContrast" 
+                    min="0" 
+                    max="200" 
+                    class="custom-range"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -168,12 +256,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, shallowRef, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { NSAMetadata } from '@/types/nsa'
-import { NSACompositeScene } from '@/three/nsa/NSACompositeScene'
+import { NSACompositeScene, type ShaderMode } from '@/three/nsa/NSACompositeScene'
 import type { Galaxy } from '@/types/galaxy'
 
 const { t } = useI18n()
@@ -186,14 +274,59 @@ const canvasEl = ref<HTMLCanvasElement | null>(null)
 const galaxy = ref<Galaxy | null>(null)
 const metadata = ref<NSAMetadata | null>(null)
 const loading = ref(true)
-const scene = ref<NSACompositeScene | null>(null)
-const paramQ = ref(8.0)
-const paramAlpha = ref(0.02)
+const scene = shallowRef<NSACompositeScene | null>(null)
+const paramQ = ref(20.0)
+const paramAlpha = ref(0.014)
+const paramSensitivity = ref(0.88)
 const lightboxBand = ref<string | null>(null)
 const resizeObserver = ref<ResizeObserver | null>(null)
-const allBands = ['u', 'g', 'r', 'i', 'z']
-const theme = ref<'infra' | 'astral'>('infra')
+const allBands = computed(() => metadata.value?.bands || ['u', 'g', 'r', 'i', 'z'])
+const theme = ref<'grayscale' | 'infra' | 'astral'>('infra')
+const shaderMode = ref<ShaderMode>('lupton')
 const showInfo = ref(false)
+const findObjectsMode = ref(false)
+const simbadTooltip = ref<{
+  visible: boolean
+  x: number
+  y: number
+  objects: Array<{ name: string; type: string }>
+  error?: string
+}>({
+  visible: false,
+  x: 0,
+  y: 0,
+  objects: [],
+})
+const isDragging = ref(false)
+const lastX = ref(0)
+const lastY = ref(0)
+const pointers = new Map<number, PointerEvent>()
+let prevPinchDist = -1
+
+// Coordinate HUD state — last canvas-local cursor position for recompute after zoom/pan
+const cursorRa = ref<number | null>(null)
+const cursorDec = ref<number | null>(null)
+let lastCanvasX = -1
+let lastCanvasY = -1
+
+// Lightbox state
+const lbBrightness = ref(100)
+const lbContrast = ref(100)
+const lbFilter = ref('none')
+
+const filterPresets = [
+  { label: 'Normal', value: 'none' },
+  { label: 'Negative', value: 'invert(1)' },
+  { label: 'Cyanotype', value: 'sepia(1) hue-rotate(180deg) saturate(1.5)' },
+  { label: 'Amber', value: 'sepia(1) saturate(1.5)' },
+  { label: 'Hard', value: 'contrast(1.5) brightness(0.9)' },
+]
+
+const lightboxStyle = computed(() => {
+  const base = `brightness(${lbBrightness.value}%) contrast(${lbContrast.value}%)`
+  const effect = lbFilter.value !== 'none' ? lbFilter.value : ''
+  return { filter: `${base} ${effect}` }
+})
 
 function goBack() {
   router.push(`/g/${pgc}`)
@@ -201,7 +334,7 @@ function goBack() {
 
 function onParamChange() {
   if (scene.value) {
-    scene.value.setParams(paramQ.value, paramAlpha.value)
+    scene.value.setParams(paramQ.value, paramAlpha.value, paramSensitivity.value)
   }
 }
 
@@ -211,12 +344,164 @@ watch(theme, (newTheme) => {
   }
 })
 
+watch(shaderMode, (mode) => {
+  if (scene.value) {
+    scene.value.setShader(mode)
+  }
+})
+
 function openLightbox(band: string) {
   lightboxBand.value = band
+  // Reset filters
+  lbBrightness.value = 100
+  lbContrast.value = 100
+  lbFilter.value = 'none'
 }
 
 function closeLightbox() {
   lightboxBand.value = null
+}
+
+function toggleFindObjectsMode() {
+  findObjectsMode.value = !findObjectsMode.value
+  simbadTooltip.value.visible = false
+}
+
+function onWheel(e: WheelEvent) {
+  e.preventDefault()
+  if (!scene.value || !canvasEl.value) return
+  const factor = e.deltaY > 0 ? 0.9 : 1.1
+  const rect = canvasEl.value.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  scene.value.zoomAt(factor, x, y)
+  updateCoordHud()
+}
+
+function getPinchDist(): number {
+  const [p1, p2] = Array.from(pointers.values())
+  const dx = p1.clientX - p2.clientX
+  const dy = p1.clientY - p2.clientY
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+function getPinchCenter(): { x: number; y: number } {
+  const [p1, p2] = Array.from(pointers.values())
+  return {
+    x: (p1.clientX + p2.clientX) / 2,
+    y: (p1.clientY + p2.clientY) / 2
+  }
+}
+
+function onPointerDown(e: PointerEvent) {
+  if (!scene.value || !canvasEl.value) return
+  canvasEl.value.setPointerCapture(e.pointerId)
+  pointers.set(e.pointerId, e)
+  
+  if (pointers.size === 1) {
+    isDragging.value = true
+    lastX.value = e.clientX
+    lastY.value = e.clientY
+  } else if (pointers.size === 2) {
+    isDragging.value = false
+    prevPinchDist = getPinchDist()
+  }
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!scene.value || !canvasEl.value) return
+  if (!pointers.has(e.pointerId)) return
+  pointers.set(e.pointerId, e)
+
+  if (pointers.size === 1 && isDragging.value) {
+    const dx = e.clientX - lastX.value
+    const dy = e.clientY - lastY.value
+    scene.value.pan(dx, dy)
+    lastX.value = e.clientX
+    lastY.value = e.clientY
+    updateCoordHud()
+  } else if (pointers.size === 2) {
+    const dist = getPinchDist()
+    if (prevPinchDist > 0) {
+      const factor = dist / prevPinchDist
+      const center = getPinchCenter()
+      const rect = canvasEl.value.getBoundingClientRect()
+      scene.value.zoomAt(factor, center.x - rect.left, center.y - rect.top)
+    }
+    prevPinchDist = dist
+    updateCoordHud()
+  }
+}
+
+function onPointerUp(e: PointerEvent) {
+  if (!canvasEl.value) return
+  canvasEl.value.releasePointerCapture(e.pointerId)
+  pointers.delete(e.pointerId)
+  
+  if (pointers.size < 2) prevPinchDist = -1
+  
+  if (pointers.size === 1) {
+    const p = pointers.values().next().value
+    lastX.value = p.clientX
+    lastY.value = p.clientY
+    isDragging.value = true
+  } else {
+    isDragging.value = false
+  }
+}
+
+/**
+ * Converts decimal degrees to sexagesimal RA string (HHhMMmSS.Ss).
+ */
+function formatRA(deg: number): string {
+  const h = deg / 15
+  const hh = Math.floor(h)
+  const mm = Math.floor((h - hh) * 60)
+  const ss = ((h - hh) * 60 - mm) * 60
+  return `${String(hh).padStart(2, '0')}h${String(mm).padStart(2, '0')}m${ss.toFixed(1).padStart(4, '0')}s`
+}
+
+/**
+ * Converts decimal degrees to sexagesimal Dec string (+DD°MM'SS.S").
+ */
+function formatDec(deg: number): string {
+  const sign = deg >= 0 ? '+' : '-'
+  const abs = Math.abs(deg)
+  const dd = Math.floor(abs)
+  const mm = Math.floor((abs - dd) * 60)
+  const ss = ((abs - dd) * 60 - mm) * 60
+  return `${sign}${String(dd).padStart(2, '0')}°${String(mm).padStart(2, '0')}'${ss.toFixed(1).padStart(4, '0')}"`
+}
+
+/**
+ * Recomputes HUD coordinates from the last known canvas-local cursor position.
+ * Called after any camera change (zoom, pan) or mouse move.
+ */
+function updateCoordHud() {
+  if (!scene.value || !metadata.value || lastCanvasX < 0) return
+  const coords = scene.value.screenToRaDec(lastCanvasX, lastCanvasY, metadata.value)
+  if (coords) {
+    cursorRa.value = coords.ra
+    cursorDec.value = coords.dec
+  } else {
+    cursorRa.value = null
+    cursorDec.value = null
+  }
+}
+
+function onCanvasMouseMove(e: MouseEvent) {
+  if (!canvasEl.value) return
+  const rect = canvasEl.value.getBoundingClientRect()
+  lastCanvasX = e.clientX - rect.left
+  lastCanvasY = e.clientY - rect.top
+  updateCoordHud()
+}
+
+function onCanvasMouseLeave() {
+  lastCanvasX = -1
+  lastCanvasY = -1
+  cursorRa.value = null
+  cursorDec.value = null
 }
 
 async function loadMetadata(): Promise<void> {
@@ -360,7 +645,7 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 1.5rem;
+  padding: 1.25rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
@@ -368,7 +653,7 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .card-title {
@@ -427,32 +712,57 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   display: block;
+  touch-action: none;
+  cursor: crosshair;
 }
 
-.live-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.composite-canvas:active {
+  cursor: grabbing;
+}
+
+.coord-hud {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.coord-label {
+  color: #22d3ee;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.shader-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
   font-family: ui-monospace, monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
-.dot {
-  width: 6px;
-  height: 6px;
-  background-color: #22d3ee;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #22d3ee;
-  animation: pulse 2s infinite;
+.shader-select:hover {
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
+.shader-select option {
+  background: #1a1a1a;
+  color: #fff;
 }
 
 /* ── Controls ── */
@@ -618,11 +928,18 @@ onBeforeUnmount(() => {
 
 .lightbox-content {
   position: relative;
-  width: 90vw;
-  max-width: 1000px;
-  max-height: 90vh;
+  width: auto;
+  max-width: 95vw;
+  height: auto;
+  max-height: 95vh;
   display: flex;
   flex-direction: column;
+}
+
+.lightbox-body {
+  position: relative;
+  display: flex;
+  justify-content: center;
 }
 
 .lightbox-header {
@@ -659,17 +976,82 @@ onBeforeUnmount(() => {
 }
 
 .lightbox-image-wrap {
-  flex: 1;
-  min-height: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  width: auto;
+  height: auto;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 0.5rem;
   overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .lightbox-image {
-  width: 100%;
-  height: 100%;
+  max-width: 90vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  transition: filter 0.2s ease;
+  display: block;
+}
+
+/* Lightbox Controls */
+.lightbox-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .lightbox-controls {
+    flex-direction: column;
+    height: auto;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.lb-control-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.lb-control-group label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.lb-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.lb-select option {
+  background: #222;
+  color: #fff;
 }
 
 /* ── Status States ── */
@@ -789,5 +1171,32 @@ onBeforeUnmount(() => {
 .sidebar-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+/* ── Find Objects Button ── */
+.find-objects-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.find-objects-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.find-objects-btn.active {
+  background: rgba(34, 211, 238, 0.2);
+  border-color: #22d3ee;
+  color: #22d3ee;
 }
 </style>
