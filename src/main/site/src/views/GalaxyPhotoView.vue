@@ -235,7 +235,7 @@
         <div class="sidebar-content">
           <button class="sidebar-close" @click="showInfo = false">×</button>
           <h2 class="sidebar-title">{{ t('pages.galaxyPhoto.info.title') }}</h2>
-          
+
           <div class="sidebar-section">
             <h3>Methodology</h3>
             <p>{{ t('pages.galaxyPhoto.info.methodology') }}</p>
@@ -250,6 +250,40 @@
             <h3>Shader</h3>
             <p>{{ t('pages.galaxyPhoto.info.shader') }}</p>
           </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- SIMBAD Results Tooltip -->
+    <Transition name="fade">
+      <div
+        v-if="simbadTooltip.visible"
+        class="simbad-tooltip"
+        :style="{
+          left: simbadTooltip.x + 'px',
+          top: (simbadTooltip.y - 20) + 'px',
+        }"
+      >
+        <div class="tooltip-arrow"></div>
+        <div class="tooltip-content">
+          <div v-if="simbadLoading" class="loading-state">
+            <div class="mini-spinner"></div>
+            <span>Querying SIMBAD...</span>
+          </div>
+          <div v-else-if="simbadTooltip.error" class="error-state">
+            <span class="error-icon">⚠</span>
+            {{ simbadTooltip.error }}
+          </div>
+          <div v-else-if="simbadTooltip.objects.length === 0" class="empty-state">
+            No objects found
+          </div>
+          <div v-else class="results-list">
+            <div v-for="obj in simbadTooltip.objects" :key="obj.name" class="result-item">
+              <span class="obj-name">{{ obj.name }}</span>
+              <span class="obj-type">{{ obj.type }}</span>
+            </div>
+          </div>
+          <button class="tooltip-close" @click="simbadTooltip.visible = false">×</button>
         </div>
       </div>
     </Transition>
@@ -1237,5 +1271,120 @@ onBeforeUnmount(() => {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
   color: #22d3ee;
+}
+
+/* ── SIMBAD Tooltip ── */
+.simbad-tooltip {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.tooltip-content {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(34, 211, 238, 0.3);
+}
+
+.loading-state,
+.empty-state,
+.error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.error-icon {
+  color: #f87171;
+}
+
+.error-state {
+  color: #f87171;
+}
+
+.mini-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(34, 211, 238, 0.3);
+  border-top-color: #22d3ee;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  border-left: 2px solid #22d3ee;
+}
+
+.obj-name {
+  color: #fff;
+  font-weight: 500;
+  font-family: ui-monospace, monospace;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obj-type {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.tooltip-close {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s;
+}
+
+.tooltip-close:hover {
+  color: #fff;
 }
 </style>
