@@ -52,18 +52,43 @@ export function useSimbadLookup() {
 
       const data = await response.json()
 
-      // Parse SIMBAD VOTable JSON response
-      // Expected format: { resources: [{ table: { data: { rows: [...] } } }] }
-      if (data.resources && data.resources[0]?.table?.data?.rows) {
-        const rows = data.resources[0].table.data.rows
-        results.value = rows
-          .filter((row: any) => row.MAIN_ID) // Only include objects with names
-          .map((row: any) => ({
-            name: row.MAIN_ID || 'Unknown',
-            type: row.OTYPE || 'Star',
-            ra: row.RA_d ? parseFloat(row.RA_d) : undefined,
-            dec: row.DEC_d ? parseFloat(row.DEC_d) : undefined,
-          }))
+      // Debug: Log the raw response structure
+      console.log('SIMBAD response:', data)
+      console.log('Has data.data:', !!data.data)
+      console.log('Data array length:', data.data?.length || 0)
+      if (data.data && data.data.length > 0) {
+        console.log('First row keys:', Object.keys(data.data[0]))
+        console.log('First row:', data.data[0])
+      }
+
+      // Parse SIMBAD JSON response
+      // The API returns { columns: [...], data: [[...], [...]] }
+      // where columns describe the field names and data contains the rows
+      if (data.columns && data.data && Array.isArray(data.data)) {
+        // Create a mapping of column names to indices
+        const columnMap: Record<string, number> = {}
+        data.columns.forEach((col: any, idx: number) => {
+          columnMap[col.name.toLowerCase()] = idx
+        })
+
+        console.log('Column map:', columnMap)
+
+        // Convert array rows to objects using the column mapping
+        results.value = data.data
+          .map((row: any[]) => {
+            const mainIdIdx = columnMap['main_id']
+            const typeIdx = columnMap['otype']
+            const raIdx = columnMap['ra']
+            const decIdx = columnMap['dec']
+
+            return {
+              name: row[mainIdIdx] || 'Unknown',
+              type: row[typeIdx] || 'Unknown',
+              ra: raIdx !== undefined ? parseFloat(row[raIdx]) : undefined,
+              dec: decIdx !== undefined ? parseFloat(row[decIdx]) : undefined,
+            }
+          })
+          .filter((obj: any) => obj.name && obj.name !== 'Unknown') // Only include objects with names
           .slice(0, 20) // Limit to 20 results for UI
       } else {
         results.value = []
