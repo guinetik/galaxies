@@ -89,6 +89,7 @@ export function useSimbadLookup() {
             }
           })
           .filter((obj: any) => obj.name && obj.name !== 'Unknown') // Only include objects with names
+          .filter((obj: any) => obj.type === 'Star') // Only show stars
           .slice(0, 20) // Limit to 20 results for UI
       } else {
         results.value = []
