@@ -439,6 +439,12 @@ function resetToAutoParams() {
   paramAlpha.value = alpha
   paramSensitivity.value = sensitivity
   onParamChange()
+  // Keep luptonDefaults in sync so mode-switch restore uses calibrated values
+  if (shaderMode.value === 'lupton') {
+    luptonDefaults.Q = Q
+    luptonDefaults.alpha = alpha
+    luptonDefaults.sensitivity = sensitivity
+  }
 }
 
 function goBack() {
