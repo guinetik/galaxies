@@ -26,6 +26,38 @@ import {
 
 export type ShaderMode = NsaShaderMode
 
+export interface AutoParams {
+  Q: number
+  alpha: number
+  sensitivity: number
+}
+
+/**
+ * Computes auto-calibrated rendering parameters from the galaxy's band data
+ * ranges so that the asinh stretch knee lands at a useful brightness level
+ * regardless of source magnitude.
+ *
+ * For 3D modes, returns fixed defaults (those modes don't use the image-plane
+ * stretch formula).
+ */
+export function computeAutoParams(metadata: NSAMetadata, mode: ShaderMode): AutoParams {
+  if (mode === 'nsa3d') return { Q: 1.0, alpha: 0.05, sensitivity: 0.5 }
+  if (mode === 'nsamorphology') return { Q: 5.0, alpha: 0.503, sensitivity: 1.0 }
+
+  const Q = mode === 'custom' ? 20.0 : 10.0
+
+  const ranges = metadata.data_ranges
+  const bandKeys = Object.keys(ranges)
+  const avgSignalRange =
+    bandKeys.reduce((sum, k) => sum + (ranges[k][1] - ranges[k][0]), 0) / bandKeys.length
+
+  // Place the asinh knee at 30th-percentile signal: alpha * Q * I_typical ≈ 1
+  const I_typical = avgSignalRange * 0.3
+  const alpha = I_typical > 0 ? Math.min(10.0, Math.max(0.001, 1.0 / (Q * I_typical))) : 0.014
+
+  return { Q, alpha, sensitivity: 1.0 }
+}
+
 const PLANE_SHADERS: Record<Exclude<ShaderMode, 'nsa3d'>, { vert: string; frag: string }> = {
   lupton: { vert: luptonVertShader, frag: luptonFragShader },
   custom: { vert: nsacustomVertShader, frag: nsacustomFragShader },
@@ -59,6 +91,7 @@ export class NSACompositeScene {
   private width: number = 1
   private height: number = 1
   private clock = new THREE.Clock()
+  private autoParams: AutoParams = { Q: 10.0, alpha: 0.014, sensitivity: 1.0 }
 
   // ── Smooth zoom/pan state ──
   private targetZoom: number = 1
@@ -151,6 +184,7 @@ export class NSACompositeScene {
     this.resize(width, height)
     this.applyCurrentShaderMode()
     this.setTheme(this.currentTheme)
+    this.autoParams = computeAutoParams(metadata, this.currentShader)
     this.startAnimation()
   }
 
@@ -570,6 +604,13 @@ export class NSACompositeScene {
 
     this.currentTheme = themeName
     this.render()
+  }
+
+  /**
+   * Returns the auto-calibrated params computed from metadata on load.
+   */
+  getAutoParams(): AutoParams {
+    return this.autoParams
   }
 
   /**
