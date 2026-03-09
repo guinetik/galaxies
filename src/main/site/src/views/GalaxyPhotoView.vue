@@ -33,6 +33,7 @@
               <select v-model="shaderMode" class="shader-select">
                 <option value="lupton">Lupton et al.</option>
                 <option value="custom">Custom</option>
+                <option value="volumetric">Volumetric</option>
               </select>
               <button
                 class="find-objects-btn"
@@ -309,13 +310,13 @@ const galaxy = ref<Galaxy | null>(null)
 const metadata = ref<NSAMetadata | null>(null)
 const loading = ref(true)
 const scene = shallowRef<NSACompositeScene | null>(null)
-const paramQ = ref(20.0)
-const paramAlpha = ref(0.014)
+const paramQ = ref(10.0)
+const paramAlpha = ref(0.1555)
 const paramSensitivity = ref(0.88)
 const lightboxBand = ref<string | null>(null)
 const resizeObserver = ref<ResizeObserver | null>(null)
 const allBands = computed(() => metadata.value?.bands || ['u', 'g', 'r', 'i', 'z'])
-const theme = ref<'grayscale' | 'infra' | 'astral'>('infra')
+const theme = ref<'grayscale' | 'infra' | 'astral'>('astral')
 const shaderMode = ref<ShaderMode>('lupton')
 const showInfo = ref(false)
 const findObjectsMode = ref(false)
@@ -390,10 +391,33 @@ watch(theme, (newTheme) => {
   }
 })
 
-watch(shaderMode, (mode) => {
-  if (scene.value) {
-    scene.value.setShader(mode)
+// Default Lupton params (saved when switching away)
+const luptonDefaults = { Q: 10.0, alpha: 0.1555, sensitivity: 0.88 }
+
+watch(shaderMode, (mode, oldMode) => {
+  if (!scene.value) return
+
+  // Save current params when leaving lupton
+  if (oldMode === 'lupton') {
+    luptonDefaults.Q = paramQ.value
+    luptonDefaults.alpha = paramAlpha.value
+    luptonDefaults.sensitivity = paramSensitivity.value
   }
+
+  if (mode === 'lupton') {
+    // Restore saved Lupton params
+    paramQ.value = luptonDefaults.Q
+    paramAlpha.value = luptonDefaults.alpha
+    paramSensitivity.value = luptonDefaults.sensitivity
+  } else {
+    // Max out sliders for custom/volumetric
+    paramQ.value = 20.0
+    paramAlpha.value = 1.0
+    paramSensitivity.value = 1.0
+  }
+
+  scene.value.setShader(mode)
+  onParamChange()
 })
 
 function openLightbox(band: string) {
@@ -552,9 +576,17 @@ async function onCanvasClick(e: MouseEvent) {
   const canvasX = e.clientX - rect.left
   const canvasY = e.clientY - rect.top
 
+  // Debug logging
+  //console.log('Click coordinates:', { canvasX, canvasY })
+
   // Get RA/Dec from canvas coordinates
   const coords = scene.value.screenToRaDec(canvasX, canvasY, metadata.value)
-  if (!coords) return
+  if (!coords) {
+    //console.log('Failed to convert screen coordinates to RA/Dec')
+    return
+  }
+
+  //console.log('RA/Dec from screenToRaDec:', coords)
 
   // Show loading tooltip
   simbadTooltip.value = {
@@ -568,6 +600,12 @@ async function onCanvasClick(e: MouseEvent) {
   // Query SIMBAD
   try {
     await simbadQuery(coords.ra, coords.dec, 30)
+    //
+    /* console.log('SIMBAD query results:', {
+      loading: simbadLoading.value,
+      results: simbadResults.value,
+      error: simbadError.value,
+    }) */
     if (simbadError.value) {
       simbadTooltip.value.error = simbadError.value
     } else {
