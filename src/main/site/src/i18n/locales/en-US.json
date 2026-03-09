@@ -200,6 +200,12 @@
         "title": "Rendering Parameters",
         "q": "Contrast (Q)",
         "alpha": "Brightness (α)"
+      },
+      "info": {
+        "title": "About This Image",
+        "methodology": "This image is generated in real-time from raw FITS data using the method described by Lupton et al. (2004). We combine three spectral bands (i, r, g) mapped to Red, Green, and Blue channels.",
+        "dataSource": "Data comes from the NASA-Sloan Atlas (NSA), a catalog of local universe galaxies derived from Sloan Digital Sky Survey (SDSS) imaging.",
+        "shader": "The visualization uses a custom WebGL fragment shader implementing an asinh stretch function. The 'Q' parameter controls contrast (softening), while 'alpha' controls the linear stretch (brightness). This allows us to visualize faint structures while preserving detail in the bright core."
       }
     },
     "map": {

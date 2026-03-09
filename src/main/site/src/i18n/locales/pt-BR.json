@@ -242,6 +242,12 @@
         "title": "Parâmetros de Renderização",
         "q": "Contraste (Q)",
         "alpha": "Brilho (α)"
+      },
+      "info": {
+        "title": "Sobre Esta Imagem",
+        "methodology": "Esta imagem é gerada em tempo real a partir de dados FITS brutos usando o método descrito por Lupton et al. (2004). Combinamos três bandas espectrais (i, r, g) mapeadas para os canais Vermelho, Verde e Azul.",
+        "dataSource": "Os dados vêm do NASA-Sloan Atlas (NSA), um catálogo de galáxias do universo local derivado de imagens do Sloan Digital Sky Survey (SDSS).",
+        "shader": "A visualização usa um shader de fragmento WebGL personalizado implementando uma função de alongamento asinh. O parâmetro 'Q' controla o contraste (suavização), enquanto 'alpha' controla o alongamento linear (brilho). Isso nos permite visualizar estruturas fracas enquanto preservamos detalhes no núcleo brilhante."
       }
     },
     "map": {

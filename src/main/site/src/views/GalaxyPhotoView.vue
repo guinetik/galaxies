@@ -29,8 +29,13 @@
         <div class="glass-card canvas-card">
           <div class="card-header">
             <h2 class="card-title">Composite Imaging</h2>
-            <div class="live-indicator">
-              <span class="dot"></span> Live Render
+            <div class="header-actions">
+              <div class="live-indicator">
+                <span class="dot"></span> Live Render
+              </div>
+              <button class="info-btn" @click="showInfo = !showInfo" aria-label="Info">
+                i
+              </button>
             </div>
           </div>
           <div class="canvas-wrapper">
@@ -134,6 +139,31 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Info Sidebar -->
+    <Transition name="sidebar">
+      <div v-if="showInfo" class="info-sidebar">
+        <div class="sidebar-content">
+          <button class="sidebar-close" @click="showInfo = false">×</button>
+          <h2 class="sidebar-title">{{ t('pages.galaxyPhoto.info.title') }}</h2>
+          
+          <div class="sidebar-section">
+            <h3>Methodology</h3>
+            <p>{{ t('pages.galaxyPhoto.info.methodology') }}</p>
+          </div>
+
+          <div class="sidebar-section">
+            <h3>Data Source</h3>
+            <p>{{ t('pages.galaxyPhoto.info.dataSource') }}</p>
+          </div>
+
+          <div class="sidebar-section">
+            <h3>Shader</h3>
+            <p>{{ t('pages.galaxyPhoto.info.shader') }}</p>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -163,6 +193,7 @@ const lightboxBand = ref<string | null>(null)
 const resizeObserver = ref<ResizeObserver | null>(null)
 const allBands = ['u', 'g', 'r', 'i', 'z']
 const theme = ref<'infra' | 'astral'>('infra')
+const showInfo = ref(false)
 
 function goBack() {
   router.push(`/g/${pgc}`)
@@ -346,6 +377,33 @@ onBeforeUnmount(() => {
   color: #fff;
   margin: 0;
   letter-spacing: 0.02em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-family: monospace;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.info-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
 }
 
 /* ── Canvas Area ── */
@@ -661,6 +719,75 @@ onBeforeUnmount(() => {
 
 .fade-enter-from,
 .fade-leave-to {
+  opacity: 0;
+}
+
+/* ── Sidebar ── */
+.info-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.95);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  padding: 24px;
+  overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-close {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sidebar-close:hover {
+  color: #fff;
+}
+
+.sidebar-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.sidebar-section h3 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #22d3ee;
+  margin-bottom: 8px;
+}
+
+.sidebar-section p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.sidebar-enter-active,
+.sidebar-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+  transform: translateX(100%);
   opacity: 0;
 }
 </style>
