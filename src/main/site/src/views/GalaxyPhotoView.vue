@@ -657,6 +657,10 @@ onMounted(async () => {
       scene.value = new NSACompositeScene(canvasEl.value)
       await scene.value.load(pgc, metadata.value)
 
+      // Apply initial shader parameters
+      scene.value.setParams(paramQ.value, paramAlpha.value, paramSensitivity.value)
+      scene.value.setTheme(theme.value)
+
       // Handle canvas resize
       resizeObserver.value = new ResizeObserver(() => {
         if (scene.value && canvasEl.value) {
