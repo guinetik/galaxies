@@ -25,6 +25,15 @@ export const router = createRouter({
       },
     },
     {
+      path: '/g/:pgc/photo',
+      name: 'galaxyPhoto',
+      component: () => import('@/views/GalaxyPhotoView.vue'),
+      meta: {
+        title: 'Galaxy Photo | Galaxies',
+        description: 'True-color astronomical photo of a galaxy from the NASA Sloan Atlas.',
+      },
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('@/views/AboutView.vue'),
