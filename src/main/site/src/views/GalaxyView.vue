@@ -8,6 +8,13 @@
           {{ activeRenderer === 'webgpu' ? 'WebGPU' : 'WebGL' }}
         </button>
         <button class="data-button" @click="showData = !showData">{{ t('pages.galaxy.dataButton') }}</button>
+        <button
+          v-if="hasNSAData && galaxy"
+          class="data-button"
+          @click="router.push(`/g/${galaxy.pgc}/photo`)"
+        >
+          {{ t('pages.galaxy.photoButton') }}
+        </button>
       </div>
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
@@ -19,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GalaxyDetail from '@/components/GalaxyDetail.vue'
 import GalaxyInfoCard from '@/components/GalaxyInfoCard.vue'
@@ -30,6 +37,7 @@ import type { Galaxy } from '@/types/galaxy'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const { ready, isLoading, getGalaxyByPgc } = useGalaxyData()
 const galaxy = ref<Galaxy | null>(null)
 const showData = ref(false)
@@ -37,6 +45,7 @@ const supportsWebGPU = !!navigator.gpu
 const renderer = ref<'webgpu' | 'webgl'>(supportsWebGPU ? 'webgpu' : 'webgl')
 const activeRenderer = ref<'webgpu' | 'webgl'>('webgl')
 const sceneReady = ref(false)
+const hasNSAData = ref(false)
 
 function toggleRenderer() {
   sceneReady.value = false
@@ -46,6 +55,18 @@ function toggleRenderer() {
 onMounted(async () => {
   await ready
   galaxy.value = getGalaxyByPgc(Number(route.params.pgc))
+
+  // Check if NSA data exists
+  if (galaxy.value) {
+    try {
+      const response = await fetch(`/galaxy-img/${galaxy.value.pgc}/metadata.json`, {
+        method: 'HEAD',
+      })
+      hasNSAData.value = response.ok
+    } catch {
+      hasNSAData.value = false
+    }
+  }
 })
 </script>
 
