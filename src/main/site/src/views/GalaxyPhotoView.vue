@@ -66,6 +66,31 @@
               @mousemove="onCanvasMouseMove"
               @mouseleave="onCanvasMouseLeave"
             ></canvas>
+            <!-- Crosshair overlay for SIMBAD query mode -->
+            <svg
+              v-if="findObjectsMode"
+              class="crosshair-overlay"
+              :style="{ cursor: 'crosshair' }"
+            >
+              <!-- Vertical line -->
+              <line
+                :x1="crosshairX"
+                y1="0"
+                :x2="crosshairX"
+                :y2="canvasHeight"
+                class="crosshair-line"
+              />
+              <!-- Horizontal line -->
+              <line
+                x1="0"
+                :y1="crosshairY"
+                :x2="canvasWidth"
+                :y2="crosshairY"
+                class="crosshair-line"
+              />
+              <!-- Center dot -->
+              <circle :cx="crosshairX" :cy="crosshairY" r="4" class="crosshair-dot" />
+            </svg>
             <div v-if="showCoordHud" class="coord-hud">
               <span class="coord-label">RA</span> {{ formatRA(cursorRa!) }}
               &nbsp;
@@ -80,6 +105,9 @@
           <div class="glass-card controls-card">
             <div class="card-header">
               <h2 class="card-title">{{ t('pages.galaxyPhoto.params.title') || 'Rendering Parameters' }}</h2>
+              <button class="best-fit-btn" @click="resetToAutoParams" title="Reset to auto-calibrated values">
+                Best Fit
+              </button>
             </div>
             
             <div class="control-group">
@@ -109,7 +137,7 @@
                 v-model.number="paramQ"
                 type="range"
                 min="1"
-                max="20"
+                max="100"
                 step="0.5"
                 class="custom-range"
                 @input="onParamChange"
@@ -125,8 +153,8 @@
                 v-model.number="paramAlpha"
                 type="range"
                 min="0.001"
-                max="1.0"
-                step="0.0005"
+                max="10.0"
+                step="0.001"
                 class="custom-range"
                 @input="onParamChange"
               />
@@ -274,10 +302,18 @@
             No objects found
           </div>
           <div v-else class="results-list">
-            <div v-for="obj in simbadTooltip.objects" :key="obj.name" class="result-item">
+            <a
+              v-for="obj in simbadTooltip.objects"
+              :key="obj.name"
+              :href="obj.simbadUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="result-item result-link"
+            >
               <span class="obj-name">{{ obj.name }}</span>
               <span class="obj-type">{{ obj.type }}</span>
-            </div>
+              <span class="link-icon">↗</span>
+            </a>
           </div>
           <button class="tooltip-close" @click="simbadTooltip.visible = false">×</button>
         </div>
@@ -293,7 +329,7 @@ import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import { useSimbadLookup } from '@/composables/useSimbadLookup'
 import type { NSAMetadata } from '@/types/nsa'
-import { NSACompositeScene, type ShaderMode } from '@/three/nsa/NSACompositeScene'
+import { NSACompositeScene, computeAutoParams, type ShaderMode } from '@/three/nsa/NSACompositeScene'
 import type { Galaxy } from '@/types/galaxy'
 
 const { t } = useI18n()
@@ -301,6 +337,15 @@ const route = useRoute()
 const router = useRouter()
 const { ready, getGalaxyByPgc } = useGalaxyData()
 const { loading: simbadLoading, results: simbadResults, query: simbadQuery, error: simbadError } = useSimbadLookup()
+
+// Filter SIMBAD results: stars/galaxies if available, otherwise up to 5 other types
+const filteredSimbadResults = computed(() => {
+  const starsAndGalaxies = simbadResults.value.filter(obj => obj.type === 'Star' || obj.type === 'Galaxy')
+  if (starsAndGalaxies.length > 0) {
+    return starsAndGalaxies
+  }
+  return simbadResults.value.slice(0, 5)
+})
 
 const pgc = Number(route.params.pgc)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
@@ -323,7 +368,7 @@ const simbadTooltip = ref<{
   visible: boolean
   x: number
   y: number
-  objects: Array<{ name: string; type: string }>
+  objects: Array<{ name: string; type: string; simbadUrl?: string }>
   error?: string
 }>({
   visible: false,
@@ -345,6 +390,12 @@ const cursorRa = ref<number | null>(null)
 const cursorDec = ref<number | null>(null)
 let lastCanvasX = -1
 let lastCanvasY = -1
+
+// Crosshair overlay state for SIMBAD query mode
+const crosshairX = ref(0)
+const crosshairY = ref(0)
+const canvasWidth = ref(0)
+const canvasHeight = ref(0)
 
 // Lightbox state
 const lbBrightness = ref(100)
@@ -381,6 +432,15 @@ const showCoordHud = computed(() =>
   !isNsa3dMode.value && cursorRa.value !== null && cursorDec.value !== null,
 )
 
+function resetToAutoParams() {
+  if (!scene.value || !metadata.value) return
+  const { Q, alpha, sensitivity } = computeAutoParams(metadata.value, shaderMode.value)
+  paramQ.value = Q
+  paramAlpha.value = alpha
+  paramSensitivity.value = sensitivity
+  onParamChange()
+}
+
 function goBack() {
   router.push(`/g/${pgc}`)
 }
@@ -410,24 +470,18 @@ watch(shaderMode, (mode, oldMode) => {
     luptonDefaults.sensitivity = paramSensitivity.value
   }
 
-  if (mode === 'lupton') {
-    // Restore saved Lupton params
-    paramQ.value = luptonDefaults.Q
-    paramAlpha.value = luptonDefaults.alpha
-    paramSensitivity.value = luptonDefaults.sensitivity
-  } else if (mode === 'nsa3d') {
-    paramQ.value = 1.0
-    paramAlpha.value = 0.05
-    paramSensitivity.value = 0.5
-  } else if (mode === 'nsamorphology') {
-    paramQ.value = 5.0
-    paramAlpha.value = 0.503
-    paramSensitivity.value = 1.0
-  } else {
-    // Max out sliders for custom/volumetric
-    paramQ.value = 20.0
-    paramAlpha.value = 1.0
-    paramSensitivity.value = 1.0
+  if (mode === 'lupton' && metadata.value) {
+    // Restore saved Lupton params if user had tuned them, otherwise auto-calibrate
+    const saved = luptonDefaults
+    const auto = computeAutoParams(metadata.value, 'lupton')
+    paramQ.value = saved.Q !== auto.Q ? saved.Q : auto.Q
+    paramAlpha.value = saved.alpha !== auto.alpha ? saved.alpha : auto.alpha
+    paramSensitivity.value = saved.sensitivity
+  } else if (metadata.value) {
+    const auto = computeAutoParams(metadata.value, mode)
+    paramQ.value = auto.Q
+    paramAlpha.value = auto.alpha
+    paramSensitivity.value = auto.sensitivity
   }
 
   if (mode === 'nsa3d' || mode === 'nsamorphology') {
@@ -629,6 +683,13 @@ function onCanvasMouseMove(e: MouseEvent) {
   const rect = canvasEl.value.getBoundingClientRect()
   lastCanvasX = e.clientX - rect.left
   lastCanvasY = e.clientY - rect.top
+
+  // Update crosshair position if in find objects mode
+  if (findObjectsMode.value) {
+    crosshairX.value = lastCanvasX
+    crosshairY.value = lastCanvasY
+  }
+
   updateCoordHud()
 }
 
@@ -663,18 +724,13 @@ async function onCanvasClick(e: MouseEvent) {
   // Query SIMBAD
   try {
     await simbadQuery(coords.ra, coords.dec, 30)
-    //
-    /* console.log('SIMBAD query results:', {
-      loading: simbadLoading.value,
-      results: simbadResults.value,
-      error: simbadError.value,
-    }) */
     if (simbadError.value) {
       simbadTooltip.value.error = simbadError.value
     } else {
-      simbadTooltip.value.objects = simbadResults.value.map(obj => ({
+      simbadTooltip.value.objects = filteredSimbadResults.value.map(obj => ({
         name: obj.name,
         type: obj.type,
+        simbadUrl: obj.simbadUrl,
       }))
     }
   } catch (err) {
@@ -723,15 +779,27 @@ onMounted(async () => {
       // Apply initial shader parameters
       scene.value.setParams(paramQ.value, paramAlpha.value, paramSensitivity.value)
       scene.value.setTheme(theme.value)
+      // Apply auto-calibrated params for the initial mode
+      resetToAutoParams()
 
       // Handle canvas resize
       resizeObserver.value = new ResizeObserver(() => {
         if (scene.value && canvasEl.value) {
           const rect = canvasEl.value.parentElement!.getBoundingClientRect()
           scene.value.resize(rect.width, rect.height)
+          // Update canvas dimensions for crosshair overlay
+          canvasWidth.value = rect.width
+          canvasHeight.value = rect.height
         }
       })
       resizeObserver.value.observe(canvasEl.value.parentElement!)
+
+      // Initial canvas dimensions
+      if (canvasEl.value.parentElement) {
+        const rect = canvasEl.value.parentElement.getBoundingClientRect()
+        canvasWidth.value = rect.width
+        canvasHeight.value = rect.height
+      }
     } catch (error) {
       console.error('Failed to load NSA scene:', error)
     }
@@ -1470,6 +1538,29 @@ onBeforeUnmount(() => {
   border-left: 2px solid #22d3ee;
 }
 
+.result-link {
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.result-link:hover {
+  background: rgba(34, 211, 238, 0.15);
+  border-left-color: #06b6d4;
+}
+
+.link-icon {
+  color: #22d3ee;
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.result-link:hover .link-icon {
+  opacity: 1;
+}
+
 .obj-name {
   color: #fff;
   font-weight: 500;
@@ -1503,5 +1594,47 @@ onBeforeUnmount(() => {
 
 .tooltip-close:hover {
   color: #fff;
+}
+
+/* ── Crosshair Overlay ── */
+.crosshair-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.crosshair-line {
+  stroke: rgba(34, 211, 238, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 4, 4;
+}
+
+.crosshair-dot {
+  fill: rgba(34, 211, 238, 0.8);
+  stroke: rgba(34, 211, 238, 0.5);
+  stroke-width: 1;
+}
+
+/* ── Best Fit Button ── */
+.best-fit-btn {
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  color: rgba(34, 211, 238, 0.8);
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: ui-monospace, monospace;
+  transition: all 0.2s;
+}
+
+.best-fit-btn:hover {
+  background: rgba(34, 211, 238, 0.18);
+  border-color: #22d3ee;
+  color: #22d3ee;
 }
 </style>
