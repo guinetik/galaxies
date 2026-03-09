@@ -9,6 +9,7 @@ export interface SimbadObject {
   ra?: number
   dec?: number
   distance?: number
+  simbadUrl?: string
 }
 
 /**
@@ -81,16 +82,17 @@ export function useSimbadLookup() {
             const raIdx = columnMap['ra']
             const decIdx = columnMap['dec']
 
+            const name = row[mainIdIdx] || 'Unknown'
             return {
-              name: row[mainIdIdx] || 'Unknown',
+              name,
               type: row[typeIdx] || 'Unknown',
               ra: raIdx !== undefined ? parseFloat(row[raIdx]) : undefined,
               dec: decIdx !== undefined ? parseFloat(row[decIdx]) : undefined,
+              simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(name)}`,
             }
           })
           .filter((obj: any) => obj.name && obj.name !== 'Unknown') // Only include objects with names
-          .filter((obj: any) => obj.type === 'Star') // Only show stars
-          .slice(0, 20) // Limit to 20 results for UI
+          .slice(0, 50) // Keep up to 50 for component to filter
       } else {
         results.value = []
       }

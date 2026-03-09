@@ -30,6 +30,7 @@ const PLANE_SHADERS: Record<Exclude<ShaderMode, 'nsa3d'>, { vert: string; frag: 
   lupton: { vert: luptonVertShader, frag: luptonFragShader },
   custom: { vert: nsacustomVertShader, frag: nsacustomFragShader },
   volumetric: { vert: volumetricVertShader, frag: volumetricFragShader },
+  nsamorphology: { vert: morphVertShader, frag: morphFragShader },
 }
 
 type BandData = Record<string, { tex: THREE.Texture; range: THREE.Vector2 }>
@@ -722,7 +723,7 @@ export class NSACompositeScene {
     const py = (1 - v) * imgH
     const dx = px - imgW / 2
     const dy = py - imgH / 2
-    const scale = (meta.pixel_scale ?? 1.0) / 3600
+    const scale = (meta.pixel_scale ?? 0.396) / 3600  // SDSS standard fallback
     const decRad = (meta.dec * Math.PI) / 180
     const dec = meta.dec - dy * scale
     const ra = meta.ra - (dx * scale) / Math.cos(decRad)

@@ -129,6 +129,7 @@ def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float
         "nsaid": nsa_pid,  # Note: nsa_pid is the SDSS Photo ID, not NSAID
         "ra": ra,
         "dec": dec,
+        "pixel_scale": 0.396,  # SDSS standard (not in FITS header, verified constant for all NSA)
         "bands": BANDS,
         "dimensions": list(dimensions),
         "data_ranges": band_ranges,
