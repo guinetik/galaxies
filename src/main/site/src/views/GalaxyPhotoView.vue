@@ -35,8 +35,10 @@
                 <option value="custom">Custom</option>
                 <option value="volumetric">Volumetric</option>
                 <option value="nsa3d">NSA 3D</option>
+                <option value="nsamorphology">Morphology 3D</option>
               </select>
               <button
+                v-if="!isNsa3dMode"
                 class="find-objects-btn"
                 :class="{ active: findObjectsMode }"
                 @click="toggleFindObjectsMode"
@@ -64,8 +66,8 @@
               @mousemove="onCanvasMouseMove"
               @mouseleave="onCanvasMouseLeave"
             ></canvas>
-            <div v-if="cursorRa !== null && cursorDec !== null" class="coord-hud">
-              <span class="coord-label">RA</span> {{ formatRA(cursorRa) }}
+            <div v-if="showCoordHud" class="coord-hud">
+              <span class="coord-label">RA</span> {{ formatRA(cursorRa!) }}
               &nbsp;
               <span class="coord-label">Dec</span> {{ formatDec(cursorDec!) }}
             </div>
@@ -239,18 +241,13 @@
           <h2 class="sidebar-title">{{ t('pages.galaxyPhoto.info.title') }}</h2>
 
           <div class="sidebar-section">
-            <h3>Methodology</h3>
-            <p>{{ t('pages.galaxyPhoto.info.methodology') }}</p>
-          </div>
-
-          <div class="sidebar-section">
             <h3>Data Source</h3>
             <p>{{ t('pages.galaxyPhoto.info.dataSource') }}</p>
           </div>
 
           <div class="sidebar-section">
-            <h3>Shader</h3>
-            <p>{{ t('pages.galaxyPhoto.info.shader') }}</p>
+            <h3>{{ shaderMode === 'lupton' ? 'Lupton Composite' : shaderMode === 'custom' ? 'Custom Composite' : shaderMode === 'volumetric' ? 'Volumetric Rendering' : shaderMode === 'nsa3d' ? 'NSA 3D Point Cloud' : 'Morphology 3D' }}</h3>
+            <p>{{ t('pages.galaxyPhoto.info.' + shaderMode) }}</p>
           </div>
         </div>
       </div>
@@ -319,6 +316,7 @@ const resizeObserver = ref<ResizeObserver | null>(null)
 const allBands = computed(() => metadata.value?.bands || ['u', 'g', 'r', 'i', 'z'])
 const theme = ref<'grayscale' | 'infra' | 'astral'>('astral')
 const shaderMode = ref<ShaderMode>('lupton')
+const isNsa3dMode = computed(() => shaderMode.value === 'nsa3d' || shaderMode.value === 'nsamorphology')
 const showInfo = ref(false)
 const findObjectsMode = ref(false)
 const simbadTooltip = ref<{
@@ -379,6 +377,10 @@ const simbadTooltipStyle = computed(() => {
   }
 })
 
+const showCoordHud = computed(() =>
+  !isNsa3dMode.value && cursorRa.value !== null && cursorDec.value !== null,
+)
+
 function goBack() {
   router.push(`/g/${pgc}`)
 }
@@ -413,11 +415,26 @@ watch(shaderMode, (mode, oldMode) => {
     paramQ.value = luptonDefaults.Q
     paramAlpha.value = luptonDefaults.alpha
     paramSensitivity.value = luptonDefaults.sensitivity
+  } else if (mode === 'nsa3d') {
+    paramQ.value = 1.0
+    paramAlpha.value = 0.05
+    paramSensitivity.value = 0.5
+  } else if (mode === 'nsamorphology') {
+    paramQ.value = 5.0
+    paramAlpha.value = 0.503
+    paramSensitivity.value = 1.0
   } else {
     // Max out sliders for custom/volumetric
     paramQ.value = 20.0
     paramAlpha.value = 1.0
     paramSensitivity.value = 1.0
+  }
+
+  if (mode === 'nsa3d' || mode === 'nsamorphology') {
+    findObjectsMode.value = false
+    simbadTooltip.value.visible = false
+    cursorRa.value = null
+    cursorDec.value = null
   }
 
   scene.value.setShader(mode)
@@ -437,6 +454,7 @@ function closeLightbox() {
 }
 
 function toggleFindObjectsMode() {
+  if (isNsa3dMode.value) return
   findObjectsMode.value = !findObjectsMode.value
   simbadTooltip.value.visible = false
 }
@@ -448,8 +466,12 @@ function onWheel(e: WheelEvent) {
   const rect = canvasEl.value.getBoundingClientRect()
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
-  scene.value.zoomAt(factor, x, y)
-  updateCoordHud()
+  if (scene.value.is3DMode()) {
+    scene.value.dolly(factor)
+  } else {
+    scene.value.zoomAt(factor, x, y)
+    updateCoordHud()
+  }
 }
 
 function getPinchDist(): number {
@@ -491,7 +513,11 @@ function onPointerMove(e: PointerEvent) {
   if (pointers.size === 1 && isDragging.value) {
     const dx = e.clientX - lastX.value
     const dy = e.clientY - lastY.value
-    scene.value.pan(dx, dy)
+    if (scene.value.is3DMode()) {
+      scene.value.orbit(dx, dy)
+    } else {
+      scene.value.pan(dx, dy)
+    }
     lastX.value = e.clientX
     lastY.value = e.clientY
     // Track last few positions for velocity calculation
@@ -501,17 +527,25 @@ function onPointerMove(e: PointerEvent) {
     while (dragHistory.length > 1 && now - dragHistory[0].t > 80) {
       dragHistory.shift()
     }
-    updateCoordHud()
+    if (!scene.value.is3DMode()) {
+      updateCoordHud()
+    }
   } else if (pointers.size === 2) {
     const dist = getPinchDist()
     if (prevPinchDist > 0) {
       const factor = dist / prevPinchDist
       const center = getPinchCenter()
       const rect = canvasEl.value.getBoundingClientRect()
-      scene.value.zoomAt(factor, center.x - rect.left, center.y - rect.top)
+      if (scene.value.is3DMode()) {
+        scene.value.dolly(factor)
+      } else {
+        scene.value.zoomAt(factor, center.x - rect.left, center.y - rect.top)
+      }
     }
     prevPinchDist = dist
-    updateCoordHud()
+    if (!scene.value.is3DMode()) {
+      updateCoordHud()
+    }
   }
 }
 
@@ -536,7 +570,7 @@ function onPointerUp(e: PointerEvent) {
     isDragging.value = false
 
     // Fling momentum from drag velocity
-    if (wasDragging && scene.value && dragHistory.length >= 2) {
+    if (wasDragging && scene.value && !scene.value.is3DMode() && dragHistory.length >= 2) {
       const first = dragHistory[0]
       const last = dragHistory[dragHistory.length - 1]
       const dt = (last.t - first.t) / 1000 // seconds
@@ -578,7 +612,7 @@ function formatDec(deg: number): string {
  * Called after any camera change (zoom, pan) or mouse move.
  */
 function updateCoordHud() {
-  if (!scene.value || !metadata.value || lastCanvasX < 0) return
+  if (!scene.value || !metadata.value || lastCanvasX < 0 || !scene.value.supportsSkyPicking()) return
   const coords = scene.value.screenToRaDec(lastCanvasX, lastCanvasY, metadata.value)
   if (coords) {
     cursorRa.value = coords.ra
@@ -590,6 +624,7 @@ function updateCoordHud() {
 }
 
 function onCanvasMouseMove(e: MouseEvent) {
+  if (isNsa3dMode.value) return
   if (!canvasEl.value) return
   const rect = canvasEl.value.getBoundingClientRect()
   lastCanvasX = e.clientX - rect.left
@@ -598,7 +633,7 @@ function onCanvasMouseMove(e: MouseEvent) {
 }
 
 async function onCanvasClick(e: MouseEvent) {
-  if (!findObjectsMode.value || !canvasEl.value || !metadata.value || !scene.value) return
+  if (!findObjectsMode.value || !canvasEl.value || !metadata.value || !scene.value || !scene.value.supportsSkyPicking()) return
 
   const rect = canvasEl.value.getBoundingClientRect()
   const canvasX = e.clientX - rect.left
