@@ -53,12 +53,12 @@ export function useSimbadLookup() {
       const data = await response.json()
 
       // Debug: Log the raw response structure
-      console.log('SIMBAD response:', data)
-      console.log('Has data.data:', !!data.data)
-      console.log('Data array length:', data.data?.length || 0)
+      //console.log('SIMBAD response:', data)
+      //console.log('Has data.data:', !!data.data)
+      //console.log('Data array length:', data.data?.length || 0)
       if (data.data && data.data.length > 0) {
-        console.log('First row keys:', Object.keys(data.data[0]))
-        console.log('First row:', data.data[0])
+        //console.log('First row keys:', Object.keys(data.data[0]))
+        //console.log('First row:', data.data[0])
       }
 
       // Parse SIMBAD JSON response

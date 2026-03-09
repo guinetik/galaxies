@@ -34,6 +34,7 @@
                 <option value="lupton">Lupton et al.</option>
                 <option value="custom">Custom</option>
                 <option value="volumetric">Volumetric</option>
+                <option value="nsa3d">NSA 3D</option>
               </select>
               <button
                 class="find-objects-btn"
@@ -338,6 +339,9 @@ const lastY = ref(0)
 const pointers = new Map<number, PointerEvent>()
 let prevPinchDist = -1
 
+// Velocity tracking for momentum fling
+let dragHistory: Array<{ x: number; y: number; t: number }> = []
+
 // Coordinate HUD state — last canvas-local cursor position for recompute after zoom/pan
 const cursorRa = ref<number | null>(null)
 const cursorDec = ref<number | null>(null)
@@ -467,11 +471,12 @@ function onPointerDown(e: PointerEvent) {
   if (!scene.value || !canvasEl.value) return
   canvasEl.value.setPointerCapture(e.pointerId)
   pointers.set(e.pointerId, e)
-  
+
   if (pointers.size === 1) {
     isDragging.value = true
     lastX.value = e.clientX
     lastY.value = e.clientY
+    dragHistory = [{ x: e.clientX, y: e.clientY, t: performance.now() }]
   } else if (pointers.size === 2) {
     isDragging.value = false
     prevPinchDist = getPinchDist()
@@ -489,6 +494,13 @@ function onPointerMove(e: PointerEvent) {
     scene.value.pan(dx, dy)
     lastX.value = e.clientX
     lastY.value = e.clientY
+    // Track last few positions for velocity calculation
+    const now = performance.now()
+    dragHistory.push({ x: e.clientX, y: e.clientY, t: now })
+    // Keep only last 80ms of history
+    while (dragHistory.length > 1 && now - dragHistory[0].t > 80) {
+      dragHistory.shift()
+    }
     updateCoordHud()
   } else if (pointers.size === 2) {
     const dist = getPinchDist()
@@ -505,11 +517,14 @@ function onPointerMove(e: PointerEvent) {
 
 function onPointerUp(e: PointerEvent) {
   if (!canvasEl.value) return
+
+  // Compute fling velocity before clearing state
+  const wasDragging = isDragging.value && pointers.size === 1
   canvasEl.value.releasePointerCapture(e.pointerId)
   pointers.delete(e.pointerId)
-  
+
   if (pointers.size < 2) prevPinchDist = -1
-  
+
   if (pointers.size === 1) {
     const p = pointers.values().next().value
     if (p) {
@@ -519,6 +534,19 @@ function onPointerUp(e: PointerEvent) {
     isDragging.value = true
   } else {
     isDragging.value = false
+
+    // Fling momentum from drag velocity
+    if (wasDragging && scene.value && dragHistory.length >= 2) {
+      const first = dragHistory[0]
+      const last = dragHistory[dragHistory.length - 1]
+      const dt = (last.t - first.t) / 1000 // seconds
+      if (dt > 0.005) {
+        const vx = (last.x - first.x) / dt * 0.016 // scale to per-frame
+        const vy = (last.y - first.y) / dt * 0.016
+        scene.value.fling(vx, vy)
+      }
+    }
+    dragHistory = []
   }
 }
 
