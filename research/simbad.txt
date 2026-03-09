@@ -1,0 +1,360 @@
+
+simbad.u-strasbg.fr
+SIMBAD: How to query SIMBAD by URLs ?
+16–20 minutes
+
+Simbad Help   ⋅   Top   ⋅   Previous   ⋅   Next
+
+The query pages of Simbad can be used directly in any application, or using standard tools like curl or wget. The result can be provided in CSV, ASCII, Json or VOTable. Each of them have their own set of parameters, but share also a set of output definition parameters which are described later.
+All the parameters are case sensitive.
+
+This documentation describes how to write the URLs for querying Simbad and details the required parameters. Be careful, some characters are not allowed in URLs. https://www.w3schools.com/tags/ref_urlencode.asp
+1  The available URLs
+
+The following URLs can be used to query Simbad, they do specialized queries and require parameters to specify the data to output.
+
+    Query by Identifier. The output format can be parametrized (see below the section Output Definition Parameters).
+    https://simbad.cds.unistra.fr/simbad/sim-id?output.format=ASCII&Ident=hd1
+    More details
+
+    The Votable output format can be parametrized here.
+    https://simbad.cds.unistra.fr/simbad/sim-id?output.format=votable&Ident=hd 1&output.params=main_id,flux(B),flux_system(B)
+    Query by Coordinates. The result is always a list of objects. Parameters can be defined for the frame and the radius, as well as the columns to display (see below the section Output Definition Parameters).
+    https://simbad.cds.unistra.fr/simbad/sim-coo?output.format=TSV&Coord=12 30 +10 20&Radius=10&Radius.unit=arcmin
+    More details
+
+    Query by cone : https://simbad.cds.unistra.fr/cone/?RA=1.23&DEC=4.56&SR=0.1&ORDER_BY=distance&MAXREC=10&RESPONSEFORMAT=json&VERB=1
+    More details
+    Query by bibcode or other reference criteria.
+    https://simbad.cds.unistra.fr/simbad/sim-ref?bibcode=2006ApJ.636.1&submit=submit bibcode&output.format=ASCII
+    More details
+    Query by criteria, returning a count of objects (OutputMode=COUNT), the list of objects (OutputMode=LIST),
+    or the references linked to the objects (OutputMode=REFERENCES)
+    https://simbad.cds.unistra.fr/simbad/sim-sam?Criteria=dec>86+%26+ra>22+%26+Bmag<8&OutputMode=COUNT&maxObject=10
+    More details
+    Query TAP service, using SQL-like query:
+    https://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=text&query=SELECT TOP 10 MAIN_ID,RA,DEC FROM BASIC WHERE rvz_redshift > 3.3
+    , or using curl:
+    curl --request POST
+    --data REQUEST=doQuery
+    --data PHASE=RUN
+    --data FORMAT=votable
+    --data LANG=ADQL
+    --data query="SELECT id2.id FROM ident AS id1 JOIN ident AS id2 USING(oidref) WHERE id1.id = 'M13';"
+    --location 'https://simbad.cds.unistra.fr/simbad/sim-tap/sync'
+
+    More details
+    Query by Scripts This allows queries by script. The only required parameter is script=.... Any kind of query can be done using a script. The output is only in ASCII/Votable, and can be fine tuned by the definition of output formats.
+
+    https://simbad.cds.unistra.fr/simbad/sim-script?script=format object "More details
+    2  Identifier queries
+
+    Url example : https://simbad.cds.unistra.fr/simbad/sim-id?Ident=m31
+
+    The parameters are:
+
+    name 	values 	description
+    Ident= 	Identifier, wildcard expression
+    or catalogue name 	Identifier or acronym to query
+    NbIdent= 	[1|around|wildcard|cat] 	
+    1 	query one identifier (default)
+    around 	query around the identifier (see also the Radius and Radius.unit parameters)
+     
+    wildcard 	The identifier (parameter 'Ident=') is a wildcard expression
+    cat 	The parameter 'Ident=') is a catalogue name and the whole catalogue will be queried
+    Radius= 	a decimal radius value 	Radius for 'around' query. See also Radius.unit parameter
+    Radius.unit= 	[arcsec|arcmin|deg] 	
+    arcsec 	arc seconds
+    arcmin 	arc minutes (default)
+    deg 	degrees
+
+    See below for the output definition parameters
+    3  Coordinate queries
+
+    Url example : https://simbad.cds.unistra.fr/simbad/sim-coo?Coord=10h30+
+
+    The parameters are:
+
+    name 	values 	description
+    Coord= 	right ascension declination
+    longitude latitude 	Coordinates which van be written in several formats:
+        sexagesimal values separated by spaces or colon (':')
+        sexagesimal values suffixed by 'h','m','s' and 'd','m','s' (12h10m +36d43m17s)
+        decimal degrees 
+    Radius= 	a decimal radius value 	Radius for 'around' query. See also Radius.unit parameter
+    Radius.unit= 	[arcsec|arcmin|deg] 	
+    arcsec 	arc seconds
+    arcmin 	arc minutes (default)
+    deg 	degrees
+    CooFrame= 	[ICRS|FK5|FK4|GAL|SGAL|ECL 	Coordinate frame:
+    ICRS 	ICRS frame. Objects are stored in this frame in SIMBAD
+    FK5 	FK5 frame.
+    FK4 	FK4 frame.
+    GAL 	Galactic frame.
+    SGAL 	Super Galactic frame.
+    ECL 	Ecliptic frame.
+    CooEpoch= 	Epoch of the submitted coordinates
+    (default: 2000)
+    CooEqui= 	Equinox of the submitted coordinates
+    (default: 2000)
+
+    See below for the output definition parameters
+    4  Criteria queries
+
+    Url example : https://simbad.cds.unistra.fr/simbad/sim-sam?Criteria=dec>86%26ra>22%26Bmag<8%26cat=%27HIP%27&OutputMode=LIST&maxObject=100
+
+    The parameters are:
+
+    name 	values 	description
+    Criteria= 	a criteria expression 	All the possible criteria names and the corresponding operators are described in the query by criteria page.
+    OuputMode= 	[COUNT|LIST|REF] 	Defines the expected output:
+    COUNT 	Number of objects that would have been returned by the query (default)
+    LIST 	Return the list of objects selected by the query
+    REF 	Return all the references that belong to the list of objects that would habe been returned by the query
+    maxObject= 	Maximum number of objects
+    to return (abs. maximum: currently 50000)
+
+    See below for the output definition parameters
+    5  Reference queries
+
+    Reference queries can be of two types, distinguished by the submit parameter:
+    5.1  Reference query by bibcode
+
+    Url example : https://simbad.cds.unistra.fr/simbad/sim-ref?submit=submit+bibcode&bibcode=2003AN.324.61M
+
+    Such a query can be performed either by giving a complete bibcode (parameter bibcode), or by giving elements of a bibcode. Any part(s) among the year (byear), the journal (bjournal), the volume(bvolume) and/or the page (bpage) can be defined to retrieve the corresponding list of references.
+
+    name 	values 	description
+    submit= 	submit bibcode 	written like this
+    bibcode= 	bibcode 	A bibcode. It can be written shorter than the normalized bibcode (19 chars) as long as a dot ('.') separates each item after the journal abbreviation.
+    simbo= 	on 	display the list of objects in the reference. This parameter can be used only with a complete bibcode
+    byear= 	year 	a bibcode year (4 digits)
+    bjournal= 	journal abbreviation 	a journal abbreviation
+    bvolume= 	volume 	a volume number
+    bpage= 	page number 	a page number
+
+    5.2  Reference query by criteria
+
+    Url example : https://simbad.cds.unistra.fr/simbad/sim-ref?submit=submit+criteria&fromyear=2005&toyear=2006&words=xmm
+
+These parameters allow to find a list of references in SIMBAD based on criteria on journals (journal), year range (fromyear and toyear), author names (authors) and/or words in the title (words).
+
+name 	values 	description
+submit= 	submit criteria 	written like this
+journal= 	list of journal abbreviations 	the list
+fromyear= 	lower year limit 	first year to search for references
+toyear= 	upper year limit 	last year (inclusive) to search for references
+authors= 	author names 	list of authors separated by operators '|' (or) or '&' (and)
+words= 	title words 	list of words in the title separated by operators '|' (or) or '&' (and)
+
+6  Script queries
+
+They are processed by the url
+
+https://simbad.cds.unistra.fr/simbad/sim-script?script=...
+
+The script parameter consist of script commands separated by a newline char. All the script commands described in this help page can be used in an URL.
+
+Main commands to consider for a URL query are:
+
+    Output tuning:
+    output console=off script=off
+    To remove the console and beginning of the script sections of the output, leaving only the data.
+    Output format specification:
+    format object "format items and text"
+    To define the output format for astronomical objects. The available format items are described here.
+
+    Example: format object "%IDLIST(1) | %-27COO(A D) | %FLUX(B;F) | %SP(S)"
+    VOTable output definition votable table-name field list
+    votable open table-name
+    ... queries ...
+    votable close
+
+    To define a votable output with a list of requested fields. All the available field names for the votable are described here.
+
+    Example:
+
+    votable v1 {
+    	MAIN_ID
+    	COO
+    	SP
+    }
+    votable open v1
+    sirius
+    votable close
+
+    Identifier queries:
+    query id identifier
+    or just an identifier on one line
+
+    Example:
+
+    query id hd 100
+    m31
+
+    Coodinate queries:
+    query coo ra dec radius=...  frame=...  equi=...  epoch=...  
+    You can also only type a list of straigh coordinates (either in sexagesimal format or decimal degrees).
+
+    Radius, frame, epoch and equinox can be factorized in global commands:
+
+    set radius=...
+    set frame=...
+    set equi=...
+    set epoch=...
+
+    Example:
+
+    output console=off script=off
+    format object "%-35IDLIST(1) | %-27COO(s;A D) | %6.3FLUXLIST(B;F) | "+
+                  "%6.3FLUXLIST(V;F) | %-15SP(S) | nbref=%#BIBCODELIST"
+    set epoch  1950
+    query coo 12 30 +10 20 radius=10m
+    echodata ===================
+    query coo 13 29 52.37 +47 11 40.8 radius=30s
+
+    Sample queries:
+    query sample condition
+    The condition expression is described in the query by criteria page.
+
+    Example:
+
+    format object "%-35IDLIST(1) | %-27COO(s;A D) | %MEASLIST(ubv)[%*(F)]"
+    query sample dec > 85 & ubv.b < 6
+
+7  Output definition parameters
+
+SIMBAD has two kind of outputs:
+
+    object output for the display of an individual astronomical object. Such an output can be exhaustive and complex
+    list output for the display of a list of objects. Such a display is always tabular and therefore limits to one item the data displayed for each object in the list. 
+
+Output parameters can be global (usable for all kind of output) or relevant of only one particular kind.
+
+The remaining of this section will describe all output parameters grouped by data type. Default value, if any, is written in boldface.
+7.1  general parameters
+
+These output definition parameters are common to all kind of outputs:
+
+name 	values 	description
+output.format= 	HTML|VOTable|ASCII 	Defines the output format (HTML page, only ASCII or VOTable)
+output.max= 	max # of objects 	Maximum number of objects to display. This number is in any case limited currently to 50,000
+
+7.2  Object type
+
+The object type is always displayed with an astronomical object.
+
+name 	values 	description
+list.otypesel= 	on|off 	display or not the main object type in a list
+otypedisp= 	S|V|3|N 	display format for the object type:
+S = standard (6 chars max), V = verbose description, 3 = short abbreiviation on 3 chars max (default), N = numeric display (NN.NN.NN.NN)
+
+7.3  Coordinates
+
+Four coordinates can be displayed for an astronomical object.
+
+name 	values 	description
+obj.cooN= 	on|off 	display for an object the N-th coordinate (N=1..4). See below how to specify the frame
+4 coordinates are displayed for an astronomical object
+list.cooN= 	on|off 	display in a list the N-th coordinate (N=1..4). See below how to specify the frame
+Only list.coo1 is on by default
+frameN= 	ICRS|FK5|FK4|GAL|SGAL|ECL 	define the frame for the N-th (N=1..4) coordinates
+epochN= 	[B|J]year 	define the epoch for the N-th (N=1..4) coordinates
+equiN= 	year 	define the equinox for the N-th (N=1..4) coordinates
+coodispN= 	[s|d][2] 	define the coordinates format for the N-th (N=1..4) coordinates:
+s = sexagesimal, d = decimal, 2 = space insertion between ra and dec
+
+7.4  Proper motions
+
+name 	values 	description
+obj.pmsel= 	on|off 	display or not the proper motions in an astronomical object
+list.pmsel= 	on|off 	display or not the proper motions in a list
+
+7.5  Parallaxes
+
+name 	values 	description
+obj.plxsel= 	on|off 	display or not the parallaxes in an astronomical object
+list.plxsel= 	on|off 	display or not the parallaxes in a list
+
+7.6  Radial velocities
+
+name 	values 	description
+obj.rvsel= 	on|off 	display or not the radial velocities in an object
+list.rvsel= 	on|off 	display or not the radial velocities in a list
+rvDisplay= 	R|Z|V 	define which value will be displayed:
+R = the radial velocity or the redshift, as stored in the database, Z = force a redshift display, V = force a radial velocity display
+
+7.7  Spectral type
+
+name 	values 	description
+obj.spsel= 	on|off 	display or not the spectral type in an astronomical object
+list.spsel= 	on|off 	display or not the spectral type in a list
+
+7.8  Morphological type
+
+name 	values 	description
+obj.mtsel= 	on|off 	display or not the morphological type in an astronomical object
+list.mtsel= 	on|off 	display or not the morphological type in a list
+
+7.9  Angular size
+
+name 	values 	description
+obj.sizesel= 	on|off 	display or not the size of an astronomical object (extended objects)
+list.sizesel= 	on|off 	display or not the size in a list
+
+7.10  Fluxes
+
+name 	values 	description
+obj.fluxsel= 	on|off 	display or not the fluxes of an astronomical object. For an object, all the available fluxes are always displayed
+list.fluxsel= 	on|off 	display or not the fluxes in a list. They can be specified by the parameters filtername=on.
+filtername= 	on|off 	display the flux value of the given filters set to 'on'. Please, check the list of available filter names in the corresponding combobox on the Output options web page.
+
+7.11  Identifiers
+
+In an astronomical object display, the identifiers are always displayed.
+
+name 	values 	description
+list.idsel= 	on|off 	display or not an identifier in a list. Only one identifier will be displayed in a list. It can be defined with the other parameters in this section.
+list.idopt= 	FIRST|CATLIST 	identifier display option: FIRST = first identifier, CATLIST = display the first identifier present in the list of acronyms specified in the list.idcat parameter
+list.idcat= 	list of catalog names 	list of comma separataed acronyms. The displayed identifier is the first one found in this list. if none is found, the first identifier will be displayed
+
+7.12  Bibliography
+
+name 	values 	description
+obj.bibsel= 	on|off 	display or not the bibliographic data of an astronomical object, according to the other parameters
+list.bibsel= 	on|off 	display or not the number of bibliographic references in a list. The number is computed according to some other parameters
+bibyear1= 	year 	select references from this given year up (inclusive lower limit)
+bibyear2= 	year 	select references up to the given year (inclusive upper limit)
+bibjnls= 	list of journals 	select only the journals belonging to the comma separated list of journal abbreviations
+bibdisplay= 	display type 	For astronomical object full display, choose the kind of reference display. All these display take in account the restrictions imposed by bibyearN and bibjnls.
+bibnum 	number of references (imposed in a list)
+bibnumauthors 	number of references grouped by first author
+bibnumyears 	number of references grouped by year
+bibnumjournals 	number of references grouped by journal
+bibcode 	display only the bibcodes
+refsum 	display the reference summary (authors, title, ...)
+bibcom= 	on|off 	display or not the comments when the reference summary is displayed
+bibtabular= 	on|off 	if on, the main reference data are displayed in a tabular format
+
+7.13  Measurements
+
+In a list, only the number of measurements for a specified list of catalogs can be displayed. The display in an astronomical object depends on the mesdisp parameter.
+
+name 	values 	description
+obj.messel= 	on|off 	display or not the measurements of an astronomical object. The display is done according to the mesdisplay parameter
+list.messel= 	on|off 	display or not the number of measurements in a list. The catalogs for which the number of measurements is displayed are defined in the list.mescat parameter.
+mesdisplay= 	N|A|M|F 	display option: N = number of measurements, A = all measurements, F = first measurement, M = mean value (when it exists)
+list.mescat= 	list of meas. catalogs 	list of measurements catalogs to display. in a list, only the number of measurements for these catalogs will be displayed
+
+7.14  Notes
+
+In a list, only the number of notes can be displayed.
+
+name 	values 	description
+obj.notesel= 	on|off 	display or not the notes of an astronomical object
+list.notesel= 	on|off 	display or not the number of notes in a list
+notedisplay= 	N|S|A 	display option: N = number of notes (imposed in a list), S = only essential (short) notes (default for objects), A = all notes
+
+Simbad Help   ⋅   Top   ⋅   Previous   ⋅   Next
+
+Last realease of this documentation : 2026-03-09
