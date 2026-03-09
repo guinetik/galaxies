@@ -189,6 +189,7 @@
     },
     "galaxy": {
       "dataButton": "Dados",
+      "photoButton": "Foto",
       "size": "Tamanho",
       "sizeObserved": "observado",
       "sizeMass": "est. pela massa",
@@ -230,6 +231,15 @@
         "log_ms_t": { "label": "Massa Estelar", "desc": "Massa estelar total (log M☉)" },
         "diameter_kpc": { "label": "Diâmetro", "desc": "Diâmetro físico em quiloparsecs" },
         "size_method": { "label": "Método de Tamanho", "desc": "Como o tamanho físico foi determinado" }
+      }
+    },
+    "galaxyPhoto": {
+      "title": "Cor Real NSA",
+      "notAvailable": "Dados de imagem NSA não disponíveis para esta galáxia.",
+      "bands": "Bandas Espectrais",
+      "params": {
+        "q": "Contraste (Q)",
+        "alpha": "Brilho (α)"
       }
     },
     "map": {
