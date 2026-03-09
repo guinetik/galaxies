@@ -9,6 +9,7 @@ export class NSACompositeScene {
   private camera: THREE.OrthographicCamera
   private material: THREE.ShaderMaterial | null = null
   private mesh: THREE.Mesh | null = null
+  private textures: THREE.Texture[] = []
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({
@@ -31,8 +32,11 @@ export class NSACompositeScene {
       loader.loadAsync(`${base}g.webp`),
     ])
 
+    // Store textures for later disposal
+    this.textures = [texI, texR, texG]
+
     // Ensure textures are not filtered (nearest for raw data)
-    ;[texI, texR, texG].forEach((tex) => {
+    this.textures.forEach((tex) => {
       tex.minFilter = THREE.LinearFilter
       tex.magFilter = THREE.LinearFilter
       tex.wrapS = THREE.ClampToEdgeWrapping
@@ -81,6 +85,10 @@ export class NSACompositeScene {
   }
 
   dispose(): void {
+    // Dispose textures
+    this.textures.forEach((tex) => tex.dispose())
+    this.textures = []
+
     if (this.material) {
       this.material.dispose()
     }

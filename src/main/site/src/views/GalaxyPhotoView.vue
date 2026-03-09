@@ -104,6 +104,7 @@ const scene = ref<NSACompositeScene | null>(null)
 const paramQ = ref(8.0)
 const paramAlpha = ref(0.02)
 const lightboxBand = ref<string | null>(null)
+const resizeObserver = ref<ResizeObserver | null>(null)
 const allBands = ['u', 'g', 'r', 'i', 'z']
 
 function goBack() {
@@ -145,19 +146,20 @@ onMounted(async () => {
     await scene.value.load(pgc, metadata.value)
 
     // Handle canvas resize
-    const resizeObserver = new ResizeObserver(() => {
+    resizeObserver.value = new ResizeObserver(() => {
       if (scene.value && canvasEl.value) {
         const rect = canvasEl.value.parentElement!.getBoundingClientRect()
         scene.value.resize(rect.width, rect.height)
       }
     })
-    resizeObserver.observe(canvasEl.value.parentElement!)
+    resizeObserver.value.observe(canvasEl.value.parentElement!)
   }
 
   loading.value = false
 })
 
 onBeforeUnmount(() => {
+  resizeObserver.value?.disconnect()
   if (scene.value) {
     scene.value.dispose()
   }
