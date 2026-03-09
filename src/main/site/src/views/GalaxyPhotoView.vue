@@ -259,10 +259,7 @@
       <div
         v-if="simbadTooltip.visible"
         class="simbad-tooltip"
-        :style="{
-          left: simbadTooltip.x + 'px',
-          top: (simbadTooltip.y - 20) + 'px',
-        }"
+        :style="simbadTooltipStyle"
       >
         <div class="tooltip-arrow"></div>
         <div class="tooltip-content">
@@ -363,6 +360,18 @@ const lightboxStyle = computed(() => {
   const base = `brightness(${lbBrightness.value}%) contrast(${lbContrast.value}%)`
   const effect = lbFilter.value !== 'none' ? lbFilter.value : ''
   return { filter: `${base} ${effect}` }
+})
+
+const simbadTooltipStyle = computed(() => {
+  const tooltipHeight = 120 // Rough estimate, can be refined
+  const margin = 16
+  const x = simbadTooltip.value.x
+  const y = simbadTooltip.value.y - tooltipHeight - margin
+
+  return {
+    left: x + 'px',
+    top: Math.max(60, y) + 'px', // Don't go above header
+  }
 })
 
 function goBack() {
