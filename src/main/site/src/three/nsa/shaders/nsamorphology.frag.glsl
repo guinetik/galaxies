@@ -122,7 +122,10 @@ void main() {
     0.0, 1.0
   );
 
-  // Noise floor: fade out sub-signal points so background noise doesn't accumulate
+  // Noise floor: fade out sub-signal points so background noise doesn't accumulate.
+  // Lower edge (0.04) ~= 13x the CPU pre-filter threshold (0.003), chosen to absorb
+  // sampling noise at the edge of detectability. Upper edge (0.12) is the empirical
+  // "signal present" knee. Both values assume sqrt-stretched input intensities.
   float signal = smoothstep(0.04, 0.12, vIntensity);
   alpha *= signal;
 
