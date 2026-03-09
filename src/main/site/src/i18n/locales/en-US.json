@@ -147,6 +147,7 @@
     },
     "galaxy": {
       "dataButton": "Data",
+      "photoButton": "Photo",
       "size": "Size",
       "sizeObserved": "observed",
       "sizeMass": "est. from mass",
@@ -188,6 +189,15 @@
         "log_ms_t": { "label": "Stellar Mass", "desc": "Total stellar mass (log M☉)" },
         "diameter_kpc": { "label": "Diameter", "desc": "Physical diameter in kiloparsecs" },
         "size_method": { "label": "Size Method", "desc": "How the physical size was determined" }
+      }
+    },
+    "galaxyPhoto": {
+      "title": "NSA True Color",
+      "notAvailable": "No NSA imaging data available for this galaxy.",
+      "bands": "Spectral Bands",
+      "params": {
+        "q": "Contrast (Q)",
+        "alpha": "Brightness (α)"
       }
     },
     "map": {
