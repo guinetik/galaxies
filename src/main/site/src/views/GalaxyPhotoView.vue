@@ -53,6 +53,7 @@
               ref="canvasEl"
               class="composite-canvas"
               @wheel.prevent="onWheel"
+              @click="onCanvasClick"
               @pointerdown="onPointerDown"
               @pointermove="onPointerMove"
               @pointerup="onPointerUp"
@@ -260,6 +261,7 @@ import { ref, shallowRef, onMounted, onBeforeUnmount, nextTick, watch, computed 
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
+import { useSimbadLookup } from '@/composables/useSimbadLookup'
 import type { NSAMetadata } from '@/types/nsa'
 import { NSACompositeScene, type ShaderMode } from '@/three/nsa/NSACompositeScene'
 import type { Galaxy } from '@/types/galaxy'
@@ -268,6 +270,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { ready, getGalaxyByPgc } = useGalaxyData()
+const { loading: simbadLoading, results: simbadResults, query: simbadQuery, error: simbadError } = useSimbadLookup()
 
 const pgc = Number(route.params.pgc)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
@@ -442,8 +445,10 @@ function onPointerUp(e: PointerEvent) {
   
   if (pointers.size === 1) {
     const p = pointers.values().next().value
-    lastX.value = p.clientX
-    lastY.value = p.clientY
+    if (p) {
+      lastX.value = p.clientX
+      lastY.value = p.clientY
+    }
     isDragging.value = true
   } else {
     isDragging.value = false
@@ -495,6 +500,40 @@ function onCanvasMouseMove(e: MouseEvent) {
   lastCanvasX = e.clientX - rect.left
   lastCanvasY = e.clientY - rect.top
   updateCoordHud()
+}
+
+async function onCanvasClick(e: MouseEvent) {
+  if (!findObjectsMode.value || !canvasEl.value || !metadata.value || !scene.value) return
+
+  const rect = canvasEl.value.getBoundingClientRect()
+  const canvasX = e.clientX - rect.left
+  const canvasY = e.clientY - rect.top
+
+  // Get RA/Dec from canvas coordinates
+  const coords = scene.value.screenToRaDec(canvasX, canvasY, metadata.value)
+  if (!coords) return
+
+  // Show loading tooltip
+  simbadTooltip.value = {
+    visible: true,
+    x: e.clientX,
+    y: e.clientY,
+    objects: [],
+    error: undefined,
+  }
+
+  // Query SIMBAD
+  await simbadQuery(coords.ra, coords.dec, 30) // 30 arcsec radius
+
+  // Update tooltip with results
+  if (simbadError.value) {
+    simbadTooltip.value.error = simbadError.value
+  } else {
+    simbadTooltip.value.objects = simbadResults.value.map(obj => ({
+      name: obj.name,
+      type: obj.type,
+    }))
+  }
 }
 
 function onCanvasMouseLeave() {
