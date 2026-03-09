@@ -244,10 +244,13 @@
         "alpha": "Brilho (α)"
       },
       "info": {
-        "title": "Sobre Esta Imagem",
-        "methodology": "Esta imagem é gerada em tempo real a partir de dados FITS brutos usando o método descrito por Lupton et al. (2004). Combinamos três bandas espectrais (i, r, g) mapeadas para os canais Vermelho, Verde e Azul.",
-        "dataSource": "Os dados vêm do NASA-Sloan Atlas (NSA), um catálogo de galáxias do universo local derivado de imagens do Sloan Digital Sky Survey (SDSS).",
-        "shader": "A visualização usa um shader de fragmento WebGL personalizado implementando uma função de alongamento asinh. O parâmetro 'Q' controla o contraste (suavização), enquanto 'alpha' controla o alongamento linear (brilho). Isso nos permite visualizar estruturas fracas enquanto preservamos detalhes no núcleo brilhante."
+        "title": "Sobre Esta Visualização",
+        "dataSource": "Os dados vêm do NASA-Sloan Atlas (NSA), um catálogo de galáxias do universo local derivado de imagens do Sloan Digital Sky Survey (SDSS). Até seis bandas espectrais estão disponíveis: u (ultravioleta), g (verde), r (vermelho), i (infravermelho), z (infravermelho distante) e NUV (ultravioleta próximo).",
+        "lupton": "Composição Lupton et al. (2004). Três bandas espectrais são mapeadas para canais RGB usando uma função de alongamento asinh. Q controla a suavização de contraste, brilho controla o alongamento linear. Este método revela estruturas tênues enquanto preserva detalhes no núcleo brilhante.",
+        "custom": "Composição multi-banda personalizada. Todas as seis bandas espectrais contribuem para a imagem final através de mapeamento de intensidade por zonas. O comprimento de onda físico de cada banda determina a cor, criando diversidade espectral na estrutura da galáxia.",
+        "volumetric": "Renderização volumétrica trata as seis bandas espectrais como camadas de densidade, misturando-as com ruído procedural para produzir uma estética de nuvem de gás. Zonas de intensidade são suavemente transicionadas, dando à galáxia uma aparência orgânica e nebular.",
+        "nsa3d": "Nuvem de pontos 3D heurística. Cada pixel acima de um limiar de brilho se torna um ponto 3D, com profundidade atribuída por ruído determinístico e leve inclinação espectral (regiões UV quentes para frente, regiões infravermelhas empoeiradas para trás). As seis bandas espectrais determinam a cor de cada ponto baseado em seus comprimentos de onda físicos. Arraste para orbitar, role para ampliar.",
+        "nsamorphology": "Nuvem de morfologia por tensor de estrutura, baseada em Makarenko et al. (2014). Em vez de profundidade aleatória, a filamentaridade local do campo de intensidade determina a espessura em z: estruturas redondas (núcleo, nós de formação estelar) ganham profundidade volumétrica, enquanto estruturas filamentares (braços espirais, caudas de maré) se achatam em folhas finas. Camadas de profundidade são coloridas como nebulosas de emissão — diferentes posições z recebem diferentes matizes, e a mistura aditiva as combina conforme você orbita."
       }
     },
     "map": {
