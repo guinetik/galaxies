@@ -5,7 +5,7 @@ Usage:
   python nsa_image_etl.py --pgc 2557
 
 Output:
-  public/galaxy-img/[pgc]/u.webp, g.webp, r.webp, i.webp, z.webp
+  public/galaxy-img/[pgc]/u.webp, g.webp, r.webp, i.webp, z.webp, nuv.webp
   public/galaxy-img/[pgc]/metadata.json
 """
 
@@ -34,7 +34,7 @@ from catalog_lookup import get_nsa_galaxy_info
 
 # ─── Constants ─────────────────────────────────────────────────────────────
 
-BANDS = ["u", "g", "r", "i", "z"]
+BANDS = ["u", "g", "r", "i", "z", "nuv"]
 FITS_BASE_URL = "http://sdss.physics.nyu.edu/mblanton/v0/detect/v0_1"
 
 
@@ -74,8 +74,33 @@ def fetch_fits(ra: float, dec: float) -> Tuple[bytes, Dict]:
         raise RuntimeError(f"Failed to fetch {url}: {e}")
 
 
-def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
-    """Extract u, g, r, i, z bands from gzipped FITS parent image.
+def extract_pixel_scale(header) -> float:
+    """Derive pixel scale in arcseconds/pixel from a FITS header.
+
+    Checks CD matrix first, then falls back to CDELT keywords.
+
+    Args:
+        header: astropy FITS header object
+
+    Returns:
+        Pixel scale in arcseconds per pixel (always positive).
+        Defaults to 1.0 arcsec/px if no WCS keywords are found.
+    """
+    DEFAULT_SCALE = 1.0  # arcsec, conservative fallback for NSA v0
+
+    if "CD1_1" in header:
+        scale_deg = abs(header["CD1_1"])
+    elif "CDELT1" in header:
+        scale_deg = abs(header["CDELT1"])
+    else:
+        print(f"  Warning: No WCS pixel scale in header, defaulting to {DEFAULT_SCALE} arcsec/px")
+        return DEFAULT_SCALE
+
+    return scale_deg * 3600.0
+
+
+def extract_bands(fits_data: bytes) -> Tuple[Dict[str, np.ndarray], float]:
+    """Extract u, g, r, i, z, nuv bands from gzipped FITS parent image.
 
     NSA parent image structure (for parent images):
     - HDU 0: PRIMARY - u image
@@ -83,13 +108,13 @@ def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
     - HDU 2: r image
     - HDU 3: i image
     - HDU 4: z image
-    - HDU 5+: GALEX or other data
+    - HDU 5: nuv image (GALEX Near-UV)
 
     Args:
         fits_data: Gzipped FITS file content as bytes
 
     Returns:
-        Dict mapping band name (str) to numpy array (float32)
+        Tuple of (bands dict mapping name to float32 array, pixel_scale in arcsec/px)
 
     Raises:
         ValueError: If required band HDU is missing or empty
@@ -100,6 +125,9 @@ def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
 
     # Open FITS
     with fits.open(fits_buffer, memmap=False) as hdul:
+        pixel_scale = extract_pixel_scale(hdul[0].header)
+        print(f"  Pixel scale: {pixel_scale:.4f} arcsec/px")
+
         bands = {}
 
         # Extract image HDUs (sequential indices: 0, 1, 2, 3, 4)
@@ -115,7 +143,7 @@ def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
             # Convert to float32 for processing
             bands[band] = img_data.astype(np.float32)
 
-        return bands
+        return bands, pixel_scale
 
 
 def normalize_band(band_data: np.ndarray) -> np.ndarray:
@@ -162,7 +190,7 @@ def save_webp(band_data: np.ndarray, output_path: Path) -> None:
     print(f"Saved: {output_path}")
 
 
-def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float, float]], dimensions: Tuple[int, int], galaxy_info: Dict) -> None:
+def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float, float]], dimensions: Tuple[int, int], galaxy_info: Dict, pixel_scale: float) -> None:
     """Save metadata.json alongside WebP files.
 
     Args:
@@ -171,6 +199,7 @@ def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float
         band_ranges: Dict mapping band name to (min, max) data values
         dimensions: Tuple of (width, height)
         galaxy_info: Galaxy metadata dict from catalog_lookup
+        pixel_scale: Image pixel scale in arcseconds per pixel
 
     Raises:
         ValueError: If galaxy_info is missing required fields
@@ -185,6 +214,7 @@ def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float
         "nsaid": galaxy_info["nsaid"],
         "ra": galaxy_info["ra"],
         "dec": galaxy_info["dec"],
+        "pixel_scale": pixel_scale,
         "bands": BANDS,
         "dimensions": list(dimensions),
         "data_ranges": band_ranges,
@@ -223,9 +253,9 @@ def main():
         print(f"Fetching FITS data...")
         fits_data, galaxy_info = fetch_fits(ra, dec)
 
-        # Extract bands
+        # Extract bands and pixel scale from FITS header
         print(f"Extracting bands...")
-        bands = extract_bands(fits_data)
+        bands, pixel_scale = extract_bands(fits_data)
 
         # Create output directory
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -249,7 +279,7 @@ def main():
 
         # Save metadata
         print(f"Saving metadata...")
-        save_metadata(pgc, output_dir, band_ranges, (width, height), galaxy_info)
+        save_metadata(pgc, output_dir, band_ranges, (width, height), galaxy_info, pixel_scale)
 
         print(f"✓ Complete! Output: {output_dir}")
 
