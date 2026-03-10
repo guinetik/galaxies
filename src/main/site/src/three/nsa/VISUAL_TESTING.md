@@ -71,6 +71,14 @@ gl_FragColor = vec4(vec3(brightness), 1.0);       // Output white with depth mod
 
 Combined with shader depth dimming, creates clear volumetric visual.
 
+## NSA 3D Rendering Modes
+
+**nsa3d mode** includes two independent 3D visualizations:
+1. **Point Cloud** (nsa3d shader, point rendering) — Original implementation with drift animation
+2. **Density Meshes** (volumetric shells) — Phase 1 implementation with smooth layered surfaces
+
+Currently, density meshes are rendered. The point cloud remains in code for comparison/fallback.
+
 ### Opacity Distribution
 ✓ **Smooth opacity falloff**: `opacityCurve(brightness) = sqrt(brightness)` produces:
 - Layer 0: opacity ≈ 0.0 (dense core may start opaque via alpha scaling in material)
@@ -88,11 +96,15 @@ Combined with shader depth dimming, creates clear volumetric visual.
 
 ### If layers look too pixelated
 **Observation**: Sharp brightness boundaries between layers.
-**Diagnosis**: `layerCount` too low or `tolerance` too narrow.
-**Fix**: Increase `layerCount` to 20–25. This increases tolerance linearly:
-- tolerance = 255 / 20 / 2 = 6.375 (vs 8.5 at layerCount=15)
-- Actually _decreases_ tolerance, so **this won't help**. Instead, relax tolerance via opacityCurve or sample more pixels per layer.
-- **Better fix**: Increase `zDepthScale` to 1.5 to spread layers further apart, reducing visual overlap perception.
+
+**Parameter Relationship (Key Insight)**: The parameter relationships are inverse. Changing one layer affects all others. More layers means less tolerance per layer (tolerance = 255 / layerCount / 2), which actually _increases_ pixelation by forcing tighter brightness matching. Fewer matching pixels per layer can create more visible boundaries, not fewer.
+
+**Diagnosis**: This is a complex tradeoff; browser testing with the default `layerCount=15` is the most reliable approach.
+
+**Fix**: If pixelation occurs in browser testing:
+- **Best approach**: Increase `zDepthScale` to 1.5–2.0 to spread layers further apart along the Z-axis, which reduces the visual impact of brightness boundaries without changing tolerance.
+- **Alternative**: Adjust the `opacityCurve` exponent (e.g., from 0.5 to 0.3) for a gentler falloff that blurs layer transitions.
+- **Avoid**: Changing `layerCount` without browser testing, as it has unpredictable effects on visual appearance due to the inverse tolerance relationship.
 
 ### If layers look too banded (too few visible layers)
 **Observation**: Only 3–4 distinct shells visible; others blend together.
@@ -112,19 +124,33 @@ Combined with shader depth dimming, creates clear volumetric visual.
 - Too dark: Raise clamping min (0.2 → 0.3)
 - Or adjust falloff slope: `1.0 - (depth * 0.5)` can become `1.0 - (depth * 0.7)` for steeper falloff
 
-## Layer Distribution Example
+## Recommended Browser Testing
 
-For a typical galaxy with input brightness distribution:
-- 30% pixels in range [200–255] → Layers 12–14 (outer shell)
-- 40% pixels in range [100–199] → Layers 6–11 (mid shell)
-- 20% pixels in range [50–99] → Layers 3–5 (core transition)
-- 10% pixels in range [1–49] → Layers 0–2 (dense core)
+To visually verify once deployed:
 
-With layerCount=15, each layer targets ±8.5 bytes around target brightness:
-- All pixels in [192–210] → Layer 13 (brightness=0.867, z=-0.867)
-- All pixels in [109–127] → Layer 7 (brightness=0.467, z=-0.467)
+1. **Navigate to a galaxy detail view** (`/g/:pgc`)
+2. **Navigate to NSA photo page** → Click "3D" button in mode selector
+   - This activates nsa3d mode (which now displays density meshes)
+   - Meshes should be visible as white shells with depth-based dimming
+3. **Observe**:
+   - Dense bright core near center
+   - Gradual transition to faint halo
+   - Smooth (non-pixelated) shell boundaries
+   - Clear depth perception when rotating with mouse drag
+4. **Compare galaxies**:
+   - High surface brightness (M87, M31): Tight compact shells
+   - Extended galaxies (NGC 4656): Loose dispersed shells
+5. **Adjust sliders** (Q, alpha):
+   - Should not affect volumetric shell visual (reserved for 2D composite modes)
+   - Verify 3D mode ignores these parameters
 
-## Performance Notes
+## Performance
+
+Current configuration (15 layers, additive blending) has not been profiled.
+
+**Estimated impact**: Negligible on modern GPUs (likely >60 FPS).
+
+**Caveats**: Untested on mobile or low-end GPUs. Profile before deployment if performance is critical.
 
 ### Memory Footprint
 - 15 layers × ~1024–2048 vertices per layer (depends on galaxy morphology)
@@ -137,7 +163,12 @@ With layerCount=15, each layer targets ±8.5 bytes around target brightness:
 - Vertex shader is trivial (matrix multiply)
 - Fragment shader is trivial (clamp + output)
 
-**Estimate**: Negligible impact on frame rate (likely >60 FPS on modern GPUs).
+## Known Limitations
+
+- **Monochrome rendering**: Meshes render as white only; no color mapping from Lupton asinh stretch (planned for Phase 2)
+- **Static lighting**: Shader brightness is depth-based only; no proper Phong/PBR lighting
+- **No interactive adjustment**: layerCount and zDepthScale are compile-time constants; no per-galaxy UI sliders
+- **Unverified on low-end hardware**: Performance untested on mobile devices and older GPUs
 
 ## Verification Checklist
 
@@ -151,25 +182,7 @@ With layerCount=15, each layer targets ±8.5 bytes around target brightness:
 - [x] Additive composition allows layered transparency
 - [x] No obvious bugs in DensityMeshGenerator or NSACompositeScene
 
-## Recommended Browser Testing
-
-To visually verify once deployed:
-
-1. **Navigate to NSA photo view** (`/g/:pgc`)
-2. **Select nsa3d mode** (volumetric shells)
-3. **Observe**:
-   - Dense bright core near center
-   - Gradual transition to faint halo
-   - Smooth (non-pixelated) shell boundaries
-   - Clear depth perception when rotating with mouse drag
-4. **Compare galaxies**:
-   - High surface brightness (M87, M31): Tight compact shells
-   - Extended galaxies (NGC 4656): Loose dispersed shells
-5. **Adjust sliders** (Q, alpha):
-   - Should not affect volumetric shell visual (reserved for 2D composite modes)
-   - Verify 3D mode ignores these parameters
-
-## Future Refinements (Phase 2)
+## Future Enhancements (Phase 2)
 
 - **Add color mapping**: Use Lupton asinh stretch to assign RGB per-layer instead of monochrome white
 - **Implement proper lighting**: Replace shader brightness with Phong/PBR lighting model
