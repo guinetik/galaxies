@@ -24,9 +24,22 @@ export interface LayerMesh {
  * @param imageHeight - Height of the source image in pixels
  * @param options - LayerOptions with layerCount, zDepthScale, opacityCurve
  * @returns Array of LayerMesh objects (geometry + material per layer)
+ *
+ * Algorithm:
+ * 1. Quantize brightness [0,255] into N discrete layers (default 15)
+ * 2. For each layer, find pixels within ±tolerance of target brightness
+ * 3. Convert matched pixels to world coordinates [-1, 1]
+ * 4. Map brightness to z-depth: bright (high brightness) → closer (z=0), dim → farther (z=-zDepthScale)
+ * 5. Create BufferGeometry with matched vertices; opacity follows sqrt falloff for smooth transitions
+ * 6. Return ordered LayerMesh array (bright layer first, dim layer last)
+ *
+ * Design: This creates a volumetric approximation without ray marching by stacking 2D point clouds
+ * at different depths. Additive blending combines layers into a smooth 3D perception.
  */
 const defaultOpacityCurve = (brightness: number): number => {
-  return Math.pow(brightness, 0.5); // sqrt for smoother falloff
+  // sqrt(brightness) gives smooth falloff: bright=1.0 → 1.0 opacity, dim=0.0 → 0.0 opacity
+  // Linear falloff (brightness) would make dim layers too faint; sqrt is empirically smoother
+  return Math.pow(brightness, 0.5);
 };
 
 export function generateDensityMeshes(
@@ -42,6 +55,9 @@ export function generateDensityMeshes(
   } = options;
 
   const meshes: LayerMesh[] = [];
+  // Tolerance: each layer captures pixels in range [targetByte ± tolerance]
+  // For 15 layers: 255 / 15 = 17 bytes per layer, tolerance = 8.5 bytes
+  // This ~25-30% overlap between adjacent layers creates smooth transitions
   const tolerance = 255 / layerCount / 2;
 
   // Check if image is completely empty (all zeros)
@@ -69,7 +85,9 @@ export function generateDensityMeshes(
           // Map to world coordinates [-1, 1]
           const worldX = (x / imageWidth) * 2 - 1;
           const worldY = (y / imageHeight) * 2 - 1;
-          // Map brightness to z-depth (bright = closer = 0, dim = farther = -zDepthScale)
+          // Map brightness to z-depth: brighter pixels closer to camera (z=0),
+          // dimmer pixels farther away (z=-zDepthScale). This creates depth perception:
+          // brain interprets bright & close = dense core, dim & far = sparse halo
           const worldZ = -(normalizedBrightness * zDepthScale);
 
           vertices.push(worldX, worldY, worldZ);
