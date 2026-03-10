@@ -193,7 +193,9 @@
     },
     "galaxyPhoto": {
       "title": "NSA True Color",
+      "tuneImage": "Tune image",
       "back": "Back to Galaxy",
+      "shuffleAnother": "Shuffle Another Galaxy",
       "notAvailable": "No NSA imaging data available for this galaxy.",
       "bands": "Spectral Bands",
       "params": {

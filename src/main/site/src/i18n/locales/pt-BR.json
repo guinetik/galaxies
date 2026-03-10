@@ -235,7 +235,9 @@
     },
     "galaxyPhoto": {
       "title": "Cor Real NSA",
+      "tuneImage": "Ajustar imagem",
       "back": "Voltar para Galáxia",
+      "shuffleAnother": "Outra Galáxia Aleatória",
       "notAvailable": "Dados de imagem NSA não disponíveis para esta galáxia.",
       "bands": "Bandas Espectrais",
       "params": {

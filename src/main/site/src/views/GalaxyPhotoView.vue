@@ -4,9 +4,18 @@
       <!-- Hero Section -->
       <section class="photo-hero">
         <div class="hero-content">
-          <button class="back-link" @click="goBack">
-            <span>&larr;</span> {{ t('pages.galaxyPhoto.back') || 'Back to Galaxy' }}
-          </button>
+          <div class="hero-links">
+            <button class="back-link" @click="goBack">
+              <span>&larr;</span> {{ t('pages.galaxyPhoto.back') || 'Back to Galaxy' }}
+            </button>
+            <button
+              class="shuffle-link"
+              :disabled="shuffleLoading"
+              @click="shuffleToAnotherGalaxy"
+            >
+              {{ shuffleLoading ? '…' : '↻' }} {{ t('pages.galaxyPhoto.shuffleAnother') }}
+            </button>
+          </div>
           <h1 class="photo-hero-title">
             <span class="title-accent">PGC</span> {{ galaxy?.pgc || pgc }}
           </h1>
@@ -101,110 +110,124 @@
               &nbsp;
               <span class="coord-label">Dec</span> {{ formatDec(cursorDec!) }}
             </div>
-          </div>
-        </div>
 
-        <!-- Controls Sidebar -->
-        <div class="sidebar-stack">
-          <!-- Parameters Card -->
-          <div class="glass-card controls-card">
-            <div class="card-header">
-              <h2 class="card-title">{{ t('pages.galaxyPhoto.params.title') || 'Rendering Parameters' }}</h2>
-              <button class="best-fit-btn" @click="resetToAutoParams" title="Reset to auto-calibrated values">
-                Best Fit
+            <!-- Tune image toggle -->
+            <div class="params-overlay">
+              <button
+                class="params-toggle"
+                @click="paramsOverlayOpen = !paramsOverlayOpen"
+                :aria-expanded="paramsOverlayOpen"
+                :aria-label="t('pages.galaxyPhoto.tuneImage')"
+              >
+                {{ t('pages.galaxyPhoto.tuneImage') }}
               </button>
             </div>
-            
-            <div class="control-group">
-              <label>Spectral Theme</label>
-              <div class="theme-toggle">
-                <button
-                  v-for="th in [
-                    { id: 'grayscale', label: 'Grayscale' },
-                    { id: 'infra', label: 'Infrared' },
-                    { id: 'astral', label: 'Astral' },
-                  ]"
-                  :key="th.id"
-                  :class="['theme-btn', { active: theme === th.id }]"
-                  @click="theme = th.id as any"
-                >
-                  {{ th.label }}
-                </button>
-              </div>
-            </div>
 
-            <div v-if="shaderMode !== 'composite'" class="control-group">
-              <div class="label-row">
-                <label>{{ t('pages.galaxyPhoto.params.q') }} (Stretch)</label>
-                <span class="param-value">{{ paramQ.toFixed(1) }}</span>
-              </div>
-              <input
-                v-model.number="paramQ"
-                type="range"
-                min="1"
-                max="100"
-                step="0.5"
-                class="custom-range"
-                @input="onParamChange"
-              />
-            </div>
-
-            <div class="control-group">
-              <div class="label-row">
-                <label>{{ t('pages.galaxyPhoto.params.alpha') }} (Brightness)</label>
-                <span class="param-value">{{ paramAlpha.toFixed(4) }}</span>
-              </div>
-              <input
-                v-model.number="paramAlpha"
-                type="range"
-                min="0.001"
-                max="10.0"
-                step="0.001"
-                class="custom-range"
-                @input="onParamChange"
-              />
-            </div>
-
-            <div class="control-group">
-              <div class="label-row">
-                <label>Sensitivity</label>
-                <span class="param-value">{{ paramSensitivity.toFixed(2) }}</span>
-              </div>
-              <input
-                v-model.number="paramSensitivity"
-                type="range"
-                min="0.01"
-                max="1.0"
-                step="0.01"
-                class="custom-range"
-                @input="onParamChange"
-              />
-            </div>
-          </div>
-
-          <!-- Bands Card -->
-          <div class="glass-card bands-card">
-            <div class="card-header">
-              <h2 class="card-title">{{ t('pages.galaxyPhoto.bands') }}</h2>
-            </div>
-            <div class="bands-grid">
-              <div
-                v-for="band in allBands"
-                :key="band"
-                class="band-item"
-                @click="openLightbox(band)"
-              >
-                <div class="band-img-wrap">
-                  <img :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${band}.webp`" :alt="`${band}-band`" loading="lazy" crossorigin="anonymous" />
-                  <div class="band-overlay">
-                    <span class="zoom-icon">⤢</span>
+            <!-- Tune Image Drawer (inside canvas) -->
+            <Transition name="drawer">
+              <div v-if="paramsOverlayOpen" class="tune-drawer">
+                <div class="tune-drawer-content">
+                  <div class="tune-drawer-header">
+                    <h2 class="tune-drawer-title">{{ t('pages.galaxyPhoto.params.title') || 'Rendering Parameters' }}</h2>
+                    <button class="tune-drawer-close" @click="paramsOverlayOpen = false" aria-label="Close">
+                      ×
+                    </button>
+                  </div>
+                  <div class="tune-drawer-body">
+                    <button class="best-fit-btn tune-best-fit" @click="resetToAutoParams" title="Reset to auto-calibrated values">
+                      Best Fit
+                    </button>
+                    <div class="control-group">
+                      <label>Spectral Theme</label>
+                      <div class="theme-toggle">
+                        <button
+                          v-for="th in [
+                            { id: 'grayscale', label: 'Grayscale' },
+                            { id: 'infra', label: 'Infrared' },
+                            { id: 'astral', label: 'Astral' },
+                          ]"
+                          :key="th.id"
+                          :class="['theme-btn', { active: theme === th.id }]"
+                          @click="theme = th.id as any"
+                        >
+                          {{ th.label }}
+                        </button>
+                      </div>
+                    </div>
+                    <div v-if="shaderMode !== 'composite'" class="control-group">
+                      <div class="label-row">
+                        <label>{{ t('pages.galaxyPhoto.params.q') }} (Stretch)</label>
+                        <span class="param-value">{{ paramQ.toFixed(1) }}</span>
+                      </div>
+                      <input
+                        v-model.number="paramQ"
+                        type="range"
+                        min="1"
+                        max="100"
+                        step="0.5"
+                        class="custom-range"
+                        @input="onParamChange"
+                      />
+                    </div>
+                    <div class="control-group">
+                      <div class="label-row">
+                        <label>{{ t('pages.galaxyPhoto.params.alpha') }} (Brightness)</label>
+                        <span class="param-value">{{ paramAlpha.toFixed(4) }}</span>
+                      </div>
+                      <input
+                        v-model.number="paramAlpha"
+                        type="range"
+                        min="0.001"
+                        max="10.0"
+                        step="0.001"
+                        class="custom-range"
+                        @input="onParamChange"
+                      />
+                    </div>
+                    <div class="control-group">
+                      <div class="label-row">
+                        <label>Sensitivity</label>
+                        <span class="param-value">{{ paramSensitivity.toFixed(2) }}</span>
+                      </div>
+                      <input
+                        v-model.number="paramSensitivity"
+                        type="range"
+                        min="0.01"
+                        max="1.0"
+                        step="0.01"
+                        class="custom-range"
+                        @input="onParamChange"
+                      />
+                    </div>
                   </div>
                 </div>
-                <span class="band-badge">{{ band }}</span>
               </div>
-            </div>
+            </Transition>
           </div>
         </div>
+
+        <!-- Spectral Bands (6 columns below canvas) -->
+        <section class="glass-card bands-card">
+          <div class="card-header">
+            <h2 class="card-title">{{ t('pages.galaxyPhoto.bands') }}</h2>
+          </div>
+          <div class="bands-grid">
+            <div
+              v-for="band in allBands"
+              :key="band"
+              class="band-item"
+              @click="openLightbox(band)"
+            >
+              <div class="band-img-wrap">
+                <img :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${band}.png`" :alt="`${band}-band`" loading="lazy" crossorigin="anonymous" />
+                <div class="band-overlay">
+                  <span class="zoom-icon">⤢</span>
+                </div>
+              </div>
+              <span class="band-badge">{{ band }}</span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -231,7 +254,7 @@
               <img
                 v-else
                 class="lightbox-image"
-                :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${lightboxBand}.webp`"
+                :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${lightboxBand}.png`"
                 :alt="`${lightboxBand}-band`"
                 :style="lightboxStyle"
                 crossorigin="anonymous"
@@ -360,7 +383,7 @@ import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { ready, getGalaxyByPgc } = useGalaxyData()
+const { ready, getGalaxyByPgc, getRandomGalaxies } = useGalaxyData()
 const { loading: simbadLoading, results: simbadResults, query: simbadQuery, error: simbadError } = useSimbadLookup()
 
 // Filter SIMBAD results: stars/galaxies if available, otherwise up to 5 other types
@@ -372,7 +395,7 @@ const filteredSimbadResults = computed(() => {
   return simbadResults.value.slice(0, 5)
 })
 
-const pgc = Number(route.params.pgc)
+const pgc = computed(() => Number(route.params.pgc))
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const galaxy = ref<Galaxy | null>(null)
 const metadata = ref<NSAMetadata | null>(null)
@@ -389,6 +412,8 @@ const theme = ref<'grayscale' | 'infra' | 'astral'>('astral')
 const shaderMode = ref<ShaderMode>('lupton')
 const isNsa3dMode = computed(() => shaderMode.value === 'nsa3d' || shaderMode.value === 'nsamorphology')
 const showInfo = ref(false)
+const paramsOverlayOpen = ref(false)
+const shuffleLoading = ref(false)
 const findObjectsMode = ref(false)
 const simbadTooltip = ref<{
   visible: boolean
@@ -478,7 +503,41 @@ function resetToAutoParams() {
 }
 
 function goBack() {
-  router.push(`/g/${pgc}`)
+  router.push(`/g/${pgc.value}`)
+}
+
+/**
+ * Checks if a galaxy has NSA photo data by fetching metadata.json.
+ */
+async function hasPhotoData(pgcNum: number): Promise<boolean> {
+  try {
+    const response = await fetch(`${GALAXY_IMG_BASE_URL}/${pgcNum}/metadata.json`)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Shuffles to a random galaxy that has photo data. Excludes current galaxy.
+ * Keeps trying until one is found (up to 100 attempts).
+ */
+async function shuffleToAnotherGalaxy() {
+  if (shuffleLoading.value) return
+  shuffleLoading.value = true
+  const maxAttempts = 100
+  for (let i = 0; i < maxAttempts; i++) {
+    const batch = getRandomGalaxies(20)
+    const candidates = batch.filter((g) => g.pgc !== pgc.value)
+    for (const g of candidates) {
+      if (await hasPhotoData(g.pgc)) {
+        router.push(`/g/${g.pgc}/photo`)
+        shuffleLoading.value = false
+        return
+      }
+    }
+  }
+  shuffleLoading.value = false
 }
 
 function onParamChange() {
@@ -666,7 +725,7 @@ async function toggleStf() {
     const band = lightboxBand.value
     let imageData = stfCache.get(band)
     if (!imageData) {
-      const url = `${GALAXY_IMG_BASE_URL}/${pgc}/${band}.webp`
+      const url = `${GALAXY_IMG_BASE_URL}/${pgc.value}/${band}.png`
       imageData = await stretchImage(url)
       stfCache.set(band, imageData)
     }
@@ -926,64 +985,71 @@ function onCanvasMouseLeave() {
   cursorDec.value = null
 }
 
-async function loadMetadata(): Promise<void> {
+async function loadMetadata(pgcNum: number): Promise<void> {
   try {
-    const response = await fetch(`${GALAXY_IMG_BASE_URL}/${pgc}/metadata.json`)
+    const response = await fetch(`${GALAXY_IMG_BASE_URL}/${pgcNum}/metadata.json`)
     if (response.ok) {
       metadata.value = await response.json()
+    } else {
+      metadata.value = null
     }
   } catch (error) {
     console.error('Failed to load NSA metadata:', error)
+    metadata.value = null
   }
 }
 
-onMounted(async () => {
-  await ready
-  galaxy.value = getGalaxyByPgc(pgc)
-  await loadMetadata()
+async function initGalaxy(pgcNum: number) {
+  loading.value = true
+  metadata.value = null
+  canvasReady.value = false
+  lightboxBand.value = null
+  stfCache.clear()
 
-  // Unblock rendering so canvas appears
+  // Cleanup previous scene
+  resizeObserver.value?.disconnect()
+  resizeObserver.value = null
+  if (scene.value) {
+    scene.value.dispose()
+    scene.value = null
+  }
+
+  await ready
+  galaxy.value = getGalaxyByPgc(pgcNum)
+  await loadMetadata(pgcNum)
+
   loading.value = false
 
-  // Wait for DOM to render canvas element (refs can need multiple ticks)
   for (let i = 0; i < 3; i++) {
     await nextTick()
     if (canvasEl.value) break
   }
 
   if (metadata.value && canvasEl.value) {
-    // Ensure canvas parent element has size before creating scene
     await new Promise(resolve => setTimeout(resolve, 0))
 
     try {
       scene.value = new NSACompositeScene(canvasEl.value)
-      await scene.value.load(pgc, metadata.value)
+      await scene.value.load(pgcNum, metadata.value)
       canvasReady.value = true
 
-      // Apply initial shader parameters
       scene.value.setParams(paramQ.value, paramAlpha.value, paramSensitivity.value)
       scene.value.setTheme(theme.value)
-      // Apply auto-calibrated params for the initial mode
       resetToAutoParams()
-      // Sync luptonDefaults to the calibrated initial values so the first
-      // mode switch away from lupton and back correctly restores auto params
       luptonDefaults.Q = paramQ.value
       luptonDefaults.alpha = paramAlpha.value
       luptonDefaults.sensitivity = paramSensitivity.value
 
-      // Handle canvas resize
       resizeObserver.value = new ResizeObserver(() => {
         if (scene.value && canvasEl.value) {
           const rect = canvasEl.value.parentElement!.getBoundingClientRect()
           scene.value.resize(rect.width, rect.height)
-          // Update canvas dimensions for crosshair overlay
           canvasWidth.value = rect.width
           canvasHeight.value = rect.height
         }
       })
       resizeObserver.value.observe(canvasEl.value.parentElement!)
 
-      // Initial canvas dimensions
       if (canvasEl.value.parentElement) {
         const rect = canvasEl.value.parentElement.getBoundingClientRect()
         canvasWidth.value = rect.width
@@ -994,7 +1060,23 @@ onMounted(async () => {
       canvasReady.value = true
     }
   }
+}
+
+onMounted(() => {
+  initGalaxy(pgc.value)
 })
+
+watch(
+  () => route.params.pgc,
+  (newPgc, oldPgc) => {
+    if (!oldPgc) return // Skip on initial mount (handled by onMounted)
+    const newNum = Number(newPgc)
+    const oldNum = Number(oldPgc)
+    if (newNum && newNum !== oldNum) {
+      initGalaxy(newNum)
+    }
+  }
+)
 
 onBeforeUnmount(() => {
   resizeObserver.value?.disconnect()
@@ -1008,25 +1090,38 @@ onBeforeUnmount(() => {
 .photo-scroll {
   position: fixed;
   inset: 0;
-  overflow-y: auto;
-  background: #050505; /* Deep dark background */
+  overflow: hidden;
+  background: #050505;
   z-index: 1;
 }
 
 .photo-page {
   width: 100%;
-  min-height: 100vh;
-  max-width: 80rem; /* Wider than text pages for the dashboard feel */
+  height: 100vh;
+  height: 100dvh;
   margin: 0 auto;
-  padding: calc(var(--header-height, 60px) + 2rem) 1.5rem 4rem;
+  padding: calc(var(--header-height, 52px) + 0.5rem) 1.5rem 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   position: relative;
   z-index: 10;
+  box-sizing: border-box;
 }
 
 /* ── Hero ── */
 .photo-hero {
-  margin-bottom: 3rem;
-  padding-top: 2rem;
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+  padding-top: 0;
+}
+
+.hero-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1.5rem;
 }
 
 .back-link {
@@ -1035,7 +1130,6 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
   color: rgba(34, 211, 238, 0.7);
   font-size: 0.875rem;
-  margin-bottom: 1.5rem;
   transition: color 0.2s;
   background: none;
   border: none;
@@ -1045,6 +1139,28 @@ onBeforeUnmount(() => {
 
 .back-link:hover {
   color: #22d3ee;
+}
+
+.shuffle-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(34, 211, 238, 0.7);
+  font-size: 0.875rem;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.shuffle-link:hover:not(:disabled) {
+  color: #22d3ee;
+}
+
+.shuffle-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .photo-hero-title {
@@ -1070,21 +1186,13 @@ onBeforeUnmount(() => {
 
 /* ── Layout Grid ── */
 .content-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-}
-
-@media (min-width: 1024px) {
-  .content-grid {
-    grid-template-columns: 1fr 320px;
-  }
-}
-
-.sidebar-stack {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 /* ── Glass Cards ── */
@@ -1141,13 +1249,19 @@ onBeforeUnmount(() => {
 
 /* ── Canvas Area ── */
 .canvas-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-height: 500px;
+  width: 100%;
 }
 
 .canvas-wrapper {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
   background: #000;
   border-radius: 0.5rem;
   overflow: hidden;
@@ -1212,6 +1326,122 @@ onBeforeUnmount(() => {
   color: #22d3ee;
   font-weight: 600;
   margin-right: 2px;
+}
+
+/* ── Params Overlay ── */
+.params-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.params-overlay > * {
+  pointer-events: auto;
+}
+
+.params-toggle {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.params-toggle:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Tune Image Drawer (inside canvas, full-height) ── */
+.tune-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 20;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+}
+
+.tune-drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: 1rem;
+  overflow-y: auto;
+}
+
+.tune-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.tune-drawer-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.tune-drawer-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tune-drawer-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.tune-drawer-body {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tune-best-fit {
+  margin-bottom: 1.5rem;
+  align-self: flex-start;
+}
+
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(100%);
 }
 
 .shader-select {
@@ -1314,21 +1544,67 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-/* ── Bands Grid ── */
+/* ── Bands Card (fixed height, images justify on width) ── */
+.bands-card {
+  flex-shrink: 0;
+  width: 100%;
+  height: 160px;
+}
+
+.bands-card .card-header {
+  margin-bottom: 0.5rem;
+}
+
 .bands-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+  height: 80px;
+}
+
+@media (max-width: 768px) {
+  .bands-card {
+    height: 240px;
+  }
+
+  .bands-grid {
+    flex-wrap: wrap;
+    height: 160px;
+  }
+
+  .band-item {
+    flex: 0 0 calc(33.333% - 0.35rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .bands-card {
+    height: 320px;
+  }
+
+  .bands-grid {
+    flex-wrap: wrap;
+    height: 240px;
+  }
+
+  .band-item {
+    flex: 0 0 calc(50% - 0.25rem);
+  }
 }
 
 .band-item {
+  flex: 1;
   position: relative;
   cursor: pointer;
-  group: band;
+  min-width: 0;
+  min-height: 0;
 }
 
 .band-img-wrap {
-  aspect-ratio: 1;
+  width: 100%;
+  height: 100%;
   border-radius: 0.5rem;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1345,7 +1621,7 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s;
-  filter: brightness(2.5) contrast(1.2);
+  filter: brightness(4) contrast(1.3);
 }
 
 .band-item:hover img {
@@ -1450,6 +1726,7 @@ onBeforeUnmount(() => {
 .lightbox-image-wrap {
   position: relative;
   width: auto;
+  min-width: 420px;
   height: auto;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 0.5rem;
@@ -1463,6 +1740,7 @@ onBeforeUnmount(() => {
 .lightbox-image {
   max-width: 90vw;
   max-height: 80vh;
+  min-width: 420px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -1488,6 +1766,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .lightbox-image-wrap,
+  .lightbox-image {
+    min-width: 280px;
+  }
+
   .lightbox-controls {
     flex-direction: column;
     height: auto;
@@ -1554,6 +1837,8 @@ onBeforeUnmount(() => {
 
 /* ── Status States ── */
 .status-container {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
