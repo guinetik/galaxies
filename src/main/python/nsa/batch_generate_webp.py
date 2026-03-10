@@ -1,11 +1,12 @@
 """
-Batch generate WebP images for all galaxies in galaxies_enriched.db
+Batch generate 16-bit PNG + WebP images for all galaxies in galaxies_enriched.db
 
 Usage:
   python batch_generate_webp.py [--db-path PATH] [--output-base PATH] [--start-at N]
 
 This script reads NSA metadata directly from enriched database (no catalog lookup),
-fetches FITS files, and generates WebP + metadata.json for all matched galaxies.
+fetches FITS files, and generates 16-bit PNGs + 8-bit WebPs + metadata.json for all
+matched galaxies.
 """
 
 import argparse
@@ -36,8 +37,8 @@ logger = logging.getLogger(__name__)
 # Constants
 BANDS = ["u", "g", "r", "i", "z"]
 FITS_BASE_URL = "http://sdss.physics.nyu.edu/mblanton/v0/detect/v0_1"
-DB_DEFAULT_PATH = "../../site/public/data/galaxies_enriched.db"
-OUTPUT_DEFAULT_BASE = "../../images"
+DB_DEFAULT_PATH = r"D:\Developer\galaxies\src\main\site\public\data\galaxies_enriched.db"
+OUTPUT_DEFAULT_BASE = r"D:\Developer\galaxies\src\main\images"
 
 # Thread-safe stats tracking
 stats_lock = Lock()
@@ -99,24 +100,23 @@ def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
         return bands
 
 
-def normalize_band(band_data: np.ndarray) -> np.ndarray:
-    """Normalize band data to uint8 [0, 255]."""
+def normalize_band_16bit(band_data: np.ndarray) -> np.ndarray:
+    """Normalize band data to uint16 [0, 65535]."""
     if band_data.max() == band_data.min():
-        return np.zeros_like(band_data, dtype=np.uint8)
+        return np.zeros_like(band_data, dtype=np.uint16)
 
     min_val = band_data.min()
     max_val = band_data.max()
     normalized = (band_data - min_val) / (max_val - min_val)
-    scaled = (normalized * 255).astype(np.uint8)
-
-    return scaled
+    return (normalized * 65535.0).astype(np.uint16)
 
 
-def save_webp(band_data: np.ndarray, output_path: Path) -> None:
-    """Convert numpy uint8 array to WebP and save."""
+def save_16bit_png(band_data: np.ndarray, output_path: Path) -> None:
+    """Normalize float32 band to 16-bit [0, 65535] and save as PNG."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.fromarray(band_data, mode="L")
-    img.save(output_path, format="WEBP", quality=85)
+    scaled = normalize_band_16bit(band_data)
+    img = Image.fromarray(scaled, mode="I;16")
+    img.save(output_path, format="PNG")
 
 
 def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float, float]],
@@ -180,9 +180,8 @@ def process_galaxy(pgc: int, ra: float, dec: float, nsa_iauname: str,
             # Record data range before normalization
             band_ranges[band_name] = (float(band_data.min()), float(band_data.max()))
 
-            # Normalize and save
-            normalized = normalize_band(band_data)
-            save_webp(normalized, output_dir / f"{band_name}.webp")
+            # 16-bit PNG (full dynamic range)
+            save_16bit_png(band_data, output_dir / f"{band_name}.png")
 
         # Save metadata
         save_metadata(pgc, output_dir, band_ranges, (width, height),

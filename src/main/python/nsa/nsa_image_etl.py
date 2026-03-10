@@ -259,7 +259,7 @@ def main():
     parser.add_argument("--ra", type=float, help="Right ascension (degrees)")
     parser.add_argument("--dec", type=float, help="Declination (degrees)")
     parser.add_argument("--fits-file", type=str, help="Local .fits.gz file (skips download)")
-    parser.add_argument("--output-base", default="src/main/site/public/galaxy-img", help="Output base dir")
+    parser.add_argument("--output-base", default=r"D:\Developer\galaxies\src\main\images", help="Output base dir")
 
     args = parser.parse_args()
     output_dir = Path(args.output_base) / str(args.pgc)
@@ -289,16 +289,17 @@ def main():
             print(f"Fetching FITS...")
             fits_data = fetch_fits(nsa_url)
 
-        # ── Step 2: Save raw FITS ──
+        # ── Step 2: Save raw FITS (disabled — large files, save separately if needed) ──
         output_dir.mkdir(parents=True, exist_ok=True)
-        fits_archive_path = output_dir / "parent.fits.gz"
-        with open(fits_archive_path, "wb") as f:
-            f.write(fits_data)
-        print(f"  Saved FITS archive: {fits_archive_path} ({len(fits_data) / (1024*1024):.1f} MB)")
+        # fits_archive_path = output_dir / "parent.fits.gz"
+        # with open(fits_archive_path, "wb") as f:
+        #     f.write(fits_data)
+        # print(f"  Saved FITS archive: {fits_archive_path} ({len(fits_data) / (1024*1024):.1f} MB)")
 
         # ── Step 3: Extract bands ──
         print("Extracting bands...")
-        bands, pixel_scale = extract_bands(fits_data, is_gzipped=(args.fits_file is None or fits_archive_path.suffix == ".gz"))
+        is_gzipped = args.fits_file is None or (args.fits_file and args.fits_file.endswith(".gz"))
+        bands, pixel_scale = extract_bands(fits_data, is_gzipped=is_gzipped)
 
         # ── Step 4: Generate images ──
         band_ranges = {}
@@ -316,9 +317,6 @@ def main():
 
             # 16-bit PNG (full dynamic range)
             save_16bit_png(band_data, output_dir / f"{band_name}.png")
-
-            # 8-bit WebP (preview/thumbnail)
-            save_webp(band_data, output_dir / f"{band_name}.webp")
 
         # ── Step 5: Save metadata ──
         if galaxy_info is None:
@@ -340,9 +338,7 @@ def main():
                       (width, height), galaxy_info, pixel_scale, nsa_url)
 
         print(f"\nComplete! Output: {output_dir}")
-        print(f"  FITS archive: parent.fits.gz")
         print(f"  16-bit PNGs:  {', '.join(b + '.png' for b in available_bands)}")
-        print(f"  WebP preview: {', '.join(b + '.webp' for b in available_bands)}")
 
     except Exception as e:
         print(f"\nError processing PGC {args.pgc}: {e}", file=sys.stderr)
