@@ -25,9 +25,9 @@ void main() {
   float gauss = exp(-r * r * 6.0);
 
   // Lupton-style asinh stretch for proper dynamic range
-  float boosted = pow(vIntensity, 0.45) * (0.4 + uAlpha * 0.6);
-  float stretch = safe_asinh(boosted * (1.0 + uQ * 0.1)) / max(1.0 + uQ * 0.1, 1.0);
-  stretch = max(stretch, 0.02);
+  float boosted = pow(vIntensity, 0.5) * (0.3 + uAlpha * 0.4);
+  float stretch = safe_asinh(boosted * (1.0 + uQ * 0.08)) / max(1.0 + uQ * 0.08, 1.0);
+  stretch = max(stretch, 0.04);
 
   float sensitivityBoost = mix(0.5, 1.3, uSensitivity);
 
@@ -59,10 +59,6 @@ void main() {
   // Alpha: gaussian falloff with intensity gating
   float alpha = gauss * stretch * sensitivityBoost * 1.5;
   alpha = clamp(alpha, 0.0, 1.0);
-
-  // Noise floor: fade sub-signal points
-  float signal = smoothstep(0.03, 0.10, vIntensity);
-  alpha *= signal;
 
   // Grayscale support
   float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));

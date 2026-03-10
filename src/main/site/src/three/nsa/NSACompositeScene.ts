@@ -69,7 +69,7 @@ export function computeLuptonBaseStretch(ranges: RangeLike[]): number {
  * stretch formula).
  */
 export function computeAutoParams(metadata: NSAMetadata, mode: ShaderMode): AutoParams {
-  if (mode === 'nsa3d') return { Q: 1.0, alpha: 0.05, sensitivity: 0.5 }
+  if (mode === 'nsa3d') return { Q: 5.0, alpha: 0.5, sensitivity: 1.0 }
   if (mode === 'nsamorphology') return { Q: 5.0, alpha: 0.503, sensitivity: 1.0 }
   if (mode === 'composite') return { Q: 1.0, alpha: 1.0, sensitivity: 1.0 }
 

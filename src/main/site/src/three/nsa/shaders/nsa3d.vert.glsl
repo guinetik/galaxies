@@ -27,12 +27,11 @@ void main() {
   // Large overlapping points create smooth continuous appearance
   // Intensity drives size: bright regions are larger, dim regions smaller
   float sensitivityBoost = mix(0.6, 1.5, uSensitivity);
-  float sizeBoost = 1.0 + uAlpha * 2.0;
-  float size = aSize * sizeBoost * sensitivityBoost;
+  float contrastBoost = 0.6 + log2(1.0 + uQ) * 0.25;
+  float size = aSize * (0.7 + uAlpha * 0.8) * contrastBoost * sensitivityBoost;
 
   // Points need to be large enough to overlap for smooth look
-  // Scale up by 2.5x compared to morphology shader
-  gl_PointSize = max(size * uPixelRatio * (5.0 / depth), 2.0);
+  gl_PointSize = max(size * uPixelRatio * (3.0 / depth), 2.0);
   gl_Position = projectionMatrix * mvPosition;
 
   vColor = color;
