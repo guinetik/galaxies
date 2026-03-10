@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { markRaw } from 'vue'
 import type { NSAMetadata } from '@/types/nsa'
+import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 import luptonVertShader from './shaders/lupton.vert.glsl?raw'
 import luptonFragShader from './shaders/lupton.frag.glsl?raw'
 import nsacustomVertShader from './shaders/nsacustom.vert.glsl?raw'
@@ -23,6 +24,11 @@ import {
   buildMorphologyPointCloud,
   getDefaultMorphologyOptions,
 } from './nsaMorphologyPointCloud'
+import {
+  generateDensityMeshes,
+  type LayerOptions,
+  type LayerMesh,
+} from './DensityMeshGenerator'
 
 export type ShaderMode = NsaShaderMode
 
@@ -73,6 +79,8 @@ export class NSACompositeScene {
   private mesh: THREE.Mesh | null = null
   private pointCloud: THREE.Points | null = null
   private morphCloud: THREE.Points | null = null
+  private densityMeshes: THREE.Mesh[] = []
+  private densityMaterials: THREE.Material[] = []
   private textures: THREE.Texture[] = []
   private animationId: number | null = null
   private bandData: BandData = {}
@@ -126,7 +134,7 @@ export class NSACompositeScene {
    */
   async load(pgc: number, metadata: NSAMetadata): Promise<void> {
     const loader = new THREE.TextureLoader()
-    const base = `/galaxy-img/${pgc}/`
+    const base = `${GALAXY_IMG_BASE_URL}/${pgc}/`
 
     const bandsToLoad = ['i', 'r', 'g']
     if (metadata.bands.includes('u')) bandsToLoad.push('u')
@@ -170,6 +178,9 @@ export class NSACompositeScene {
     this.morphCloud = markRaw(this.createMorphCloudObject(pgc))
     this.morphCloud.visible = false
     this.scene.add(this.morphCloud)
+
+    // Create layered density meshes
+    this.createDensityMeshes()
 
     this.resize(width, height)
     this.applyCurrentShaderMode()
@@ -418,6 +429,83 @@ export class NSACompositeScene {
   }
 
   /**
+   * Extracts raw RGBA image data from a texture for density mesh generation.
+   */
+  private extractImageData(bandName: string): { data: Uint8ClampedArray; width: number; height: number } {
+    const texture = this.bandData[bandName].tex
+    const image = texture.image as CanvasImageSource
+    const width = getImageWidth(image)
+    const height = getImageHeight(image)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) {
+      throw new Error(`Unable to create 2D context for band '${bandName}'`)
+    }
+
+    ctx.drawImage(image, 0, 0, width, height)
+    const imageData = ctx.getImageData(0, 0, width, height).data
+
+    return { data: imageData, width, height }
+  }
+
+  /**
+   * Generates and creates Three.js mesh objects from density layers.
+   */
+  private createDensityMeshes(): void {
+    // Clean up old density meshes
+    this.disposeDensityMeshes()
+
+    // Extract image data from 'i' band (primary source for density)
+    const { data: imageData, width, height } = this.extractImageData('i')
+
+    // Generate layered meshes
+    const layerOptions: LayerOptions = {
+      layerCount: 15,
+      zDepthScale: 1.0,
+    }
+
+    const meshLayers = generateDensityMeshes(imageData, width, height, layerOptions)
+
+    // Create Three.js Mesh objects for each layer
+    meshLayers.forEach((layer) => {
+      // Use a simple Phong material for now (will be upgraded to custom shader in Task 5)
+      const material = markRaw(new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        opacity: layer.opacity,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }))
+
+      const mesh = markRaw(new THREE.Mesh(layer.geometry, material))
+      mesh.position.z = layer.zDepth
+      this.scene.add(mesh)
+
+      this.densityMeshes.push(mesh)
+      this.densityMaterials.push(material)
+    })
+  }
+
+  /**
+   * Cleans up density mesh resources.
+   */
+  private disposeDensityMeshes(): void {
+    for (const mesh of this.densityMeshes) {
+      this.scene.remove(mesh)
+      if (mesh.geometry) {
+        mesh.geometry.dispose()
+      }
+    }
+    for (const material of this.densityMaterials) {
+      material.dispose()
+    }
+    this.densityMeshes = []
+    this.densityMaterials = []
+  }
+
+  /**
    * Applies the currently selected shader mode by toggling visibility, camera,
    * and shader programs for the plane or point-cloud path.
    */
@@ -434,6 +522,11 @@ export class NSACompositeScene {
     }
     if (this.morphCloud) {
       this.morphCloud.visible = this.currentShader === 'nsamorphology'
+    }
+
+    // Show density meshes for nsa3d mode (alternative 3D visualization)
+    for (const densityMesh of this.densityMeshes) {
+      densityMesh.visible = this.currentShader === 'nsa3d'
     }
 
     if (!usePointCloud && this.planeMaterial) {
@@ -806,6 +899,10 @@ export class NSACompositeScene {
     if (this.morphCloud?.geometry) {
       this.morphCloud.geometry.dispose()
     }
+
+    // Clean up density meshes
+    this.disposeDensityMeshes()
+
     this.renderer.dispose()
   }
 }
