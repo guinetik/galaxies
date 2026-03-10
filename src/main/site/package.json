@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@vueuse/head": "^2.0.0",
+    "aladin-lite": "^3.8.2",
     "d3": "^7.9.0",
     "sql.js": "^1.11.0",
     "three": "^0.183.0",
