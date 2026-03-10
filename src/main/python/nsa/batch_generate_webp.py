@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 BANDS = ["u", "g", "r", "i", "z"]
 FITS_BASE_URL = "http://sdss.physics.nyu.edu/mblanton/v0/detect/v0_1"
 DB_DEFAULT_PATH = "../../site/public/data/galaxies_enriched.db"
-OUTPUT_DEFAULT_BASE = "../../site/public/galaxy-img"
+OUTPUT_DEFAULT_BASE = "../../images"
 
 # Thread-safe stats tracking
 stats_lock = Lock()
