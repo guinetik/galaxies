@@ -1143,6 +1143,7 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s;
+  filter: brightness(2.5) contrast(1.2);
 }
 
 .band-item:hover img {

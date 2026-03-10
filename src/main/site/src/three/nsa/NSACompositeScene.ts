@@ -45,17 +45,7 @@ export function computeAutoParams(metadata: NSAMetadata, mode: ShaderMode): Auto
   if (mode === 'nsamorphology') return { Q: 5.0, alpha: 0.503, sensitivity: 1.0 }
 
   const Q = mode === 'custom' ? 20.0 : 10.0
-
-  const ranges = metadata.data_ranges
-  const bandKeys = Object.keys(ranges)
-  const avgSignalRange =
-    bandKeys.reduce((sum, k) => sum + (ranges[k][1] - ranges[k][0]), 0) / bandKeys.length
-
-  // Place the asinh knee at 30th-percentile signal: alpha * Q * I_typical ≈ 1
-  const I_typical = avgSignalRange * 0.3
-  const alpha = I_typical > 0 ? Math.min(10.0, Math.max(0.001, 1.0 / (Q * I_typical))) : 0.014
-
-  return { Q, alpha, sensitivity: 1.0 }
+  return { Q, alpha: 0.5, sensitivity: 1.0 }
 }
 
 const PLANE_SHADERS: Record<Exclude<ShaderMode, 'nsa3d'>, { vert: string; frag: string }> = {
@@ -91,7 +81,7 @@ export class NSACompositeScene {
   private width: number = 1
   private height: number = 1
   private clock = new THREE.Clock()
-  private autoParams: AutoParams = { Q: 10.0, alpha: 0.014, sensitivity: 1.0 }
+  private autoParams: AutoParams = { Q: 10.0, alpha: 0.5, sensitivity: 1.0 }
 
   // ── Smooth zoom/pan state ──
   private targetZoom: number = 1
