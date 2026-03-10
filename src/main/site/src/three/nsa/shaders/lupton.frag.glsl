@@ -11,6 +11,7 @@ uniform vec2 uRangeR;
 uniform vec2 uRangeG;
 uniform vec2 uRangeB;
 uniform float uGrayscale;
+uniform float uTheme;
 
 varying vec2 vUV;
 
@@ -44,10 +45,11 @@ void main() {
   float g_raw = clamp(texture2D(uBandG, vUV).r + dither, 0.0, 1.0);
   float b_raw = clamp(texture2D(uBandB, vUV).r + dither, 0.0, 1.0);
 
-  // Denormalize and subtract per-band minima, matching the Python reference.
-  float r = max(denorm(r_raw, uRangeR) - uRangeR.x, 0.0);
-  float g = max(denorm(g_raw, uRangeG) - uRangeG.x, 0.0);
-  float b = max(denorm(b_raw, uRangeB) - uRangeB.x, 0.0);
+  // Denormalize back to physical units (nanomaggies). Data is already
+  // sky-subtracted, so just clamp negative noise to zero.
+  float r = max(denorm(r_raw, uRangeR), 0.0);
+  float g = max(denorm(g_raw, uRangeG), 0.0);
+  float b = max(denorm(b_raw, uRangeB), 0.0);
 
   // Mean intensity: I = (r + g + b) / 3  (Lupton et al. 2004, Eq. 2)
   float I = (r + g + b) / 3.0;
@@ -69,10 +71,25 @@ void main() {
   G /= maxRGB;
   B /= maxRGB;
 
+  // Noise gate: suppress sky noise below signal threshold.
+  // Threshold scales with data range so it adapts per galaxy.
+  float rangeScale = (uRangeR.y - uRangeR.x + uRangeG.y - uRangeG.x + uRangeB.y - uRangeB.x) / 3.0;
+  float noiseFloor = rangeScale * 0.003;
+  float signal = smoothstep(0.0, noiseFloor, I);
+
+  // Theme color shift: infrared (0) = true color, astral (1) = cool blue remap
+  float lum = R * 0.2126 + G * 0.7152 + B * 0.0722;
+  vec3 coolColor = vec3(
+    lum * 0.25 + B * 0.15,
+    lum * 0.35 + G * 0.25,
+    lum * 0.7 + B * 0.5
+  );
+  vec3 trueColor = vec3(max(R, 0.0), max(G, 0.0), max(B, 0.0));
+
   // Mix color and grayscale (stretched intensity) output
-  vec3 colorOut = vec3(max(R, 0.0), max(G, 0.0), max(B, 0.0));
+  vec3 colorOut = mix(trueColor, coolColor, uTheme);
   vec3 grayOut = vec3(clamp(fI, 0.0, 1.0));
   float brightnessGain = max(uBrightness, 0.0) / 0.5;
-  vec3 outColor = mix(colorOut, grayOut, uGrayscale) * brightnessGain;
+  vec3 outColor = mix(colorOut, grayOut, uGrayscale) * brightnessGain * signal;
   gl_FragColor = vec4(clamp(outColor, 0.0, 1.0), 1.0);
 }

@@ -19,18 +19,9 @@ varying float vFilamentarity;
 varying float vMorphDepth;
 
 void main() {
+  // Flatten Z for thin disk appearance — preserve structural depth for color mapping
   vec3 displaced = aPosition;
-
-  // Gentle drift — filamentary regions drift less (they're thin sheets)
-  float driftScale = mix(0.015, 0.004, aFilamentarity);
-  float drift = sin(
-    uTime * 0.4 +
-    aPosition.x * 6.0 +
-    aPosition.y * 4.0 +
-    aPosition.z * 2.0
-  ) * driftScale * aIntensity;
-  vec3 driftDir = normalize(vec3(aPosition.xy + vec2(0.0001), 1.0));
-  displaced += driftDir * drift;
+  displaced.z *= 0.3;
 
   vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
   float camDepth = max(-mvPosition.z, 0.001);

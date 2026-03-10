@@ -79,22 +79,17 @@ export function buildMorphologyPointCloud(
     for (let col = 0; col < input.width; col += step) {
       const idx = row * input.width + col
 
-      // Sqrt stretch for dynamic range compression
-      const u = Math.sqrt(clamp01(input.bands.u[idx] ?? 0))
-      const g = Math.sqrt(clamp01(input.bands.g[idx] ?? 0))
-      const r = Math.sqrt(clamp01(input.bands.r[idx] ?? 0))
+      // i-band alone for intensity (highest SNR, per Makarenko et al. 2014)
       const i = Math.sqrt(clamp01(input.bands.i[idx] ?? 0))
-      const z = Math.sqrt(clamp01(input.bands.z[idx] ?? 0))
-      const nuv = Math.sqrt(clamp01(input.bands.nuv[idx] ?? 0))
 
-      const dust = (i + z) * 0.5
-      const stellar = (g + r) * 0.5
-      const hot = (u + nuv) * 0.5
-      const intensity = dust * 0.25 + stellar * 0.4 + hot * 0.35
-
-      if (intensity < options.intensityThreshold) {
+      if (i < options.intensityThreshold) {
         continue
       }
+
+      // Other bands only for color derivation
+      const g = Math.sqrt(clamp01(input.bands.g[idx] ?? 0))
+      const r = Math.sqrt(clamp01(input.bands.r[idx] ?? 0))
+      const z = Math.sqrt(clamp01(input.bands.z[idx] ?? 0))
 
       // ── Structure tensor analysis (Makarenko et al. 2014) ──
       const fx = Math.floor(col / step)
@@ -106,13 +101,12 @@ export function buildMorphologyPointCloud(
       // Filamentary (F≈1): thin sheet from attenuated noise → spiral arms, tails
       const noise = (hash3(col, row, options.seed) - 0.5) * 2.0
       const thickness = 1.0 / (1.0 + filam * 9.0)
-      const spectralTilt = (hot - dust) * 0.2
-      const depth = (noise * thickness + spectralTilt) * options.depthScale
+      const depth = noise * thickness * options.depthScale
 
       const px = input.width === 1 ? 0 : col / denomX - 0.5
       const py = input.height === 1 ? 0 : 0.5 - row / denomY
-      const size = lerp(minSize, maxSize, clamp01(intensity))
-      const color = deriveSpectralColor6(u, g, r, i, z, nuv)
+      const size = lerp(minSize, maxSize, clamp01(i))
+      const color = deriveSpectralColor6(0, g, r, i, z, 0)
 
       points.push({
         x: px,
@@ -120,7 +114,7 @@ export function buildMorphologyPointCloud(
         z: depth,
         color,
         size,
-        intensity,
+        intensity: i,
         filamentarity: filam,
       })
     }
@@ -151,17 +145,8 @@ export function buildIntensityField(
       const col = Math.min(fx * step, input.width - 1)
       const idx = row * input.width + col
 
-      const u = Math.sqrt(clamp01(input.bands.u[idx] ?? 0))
-      const g = Math.sqrt(clamp01(input.bands.g[idx] ?? 0))
-      const r = Math.sqrt(clamp01(input.bands.r[idx] ?? 0))
-      const i = Math.sqrt(clamp01(input.bands.i[idx] ?? 0))
-      const z = Math.sqrt(clamp01(input.bands.z[idx] ?? 0))
-      const nuv = Math.sqrt(clamp01(input.bands.nuv[idx] ?? 0))
-
-      const dust = (i + z) * 0.5
-      const stellar = (g + r) * 0.5
-      const hot = (u + nuv) * 0.5
-      field[fy * w + fx] = dust * 0.25 + stellar * 0.4 + hot * 0.35
+      // i-band only for structure tensor (highest SNR)
+      field[fy * w + fx] = Math.sqrt(clamp01(input.bands.i[idx] ?? 0))
     }
   }
 

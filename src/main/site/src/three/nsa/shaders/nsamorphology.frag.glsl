@@ -122,6 +122,10 @@ void main() {
     0.0, 1.0
   );
 
+  // Gentle noise gate: only suppress true background noise, preserve spiral arms
+  float signal = smoothstep(0.01, 0.05, vIntensity);
+  alpha *= signal;
+
   float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));
   gl_FragColor = vec4(mix(col, vec3(gray), uGrayscale), alpha);
 }

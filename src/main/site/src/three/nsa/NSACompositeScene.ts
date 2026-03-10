@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { markRaw } from 'vue'
+import { decode as decodePng } from 'fast-png'
 import type { NSAMetadata } from '@/types/nsa'
 import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 import luptonVertShader from './shaders/lupton.vert.glsl?raw'
@@ -85,7 +86,7 @@ const PLANE_SHADERS: Record<Exclude<ShaderMode, 'nsa3d'>, { vert: string; frag: 
   nsamorphology: { vert: morphVertShader, frag: morphFragShader },
 }
 
-type BandData = Record<string, { tex: THREE.Texture; range: THREE.Vector2 }>
+type BandData = Record<string, { tex: THREE.Texture; range: THREE.Vector2; raw?: Float32Array; width?: number; height?: number }>
 
 /**
  * Interactive renderer for NSA galaxy composites, supporting both flat
@@ -157,8 +158,6 @@ export class NSACompositeScene {
    * heuristic point-cloud representation used by the `nsa3d` mode.
    */
   async load(pgc: number, metadata: NSAMetadata): Promise<void> {
-    const loader = new THREE.TextureLoader()
-    loader.setCrossOrigin('anonymous')
     const base = `${GALAXY_IMG_BASE_URL}/${pgc}/`
 
     const bandsToLoad = ['i', 'r', 'g']
@@ -166,23 +165,67 @@ export class NSACompositeScene {
     if (metadata.bands.includes('z')) bandsToLoad.push('z')
     if (metadata.bands.includes('nuv')) bandsToLoad.push('nuv')
 
+    // Fetch raw PNG bytes and decode at full 16-bit depth
     const loaded = await Promise.all(
-      bandsToLoad.map(band => loader.loadAsync(`${base}${band}.webp`)),
+      bandsToLoad.map(async (band) => {
+        const response = await fetch(`${base}${band}.png`)
+        const buffer = await response.arrayBuffer()
+        const png = decodePng(new Uint8Array(buffer))
+
+        // Convert to Float32 [0,1] — handles both 8-bit and 16-bit PNGs
+        const maxVal = png.depth === 16 ? 65535 : 255
+        const floats = new Float32Array(png.width * png.height)
+        const src = png.data
+        const channels = png.channels
+        for (let i = 0; i < floats.length; i++) {
+          floats[i] = src[i * channels] / maxVal
+        }
+
+        // DataTexture with RedFormat preserves full float precision
+        const tex = markRaw(new THREE.DataTexture(
+          floats,
+          png.width,
+          png.height,
+          THREE.RedFormat,
+          THREE.FloatType,
+        ))
+        tex.generateMipmaps = true
+        tex.minFilter = THREE.LinearMipmapLinearFilter
+        tex.magFilter = THREE.LinearFilter
+        tex.wrapS = THREE.ClampToEdgeWrapping
+        tex.wrapT = THREE.ClampToEdgeWrapping
+        tex.needsUpdate = true
+
+        return { tex, floats, width: png.width, height: png.height }
+      }),
     )
 
     bandsToLoad.forEach((band, idx) => {
-      const tex = markRaw(loaded[idx])
-      tex.generateMipmaps = true
-      tex.minFilter = THREE.LinearMipmapLinearFilter
-      tex.magFilter = THREE.LinearFilter
-      tex.wrapS = THREE.ClampToEdgeWrapping
-      tex.wrapT = THREE.ClampToEdgeWrapping
+      const { tex, floats, width, height } = loaded[idx]
       this.textures.push(tex)
       this.bandData[band] = {
         tex,
         range: new THREE.Vector2(metadata.data_ranges[band][0], metadata.data_ranges[band][1]),
+        raw: floats,
+        width,
+        height,
       }
     })
+
+    // Discard optional bands with negligible dynamic range (bad/saturated data).
+    // Compare against the g-band which is always present and reliable.
+    const gSpan = this.bandData.g
+      ? this.bandData.g.range.y - this.bandData.g.range.x
+      : 1.0
+    for (const band of ['u', 'z', 'nuv'] as const) {
+      const bd = this.bandData[band]
+      if (!bd) continue
+      const span = bd.range.y - bd.range.x
+      if (span < gSpan * 0.01) {
+        console.warn(`[NSA] Discarding ${band}-band: dynamic range ${span.toFixed(4)} too narrow (g-band: ${gSpan.toFixed(4)})`)
+        delete this.bandData[band]
+      }
+    }
 
     const width = this.renderer.domElement.parentElement?.clientWidth || window.innerWidth
     const height = this.renderer.domElement.parentElement?.clientHeight || window.innerHeight * 0.6
@@ -219,26 +262,28 @@ export class NSACompositeScene {
     width: number,
     height: number,
   ): THREE.ShaderMaterial {
+    // Lupton et al. 2004 standard SDSS mapping: i→R, r→G, g→B
     const luptonRanges = [
-      bandData.u?.range ?? bandData.g.range,
-      bandData.g.range,
       bandData.i.range,
+      bandData.r.range,
+      bandData.g.range,
     ]
 
     return new THREE.ShaderMaterial({
       uniforms: {
-        uBandR: { value: bandData.u?.tex ?? bandData.g.tex },
-        uBandG: { value: bandData.g.tex },
-        uBandB: { value: bandData.i.tex },
+        uBandR: { value: bandData.i.tex },
+        uBandG: { value: bandData.r.tex },
+        uBandB: { value: bandData.g.tex },
         uAlpha: { value: 0.014 },
         uBrightness: { value: 0.5 },
         uQ: { value: 20.0 },
         uStretch: { value: computeLuptonBaseStretch(luptonRanges) },
         uSensitivity: { value: 0.88 },
-        uRangeR: { value: bandData.u?.range ?? bandData.g.range },
-        uRangeG: { value: bandData.g.range },
-        uRangeB: { value: bandData.i.range },
+        uRangeR: { value: bandData.i.range },
+        uRangeG: { value: bandData.r.range },
+        uRangeB: { value: bandData.g.range },
         uGrayscale: { value: 0.0 },
+        uTheme: { value: 1.0 },
         uBand_u: { value: bandData.u?.tex ?? bandData.g.tex },
         uBand_g: { value: bandData.g.tex },
         uBand_r: { value: bandData.r.tex },
@@ -419,13 +464,11 @@ export class NSACompositeScene {
       return this.bandData.u ? 'u' : 'g'
     }
 
-    const imageSource = this.bandData.i.tex.image as CanvasImageSource
-    const width = getImageWidth(imageSource)
-    const height = getImageHeight(imageSource)
+    const { width, height } = this.bandData.i
 
     return {
-      width,
-      height,
+      width: width!,
+      height: height!,
       bands: {
         u: this.extractSingleBand(resolveBand('u')),
         g: this.extractSingleBand(resolveBand('g')),
@@ -438,52 +481,58 @@ export class NSACompositeScene {
   }
 
   /**
-   * Converts a loaded texture into normalized grayscale pixel data.
+   * Converts a loaded band's raw float data into denormalized physical values
+   * (nanomaggies), clamped to 0 so sky-subtracted background reads as true zero.
+   * Uses the stored 16-bit-decoded Float32Array directly — no canvas readback.
    */
   private extractSingleBand(bandName: string): Float32Array {
-    const texture = this.bandData[bandName].tex
-    const image = texture.image as CanvasImageSource
-    const width = getImageWidth(image)
-    const height = getImageHeight(image)
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) {
-      throw new Error(`Unable to create 2D context for band '${bandName}'`)
+    const bd = this.bandData[bandName]
+    const raw = bd.raw!
+    const range = bd.range // Vector2(min, max) in nanomaggies
+    const rangeMin = range.x
+    const rangeSpan = range.y - range.x
+
+    const result = new Float32Array(raw.length)
+    for (let i = 0; i < raw.length; i++) {
+      // raw[i] is [0,1] from 16-bit decode. Denormalize to physical units.
+      const physical = raw[i] * rangeSpan + rangeMin
+      result[i] = Math.max(physical, 0)
     }
 
-    ctx.drawImage(image, 0, 0, width, height)
-    const imageData = ctx.getImageData(0, 0, width, height).data
-    const result = new Float32Array(width * height)
-
-    for (let src = 0, dst = 0; src < imageData.length; src += 4, dst += 1) {
-      result[dst] = (imageData[src] + imageData[src + 1] + imageData[src + 2]) / (3 * 255)
+    // Normalize to [0,1] for downstream consumers
+    let maxVal = 0
+    for (let k = 0; k < result.length; k++) {
+      if (result[k] > maxVal) maxVal = result[k]
+    }
+    if (maxVal > 0) {
+      for (let k = 0; k < result.length; k++) {
+        result[k] /= maxVal
+      }
     }
 
     return result
   }
 
   /**
-   * Extracts raw RGBA image data from a texture for density mesh generation.
+   * Extracts RGBA image data from band's raw float array for density mesh generation.
+   * Converts float [0,1] back to 8-bit RGBA for compatibility with density mesh code.
    */
   private extractImageData(bandName: string): { data: Uint8ClampedArray; width: number; height: number } {
-    const texture = this.bandData[bandName].tex
-    const image = texture.image as CanvasImageSource
-    const width = getImageWidth(image)
-    const height = getImageHeight(image)
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) {
-      throw new Error(`Unable to create 2D context for band '${bandName}'`)
+    const bd = this.bandData[bandName]
+    const raw = bd.raw!
+    const width = bd.width!
+    const height = bd.height!
+
+    const rgba = new Uint8ClampedArray(raw.length * 4)
+    for (let i = 0; i < raw.length; i++) {
+      const v = Math.round(raw[i] * 255)
+      rgba[i * 4] = v
+      rgba[i * 4 + 1] = v
+      rgba[i * 4 + 2] = v
+      rgba[i * 4 + 3] = 255
     }
 
-    ctx.drawImage(image, 0, 0, width, height)
-    const imageData = ctx.getImageData(0, 0, width, height).data
-
-    return { data: imageData, width, height }
+    return { data: rgba, width, height }
   }
 
   /**
@@ -725,7 +774,7 @@ export class NSACompositeScene {
         mat.uniforms.uTheme.value = 0.0
       }
     } else if (themeName === 'astral') {
-      this.setBands(this.bandData.u ? 'u' : 'g', 'g', 'i')
+      this.setBands('i', 'r', 'g')
       for (const mat of allMats) {
         mat.uniforms.uTheme.value = 1.0
       }
@@ -953,18 +1002,3 @@ export class NSACompositeScene {
   }
 }
 
-/**
- * Returns the rendered width of an image source.
- */
-function getImageWidth(source: CanvasImageSource): number {
-  const sized = source as { naturalWidth?: number; videoWidth?: number; width?: number }
-  return sized.naturalWidth ?? sized.videoWidth ?? sized.width ?? 0
-}
-
-/**
- * Returns the rendered height of an image source.
- */
-function getImageHeight(source: CanvasImageSource): number {
-  const sized = source as { naturalHeight?: number; videoHeight?: number; height?: number }
-  return sized.naturalHeight ?? sized.videoHeight ?? sized.height ?? 0
-}

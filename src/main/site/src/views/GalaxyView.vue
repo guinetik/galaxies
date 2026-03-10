@@ -67,9 +67,7 @@ onMounted(async () => {
   // Check if NSA data exists
   if (galaxy.value) {
     try {
-      const response = await fetch(`${GALAXY_IMG_BASE_URL}/${galaxy.value.pgc}/metadata.json`, {
-        method: 'HEAD',
-      })
+      const response = await fetch(`${GALAXY_IMG_BASE_URL}/${galaxy.value.pgc}/metadata.json`)
       hasNSAData.value = response.ok
     } catch {
       hasNSAData.value = false
