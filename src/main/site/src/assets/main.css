@@ -3,6 +3,39 @@
 :root {
   /** Height of fixed AppHeader; use for top offset of page content */
   --header-height: 52px;
+  /** Custom scrollbar styling */
+  --scrollbar-width: 6px;
+  --scrollbar-track: rgba(20, 20, 25, 0.95);
+  --scrollbar-thumb: rgba(100, 100, 115, 0.95);
+  --scrollbar-thumb-hover: rgba(140, 140, 155, 0.95);
+}
+
+/* Global scrollbar – thin, dark, minimal */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
 html,
