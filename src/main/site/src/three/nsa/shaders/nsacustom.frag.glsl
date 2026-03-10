@@ -143,17 +143,17 @@ void main() {
   // ── 8. Theme-dependent color compositing ──
   vec3 dustCol = mix(
     vec3(0.85, 0.45, 0.15),   // infra: warm amber
-    vec3(0.50, 0.22, 0.70),   // astral: muted purple
+    vec3(0.15, 0.45, 0.90),   // astral: lupton-like blue
     uTheme
   );
   vec3 starCol = mix(
     vec3(1.0, 0.95, 0.88),    // infra: warm cream
-    vec3(0.75, 0.85, 1.0),    // astral: cool blue-white
+    vec3(0.70, 0.80, 0.95),   // astral: cool blue-white (lupton match)
     uTheme
   );
   vec3 hotCol = mix(
     vec3(0.35, 0.55, 1.0),    // infra: blue-cyan
-    vec3(0.65, 0.30, 1.0),    // astral: violet-magenta
+    vec3(0.35, 0.65, 0.95),   // astral: lupton-like cyan-blue
     uTheme
   );
 
@@ -184,10 +184,10 @@ void main() {
   float sGlow = stretch(glowVal, m);
   vec3 glowCol = mix(
     vec3(0.95, 0.88, 0.75),   // infra: warm glow
-    vec3(0.65, 0.75, 1.0),    // astral: cool glow
+    vec3(0.75, 0.85, 1.0),    // astral: bright cool glow
     uTheme
   );
-  col += glowCol * sGlow * 0.5;
+  col += glowCol * sGlow * 0.6;
 
   // ── 11. Core breathing ──
   float pulse = sin(uTime * 0.7) * 0.10 + 1.0;
@@ -208,9 +208,15 @@ void main() {
   twinkle = twinkle * twinkle;  // sharpen peaks for sparkle effect
   col *= mix(1.0, 0.4 + twinkle * 1.6, starness);
 
-  // Additive sparkle glow on bright stars
-  vec3 sparkleCol = mix(vec3(1.0, 0.95, 0.85), vec3(0.85, 0.9, 1.0), uTheme);
-  col += sparkleCol * starness * twinkle * 0.4;
+  // Additive sparkle glow on bright stars - use actual RGB band data for rainbow colors
+  // Map SDSS bands to RGB: r→R, g→G, u→B (like traditional RGB composites)
+  float star_r = stretch(r_val, m) * 1.5;
+  float star_g = stretch(g_val, m) * 1.5;
+  float star_b = stretch(u_val, m) * 1.5;
+  vec3 sparkleCol = vec3(star_r, star_g, star_b);
+  // Fallback to white if no data
+  sparkleCol = mix(mix(vec3(1.0, 0.95, 0.85), vec3(0.95, 0.98, 1.0), uTheme), sparkleCol, 0.9);
+  col += sparkleCol * starness * twinkle * 0.6;
 
   // ── 13. Cinematic color grading ──
   // Lifted blacks — theme-tinted floor

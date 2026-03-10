@@ -32,6 +32,7 @@
             <div class="header-actions">
               <select v-model="shaderMode" class="shader-select">
                 <option value="lupton">Lupton et al.</option>
+                <option value="composite">Composite</option>
                 <option value="custom">Custom</option>
                 <option value="volumetric">Volumetric</option>
                 <option value="nsa3d">NSA 3D</option>
@@ -53,9 +54,13 @@
             </div>
           </div>
           <div class="canvas-wrapper">
+            <div v-show="!canvasReady" class="canvas-loading-overlay">
+              <div class="loading-spinner"></div>
+              <p>{{ t('app.loading') || 'Loading...' }}</p>
+            </div>
             <canvas
               ref="canvasEl"
-              class="composite-canvas"
+              :class="['composite-canvas', { 'find-objects-mode': findObjectsMode }]"
               @wheel.prevent="onWheel"
               @click="onCanvasClick"
               @pointerdown="onPointerDown"
@@ -128,7 +133,7 @@
               </div>
             </div>
 
-            <div class="control-group">
+            <div v-if="shaderMode !== 'composite'" class="control-group">
               <div class="label-row">
                 <label>{{ t('pages.galaxyPhoto.params.q') }} (Stretch)</label>
                 <span class="param-value">{{ paramQ.toFixed(1) }}</span>
@@ -190,7 +195,7 @@
                 @click="openLightbox(band)"
               >
                 <div class="band-img-wrap">
-                  <img :src="`/galaxy-img/${pgc}/${band}.webp`" :alt="`${band}-band`" loading="lazy" />
+                  <img :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${band}.webp`" :alt="`${band}-band`" loading="lazy" crossorigin="anonymous" />
                   <div class="band-overlay">
                     <span class="zoom-icon">⤢</span>
                   </div>
@@ -215,15 +220,34 @@
           
           <div class="lightbox-body">
             <div class="lightbox-image-wrap">
-              <img
+              <!-- Stretched canvas (when Auto STF is on) -->
+              <canvas
+                v-if="stfEnabled"
+                ref="stfCanvasEl"
                 class="lightbox-image"
-                :src="`/galaxy-img/${pgc}/${lightboxBand}.webp`"
+                :style="lightboxStyle"
+              ></canvas>
+              <!-- Raw image (when Auto STF is off) -->
+              <img
+                v-else
+                class="lightbox-image"
+                :src="`${GALAXY_IMG_BASE_URL}/${pgc}/${lightboxBand}.webp`"
                 :alt="`${lightboxBand}-band`"
                 :style="lightboxStyle"
+                crossorigin="anonymous"
               />
 
               <!-- Lightbox Controls -->
               <div class="lightbox-controls">
+                <div class="lb-control-group">
+                  <label>Auto STF</label>
+                  <button
+                    :class="['stf-toggle', { active: stfEnabled }]"
+                    @click="toggleStf"
+                  >
+                    {{ stfEnabled ? 'ON' : 'OFF' }}
+                  </button>
+                </div>
                 <div class="lb-control-group">
                   <label>Filter</label>
                   <select v-model="lbFilter" class="lb-select">
@@ -274,7 +298,7 @@
           </div>
 
           <div class="sidebar-section">
-            <h3>{{ shaderMode === 'lupton' ? 'Lupton Composite' : shaderMode === 'custom' ? 'Custom Composite' : shaderMode === 'volumetric' ? 'Volumetric Rendering' : shaderMode === 'nsa3d' ? 'NSA 3D Point Cloud' : 'Morphology 3D' }}</h3>
+            <h3>{{ shaderMode === 'lupton' ? 'Lupton Composite' : shaderMode === 'composite' ? 'Raw Composite' : shaderMode === 'custom' ? 'Custom Composite' : shaderMode === 'volumetric' ? 'Volumetric Rendering' : shaderMode === 'nsa3d' ? 'NSA 3D Point Cloud' : 'Morphology 3D' }}</h3>
             <p>{{ t('pages.galaxyPhoto.info.' + shaderMode) }}</p>
           </div>
         </div>
@@ -331,6 +355,7 @@ import { useSimbadLookup } from '@/composables/useSimbadLookup'
 import type { NSAMetadata } from '@/types/nsa'
 import { NSACompositeScene, computeAutoParams, type ShaderMode } from '@/three/nsa/NSACompositeScene'
 import type { Galaxy } from '@/types/galaxy'
+import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -352,6 +377,7 @@ const canvasEl = ref<HTMLCanvasElement | null>(null)
 const galaxy = ref<Galaxy | null>(null)
 const metadata = ref<NSAMetadata | null>(null)
 const loading = ref(true)
+const canvasReady = ref(false)
 const scene = shallowRef<NSACompositeScene | null>(null)
 const paramQ = ref(10.0)
 const paramAlpha = ref(0.0515)
@@ -401,6 +427,10 @@ const canvasHeight = ref(0)
 const lbBrightness = ref(100)
 const lbContrast = ref(100)
 const lbFilter = ref('none')
+const stfEnabled = ref(false)
+const stfCanvasEl = ref<HTMLCanvasElement | null>(null)
+// Cache: band → stretched ImageData so we don't recompute on toggle
+const stfCache = new Map<string, ImageData>()
 
 const filterPresets = [
   { label: 'Normal', value: 'none' },
@@ -501,12 +531,156 @@ watch(shaderMode, (mode, oldMode) => {
   onParamChange()
 })
 
+/**
+ * Midtone Transfer Function (PixInsight).
+ * Maps (0,0), (m,0.5), (1,1) via rational interpolation.
+ */
+function mtf(x: number, m: number): number {
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  if (x === m) return 0.5
+  return ((m - 1) * x) / ((2 * m - 1) * x - m)
+}
+
+/**
+ * Find median from a 256-bin histogram. O(256) instead of O(n log n).
+ */
+function medianFromHistogram(hist: Uint32Array, total: number): number {
+  const half = total >>> 1
+  let cumulative = 0
+  for (let i = 0; i < 256; i++) {
+    cumulative += hist[i]
+    if (cumulative > half) return i / 255
+  }
+  return 1
+}
+
+/**
+ * Compute Auto STF parameters from a channel's 8-bit pixel data.
+ * Uses histogram-based median/MAD (O(n) instead of sorting).
+ * Algorithm: PixInsight AutoSTF (Juan Conejero).
+ *   C = -2.8 (shadow clipping in sigma units)
+ *   B = 0.25 (target background level)
+ */
+function computeStfParams(hist: Uint32Array, total: number): { c0: number; m: number } {
+  const C = -2.8
+  const B = 0.25
+
+  const median = medianFromHistogram(hist, total)
+
+  // MAD via deviation histogram: for 8-bit data, deviations are also discrete
+  // |val/255 - median| → bucket by rounding to nearest 1/255
+  const devHist = new Uint32Array(256)
+  for (let i = 0; i < 256; i++) {
+    if (hist[i] === 0) continue
+    const dev = Math.round(Math.abs(i / 255 - median) * 255)
+    devHist[Math.min(dev, 255)] += hist[i]
+  }
+  const mad = medianFromHistogram(devHist, total)
+
+  // Shadow clip: median + C * 1.4826 * MAD (C is negative → clips below median)
+  const c0 = Math.max(0, Math.min(1, median + C * 1.4826 * mad))
+
+  // Midtones balance: PixInsight mtf(m=B, x=medianShifted)
+  // Our mtf(x, m) → call as mtf(medianShifted, B)
+  const medianShifted = median - c0
+  const m = medianShifted > 0 ? mtf(medianShifted, B) : 0.5
+
+  return { c0, m }
+}
+
+/**
+ * Apply Auto STF stretch to an ImageData in-place.
+ * Processes each RGB channel independently (per PixInsight convention).
+ * Uses a 256-entry lookup table so the per-pixel work is a single array lookup.
+ */
+function applyAutoStf(imageData: ImageData): void {
+  const { data, width, height } = imageData
+  const pixelCount = width * height
+
+  for (let ch = 0; ch < 3; ch++) {
+    // Build histogram for this channel — O(n)
+    const hist = new Uint32Array(256)
+    for (let i = 0; i < pixelCount; i++) {
+      hist[data[i * 4 + ch]]++
+    }
+
+    const { c0, m } = computeStfParams(hist, pixelCount)
+
+    // Build 256-entry LUT — O(256)
+    const lut = new Uint8Array(256)
+    for (let i = 0; i < 256; i++) {
+      let x = i / 255
+      x = Math.max(0, (x - c0) / (1 - c0))
+      x = mtf(x, m)
+      lut[i] = Math.round(x * 255)
+    }
+
+    // Apply LUT to every pixel — O(n), single array lookup per pixel
+    for (let i = 0; i < pixelCount; i++) {
+      const idx = i * 4 + ch
+      data[idx] = lut[data[idx]]
+    }
+  }
+}
+
+/**
+ * Load an image URL into an offscreen canvas, apply Auto STF, and return the stretched ImageData.
+ */
+async function stretchImage(url: string): Promise<ImageData> {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = url
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Failed to load image'))
+  })
+
+  const offscreen = document.createElement('canvas')
+  offscreen.width = img.naturalWidth
+  offscreen.height = img.naturalHeight
+  const ctx = offscreen.getContext('2d')!
+  ctx.drawImage(img, 0, 0)
+
+  const imageData = ctx.getImageData(0, 0, offscreen.width, offscreen.height)
+  applyAutoStf(imageData)
+  return imageData
+}
+
+/**
+ * Render the stretched ImageData onto the visible STF canvas.
+ */
+function renderStfCanvas(imageData: ImageData) {
+  const canvas = stfCanvasEl.value
+  if (!canvas) return
+  canvas.width = imageData.width
+  canvas.height = imageData.height
+  const ctx = canvas.getContext('2d')!
+  ctx.putImageData(imageData, 0, 0)
+}
+
+async function toggleStf() {
+  stfEnabled.value = !stfEnabled.value
+  if (stfEnabled.value && lightboxBand.value) {
+    await nextTick()
+    const band = lightboxBand.value
+    let imageData = stfCache.get(band)
+    if (!imageData) {
+      const url = `${GALAXY_IMG_BASE_URL}/${pgc}/${band}.webp`
+      imageData = await stretchImage(url)
+      stfCache.set(band, imageData)
+    }
+    renderStfCanvas(imageData)
+  }
+}
+
 function openLightbox(band: string) {
   lightboxBand.value = band
   // Reset filters
   lbBrightness.value = 100
   lbContrast.value = 100
   lbFilter.value = 'none'
+  stfEnabled.value = false
 }
 
 function closeLightbox() {
@@ -754,7 +928,7 @@ function onCanvasMouseLeave() {
 
 async function loadMetadata(): Promise<void> {
   try {
-    const response = await fetch(`/galaxy-img/${pgc}/metadata.json`)
+    const response = await fetch(`${GALAXY_IMG_BASE_URL}/${pgc}/metadata.json`)
     if (response.ok) {
       metadata.value = await response.json()
     }
@@ -771,8 +945,11 @@ onMounted(async () => {
   // Unblock rendering so canvas appears
   loading.value = false
 
-  // Wait for DOM to render canvas element
-  await nextTick()
+  // Wait for DOM to render canvas element (refs can need multiple ticks)
+  for (let i = 0; i < 3; i++) {
+    await nextTick()
+    if (canvasEl.value) break
+  }
 
   if (metadata.value && canvasEl.value) {
     // Ensure canvas parent element has size before creating scene
@@ -781,6 +958,7 @@ onMounted(async () => {
     try {
       scene.value = new NSACompositeScene(canvasEl.value)
       await scene.value.load(pgc, metadata.value)
+      canvasReady.value = true
 
       // Apply initial shader parameters
       scene.value.setParams(paramQ.value, paramAlpha.value, paramSensitivity.value)
@@ -813,6 +991,7 @@ onMounted(async () => {
       }
     } catch (error) {
       console.error('Failed to load NSA scene:', error)
+      canvasReady.value = true
     }
   }
 })
@@ -977,11 +1156,34 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
 }
 
+.canvas-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  color: rgba(255, 255, 255, 0.85);
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.canvas-loading-overlay p {
+  margin: 0;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
 .composite-canvas {
   width: 100%;
   height: 100%;
   display: block;
   touch-action: none;
+  cursor: grab;
+}
+
+.composite-canvas.find-objects-mode {
   cursor: crosshair;
 }
 
@@ -1322,6 +1524,32 @@ onBeforeUnmount(() => {
 .lb-select option {
   background: #222;
   color: #fff;
+}
+
+/* STF Toggle */
+.stf-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+}
+
+.stf-toggle:hover {
+  border-color: rgba(34, 211, 238, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stf-toggle.active {
+  background: rgba(34, 211, 238, 0.2);
+  border-color: #22d3ee;
+  color: #22d3ee;
 }
 
 /* ── Status States ── */

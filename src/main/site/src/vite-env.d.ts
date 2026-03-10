@@ -10,3 +10,9 @@ declare module '*.glsl?raw' {
   const value: string
   export default value
 }
+
+/** Aladin Lite has no TypeScript definitions */
+declare module 'aladin-lite' {
+  const A: { aladin: (selector: string, options?: Record<string, unknown>) => unknown }
+  export default A
+}

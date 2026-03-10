@@ -1,5 +1,8 @@
 import type { MorphologyCategory, MorphologyPreset } from '@/three/galaxy-detail/morphology'
 
+/** Base URL for galaxy image assets (R2 bucket) */
+export const GALAXY_IMG_BASE_URL = 'https://pub-319f400fed044b818ee2593a3b8c622f.r2.dev'
+
 /** Radius of the celestial sphere galaxies are placed on */
 export const SPHERE_RADIUS = 500
 

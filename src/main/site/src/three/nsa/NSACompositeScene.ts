@@ -4,6 +4,7 @@ import type { NSAMetadata } from '@/types/nsa'
 import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 import luptonVertShader from './shaders/lupton.vert.glsl?raw'
 import luptonFragShader from './shaders/lupton.frag.glsl?raw'
+import compositeFragShader from './shaders/composite.frag.glsl?raw'
 import nsacustomVertShader from './shaders/nsacustom.vert.glsl?raw'
 import nsacustomFragShader from './shaders/nsacustom.frag.glsl?raw'
 import volumetricVertShader from './shaders/volumetric.vert.glsl?raw'
@@ -38,10 +39,31 @@ export interface AutoParams {
   sensitivity: number
 }
 
+type RangeLike = THREE.Vector2 | [number, number]
+
+/**
+ * Computes a Lupton stretch baseline from the average dynamic range width of
+ * the active bands. Keeping this derived from the image ranges lets the shader
+ * use the canonical stretch formula without requiring a separate UI control.
+ */
+export function computeLuptonBaseStretch(ranges: RangeLike[]): number {
+  if (ranges.length === 0) {
+    return 1e-3
+  }
+
+  const totalWidth = ranges.reduce((sum, range) => {
+    const min = Array.isArray(range) ? range[0] : range.x
+    const max = Array.isArray(range) ? range[1] : range.y
+    return sum + Math.max(max - min, 0)
+  }, 0)
+
+  return Math.max((totalWidth / ranges.length) * 0.02, 1e-3)
+}
+
 /**
  * Computes auto-calibrated rendering parameters from the galaxy's band data
- * ranges so that the asinh stretch knee lands at a useful brightness level
- * regardless of source magnitude.
+ * ranges. In flat image-plane modes, `alpha` is used as the post-stretch
+ * brightness gain default; in 3D modes it retains its existing shader meaning.
  *
  * For 3D modes, returns fixed defaults (those modes don't use the image-plane
  * stretch formula).
@@ -49,6 +71,7 @@ export interface AutoParams {
 export function computeAutoParams(metadata: NSAMetadata, mode: ShaderMode): AutoParams {
   if (mode === 'nsa3d') return { Q: 1.0, alpha: 0.05, sensitivity: 0.5 }
   if (mode === 'nsamorphology') return { Q: 5.0, alpha: 0.503, sensitivity: 1.0 }
+  if (mode === 'composite') return { Q: 1.0, alpha: 1.0, sensitivity: 1.0 }
 
   const Q = mode === 'custom' ? 20.0 : 10.0
   return { Q, alpha: 0.5, sensitivity: 1.0 }
@@ -56,6 +79,7 @@ export function computeAutoParams(metadata: NSAMetadata, mode: ShaderMode): Auto
 
 const PLANE_SHADERS: Record<Exclude<ShaderMode, 'nsa3d'>, { vert: string; frag: string }> = {
   lupton: { vert: luptonVertShader, frag: luptonFragShader },
+  composite: { vert: luptonVertShader, frag: compositeFragShader },
   custom: { vert: nsacustomVertShader, frag: nsacustomFragShader },
   volumetric: { vert: volumetricVertShader, frag: volumetricFragShader },
   nsamorphology: { vert: morphVertShader, frag: morphFragShader },
@@ -79,7 +103,7 @@ export class NSACompositeScene {
   private mesh: THREE.Mesh | null = null
   private pointCloud: THREE.Points | null = null
   private morphCloud: THREE.Points | null = null
-  private densityMeshes: THREE.Mesh[] = []
+  private densityMeshes: THREE.Points[] = []
   private densityMaterials: THREE.Material[] = []
   private textures: THREE.Texture[] = []
   private animationId: number | null = null
@@ -134,6 +158,7 @@ export class NSACompositeScene {
    */
   async load(pgc: number, metadata: NSAMetadata): Promise<void> {
     const loader = new THREE.TextureLoader()
+    loader.setCrossOrigin('anonymous')
     const base = `${GALAXY_IMG_BASE_URL}/${pgc}/`
 
     const bandsToLoad = ['i', 'r', 'g']
@@ -194,13 +219,21 @@ export class NSACompositeScene {
     width: number,
     height: number,
   ): THREE.ShaderMaterial {
+    const luptonRanges = [
+      bandData.u?.range ?? bandData.g.range,
+      bandData.g.range,
+      bandData.i.range,
+    ]
+
     return new THREE.ShaderMaterial({
       uniforms: {
         uBandR: { value: bandData.u?.tex ?? bandData.g.tex },
         uBandG: { value: bandData.g.tex },
         uBandB: { value: bandData.i.tex },
         uAlpha: { value: 0.014 },
+        uBrightness: { value: 0.5 },
         uQ: { value: 20.0 },
+        uStretch: { value: computeLuptonBaseStretch(luptonRanges) },
         uSensitivity: { value: 0.88 },
         uRangeR: { value: bandData.u?.range ?? bandData.g.range },
         uRangeG: { value: bandData.g.range },
@@ -218,6 +251,12 @@ export class NSACompositeScene {
         uRange_i: { value: bandData.i.range },
         uRange_z: { value: bandData.z?.range ?? bandData.i.range },
         uRange_nuv: { value: bandData.nuv?.range ?? bandData.u?.range ?? bandData.g.range },
+        uHas_u: { value: bandData.u ? 1.0 : 0.0 },
+        uHas_g: { value: bandData.g ? 1.0 : 0.0 },
+        uHas_r: { value: bandData.r ? 1.0 : 0.0 },
+        uHas_i: { value: bandData.i ? 1.0 : 0.0 },
+        uHas_z: { value: bandData.z ? 1.0 : 0.0 },
+        uHas_nuv: { value: bandData.nuv ? 1.0 : 0.0 },
         uTheme: { value: 1.0 },
         uTime: { value: 0.0 },
         uResolution: {
@@ -465,22 +504,24 @@ export class NSACompositeScene {
 
     const meshLayers = generateDensityMeshes(imageData, width, height, layerOptions)
 
-    // Create Three.js Mesh objects for each layer
+    // Create Three.js Points objects for each layer
+    // Volumetric effect comes from layering points at different z-depths with per-layer opacity
     meshLayers.forEach((layer) => {
-      // Use a simple Phong material for now (will be upgraded to custom shader in Task 5)
-      const material = markRaw(new THREE.MeshPhongMaterial({
+      const material = markRaw(new THREE.PointsMaterial({
         color: 0xffffff,
+        size: 0.015,
         opacity: layer.opacity,
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
       }))
 
-      const mesh = markRaw(new THREE.Mesh(layer.geometry, material))
-      mesh.position.z = layer.zDepth
-      this.scene.add(mesh)
+      const points = markRaw(new THREE.Points(layer.geometry, material))
+      points.position.z = layer.zDepth
+      this.scene.add(points)
 
-      this.densityMeshes.push(mesh)
+      this.densityMeshes.push(points)
       this.densityMaterials.push(material)
     })
   }
@@ -623,6 +664,7 @@ export class NSACompositeScene {
       if (this.planeMaterial) {
         this.planeMaterial.uniforms.uQ.value = Q
         this.planeMaterial.uniforms.uAlpha.value = alpha
+        this.planeMaterial.uniforms.uBrightness.value = alpha
         this.planeMaterial.uniforms.uSensitivity.value = sensitivity
       }
     } else if (this.currentShader === 'nsa3d') {
@@ -653,6 +695,11 @@ export class NSACompositeScene {
     this.planeMaterial.uniforms.uRangeR.value = bd[r].range
     this.planeMaterial.uniforms.uRangeG.value = bd[g].range
     this.planeMaterial.uniforms.uRangeB.value = bd[b].range
+    this.planeMaterial.uniforms.uStretch.value = computeLuptonBaseStretch([
+      bd[r].range,
+      bd[g].range,
+      bd[b].range,
+    ])
   }
 
   /**

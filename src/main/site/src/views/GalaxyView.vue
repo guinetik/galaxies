@@ -41,6 +41,7 @@ import GalaxyDataSidebar from '@/components/GalaxyDataSidebar.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { Galaxy } from '@/types/galaxy'
+import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -66,7 +67,7 @@ onMounted(async () => {
   // Check if NSA data exists
   if (galaxy.value) {
     try {
-      const response = await fetch(`/galaxy-img/${galaxy.value.pgc}/metadata.json`, {
+      const response = await fetch(`${GALAXY_IMG_BASE_URL}/${galaxy.value.pgc}/metadata.json`, {
         method: 'HEAD',
       })
       hasNSAData.value = response.ok

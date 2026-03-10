@@ -164,7 +164,7 @@ void main() {
     vec3(0.05, 0.10, 0.30),    // astral: deep ocean blue
     uTheme
   );
-  tint4 = mix(tint4, mix(vec3(0.18, 0.04, 0.22), vec3(0.04, 0.15, 0.25), uTheme), n4);
+  tint4 = mix(tint4, mix(vec3(0.18, 0.04, 0.22), vec3(0.08, 0.20, 0.35), uTheme), n4);
   col += tint4 * mask4 * smoke4 * 0.55;
 
   // ── Layer 3: mid nebula — saturated color clouds ──
@@ -177,9 +177,9 @@ void main() {
   float d3 = mix(sTotal, n3, 0.30);
   float mask3 = smoothstep(0.02, 0.30, d3);
   float smoke3 = n3 * 0.5 + 0.5;
-  vec3 dustTint3 = mix(vec3(0.70, 0.25, 0.05), vec3(0.25, 0.12, 0.55), uTheme);
-  vec3 gasTint3  = mix(vec3(0.08, 0.32, 0.75), vec3(0.20, 0.18, 0.70), uTheme);
-  vec3 starTint3 = mix(vec3(0.60, 0.50, 0.32), vec3(0.30, 0.25, 0.65), uTheme);
+  vec3 dustTint3 = mix(vec3(0.70, 0.25, 0.05), vec3(0.20, 0.45, 0.80), uTheme);
+  vec3 gasTint3  = mix(vec3(0.08, 0.32, 0.75), vec3(0.25, 0.55, 0.90), uTheme);
+  vec3 starTint3 = mix(vec3(0.60, 0.50, 0.32), vec3(0.50, 0.65, 0.95), uTheme);
   vec3 tint3 = dustTint3 * dustFrac + gasTint3 * gasFrac + starTint3 * starFrac;
   col += tint3 * mask3 * smoke3 * 0.65;
 
@@ -195,9 +195,9 @@ void main() {
   float d2 = mix(sTotal, n2, 0.25);
   float mask2 = smoothstep(0.08, 0.50, d2);
   float smoke2 = n2 * 0.2 + 0.8;
-  vec3 dustTint2 = mix(vec3(0.90, 0.65, 0.30), vec3(0.65, 0.35, 0.60), uTheme);
-  vec3 gasTint2  = mix(vec3(0.80, 0.70, 0.40), vec3(0.55, 0.40, 0.85), uTheme);
-  vec3 starTint2 = mix(vec3(0.95, 0.85, 0.60), vec3(0.75, 0.55, 0.80), uTheme);
+  vec3 dustTint2 = mix(vec3(0.90, 0.65, 0.30), vec3(0.55, 0.70, 0.95), uTheme);
+  vec3 gasTint2  = mix(vec3(0.80, 0.70, 0.40), vec3(0.60, 0.75, 1.0), uTheme);
+  vec3 starTint2 = mix(vec3(0.95, 0.85, 0.60), vec3(0.75, 0.85, 1.0), uTheme);
   vec3 tint2 = dustTint2 * dustFrac + gasTint2 * gasFrac + starTint2 * starFrac;
   col += tint2 * mask2 * smoke2 * 0.6;
 
@@ -248,8 +248,14 @@ void main() {
   twinkle = twinkle * twinkle * twinkle2;
   col *= mix(1.0, 0.3 + twinkle * 2.0, starness);
 
-  // Additive star glow
-  vec3 starCol = mix(vec3(1.0, 0.95, 0.88), vec3(0.88, 0.92, 1.0), uTheme);
+  // Additive star glow — use actual RGB band data for rainbow colors
+  // Map SDSS bands to RGB: r→R, g→G, u→B for natural color variation
+  float r_star = stretch(r_sharp, m, uQ, uAlpha) * 1.5;
+  float g_star = stretch(g_sharp, m, uQ, uAlpha) * 1.5;
+  float u_star = stretch(max(denorm(texture2D(uBand_u, vUV).r + dither, uRange_u), 0.0), m, uQ, uAlpha) * 1.5;
+  vec3 starCol = vec3(r_star, g_star, u_star);
+  // Fallback to cool white if no data
+  starCol = mix(mix(vec3(1.0, 0.95, 0.88), vec3(0.88, 0.92, 1.0), uTheme), starCol, 0.85);
   col += starCol * starness * (twinkle * 0.5 + 0.2);
 
   // ═══════════════════════════════════════

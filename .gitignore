@@ -153,3 +153,8 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+
+docs
+
+*.fits
+src/main/images

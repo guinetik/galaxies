@@ -19,6 +19,11 @@
       </div>
 
       <div v-else class="aladin-wrapper">
+        <!-- Loading overlay while Aladin Lite loads -->
+        <div v-if="aladinLoading" class="aladin-loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>{{ t('app.loading') || 'Loading sky atlas…' }}</p>
+        </div>
         <!-- Aladin Lite container -->
         <div ref="aladinContainerEl" class="aladin-container"></div>
 
@@ -55,8 +60,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { Galaxy } from '@/types/galaxy'
-// @ts-ignore - aladin-lite doesn't have TypeScript definitions
-import A from 'aladin-lite'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -70,6 +73,7 @@ let aladin: any = null
 
 const currentRa = ref(0)
 const currentDec = ref(0)
+const aladinLoading = ref(true)
 
 function formatRA(ra: number): string {
   const hours = Math.floor(ra / 15)
@@ -128,7 +132,8 @@ onMounted(async () => {
   await new Promise(resolve => setTimeout(resolve, 100))
 
   try {
-    // Initialize Aladin Lite with the container ID
+    // Dynamic import: Aladin Lite (~2.4 MB) loads only when mosaic view is used
+    const { default: A } = await import('aladin-lite')
     aladin = A.aladin('#' + containerId, {
       survey: 'P/SDSS9/color',
       fov: 0.2, // Field of view in degrees
@@ -150,6 +155,8 @@ onMounted(async () => {
     updateCoordinates()
   } catch (error) {
     console.error('Failed to initialize Aladin Lite:', error)
+  } finally {
+    aladinLoading.value = false
   }
 })
 
@@ -255,6 +262,19 @@ onUnmounted(() => {
 .aladin-container {
   width: 100%;
   height: 100%;
+}
+
+.aladin-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 8;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .status-container {
