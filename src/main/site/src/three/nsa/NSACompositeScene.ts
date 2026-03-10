@@ -179,9 +179,6 @@ export class NSACompositeScene {
     this.morphCloud.visible = false
     this.scene.add(this.morphCloud)
 
-    // Create layered density meshes
-    this.createDensityMeshes()
-
     this.resize(width, height)
     this.applyCurrentShaderMode()
     this.setTheme(this.currentTheme)
@@ -524,11 +521,6 @@ export class NSACompositeScene {
       this.morphCloud.visible = this.currentShader === 'nsamorphology'
     }
 
-    // Show density meshes for nsa3d mode (alternative 3D visualization)
-    for (const densityMesh of this.densityMeshes) {
-      densityMesh.visible = this.currentShader === 'nsa3d'
-    }
-
     if (!usePointCloud && this.planeMaterial) {
       const shader = PLANE_SHADERS[this.currentShader as Exclude<ShaderMode, 'nsa3d' | 'nsamorphology'>]
       this.planeMaterial.vertexShader = shader.vert
@@ -621,23 +613,30 @@ export class NSACompositeScene {
   }
 
   /**
-   * Updates rendering parameters for both flat and 3D shader modes.
+   * Updates rendering parameters for the active shader mode only.
+   * Each mode (2D plane, nsa3d, morphology) maintains its own uniforms
+   * so params from one pipeline don't leak into another.
    */
   setParams(Q: number, alpha: number, sensitivity: number): void {
-    if (this.planeMaterial) {
-      this.planeMaterial.uniforms.uQ.value = Q
-      this.planeMaterial.uniforms.uAlpha.value = alpha
-      this.planeMaterial.uniforms.uSensitivity.value = sensitivity
-    }
-    if (this.pointMaterial) {
-      this.pointMaterial.uniforms.uQ.value = Q
-      this.pointMaterial.uniforms.uAlpha.value = alpha
-      this.pointMaterial.uniforms.uSensitivity.value = sensitivity
-    }
-    if (this.morphMaterial) {
-      this.morphMaterial.uniforms.uQ.value = Q
-      this.morphMaterial.uniforms.uAlpha.value = alpha
-      this.morphMaterial.uniforms.uSensitivity.value = sensitivity
+    const mode = getInteractionMode(this.currentShader)
+    if (mode === 'image-plane') {
+      if (this.planeMaterial) {
+        this.planeMaterial.uniforms.uQ.value = Q
+        this.planeMaterial.uniforms.uAlpha.value = alpha
+        this.planeMaterial.uniforms.uSensitivity.value = sensitivity
+      }
+    } else if (this.currentShader === 'nsa3d') {
+      if (this.pointMaterial) {
+        this.pointMaterial.uniforms.uQ.value = Q
+        this.pointMaterial.uniforms.uAlpha.value = alpha
+        this.pointMaterial.uniforms.uSensitivity.value = sensitivity
+      }
+    } else if (this.currentShader === 'nsamorphology') {
+      if (this.morphMaterial) {
+        this.morphMaterial.uniforms.uQ.value = Q
+        this.morphMaterial.uniforms.uAlpha.value = alpha
+        this.morphMaterial.uniforms.uSensitivity.value = sensitivity
+      }
     }
     this.render()
   }
