@@ -34,6 +34,15 @@ export const router = createRouter({
       },
     },
     {
+      path: '/g/:pgc/mosaic',
+      name: 'galaxyMosaic',
+      component: () => import('@/views/GalaxyMosaicView.vue'),
+      meta: {
+        title: 'Galaxy Mosaic | Galaxies',
+        description: 'Interactive SDSS imaging mosaic viewer with pan and zoom controls.',
+      },
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('@/views/AboutView.vue'),

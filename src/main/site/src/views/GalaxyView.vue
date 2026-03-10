@@ -15,6 +15,13 @@
         >
           {{ t('pages.galaxy.photoButton') }}
         </button>
+        <button
+          v-if="galaxy"
+          class="data-button"
+          @click="router.push(`/g/${galaxy.pgc}/mosaic`)"
+        >
+          Mosaic
+        </button>
       </div>
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
