@@ -99,6 +99,11 @@ const isDragging = ref(false)
 const dragStartX = ref(0)
 /** Set when navigating from drag; suppresses the next click to avoid accidental navigation. */
 const shouldIgnoreNextClick = ref(false)
+let parallaxRafId = 0
+let lastParallaxX = 0
+let lastParallaxY = 0
+let lastCenterX = 0
+let lastCenterY = 0
 
 const total = computed(() => props.items.length)
 
@@ -197,16 +202,22 @@ function onMouseDown(e: MouseEvent) {
 }
 
 function onMouseMove(e: MouseEvent) {
-  if (!isDragging.value && wrapperRef.value && containerRef.value) {
-    const rect = containerRef.value.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    const centerX = rect.width / 2
-    const centerY = rect.height / 2
-    const rotateY = ((x - centerX) / centerX) * 5
-    const rotateX = -((y - centerY) / centerY) * 5
-    wrapperRef.value.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
-  }
+  if (isDragging.value || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  lastParallaxX = e.clientX - rect.left
+  lastParallaxY = e.clientY - rect.top
+  lastCenterX = rect.width / 2
+  lastCenterY = rect.height / 2
+  if (parallaxRafId) return
+  parallaxRafId = requestAnimationFrame(applyParallaxTransform)
+}
+
+function applyParallaxTransform() {
+  parallaxRafId = 0
+  if (!wrapperRef.value || isDragging.value) return
+  const rotateY = ((lastParallaxX - lastCenterX) / lastCenterX) * 5
+  const rotateX = -((lastParallaxY - lastCenterY) / lastCenterY) * 5
+  wrapperRef.value.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
 }
 
 function onMouseUp(e: MouseEvent) {
@@ -221,6 +232,10 @@ function onMouseUp(e: MouseEvent) {
 
 function onMouseLeave() {
   isDragging.value = false
+  if (parallaxRafId) {
+    cancelAnimationFrame(parallaxRafId)
+    parallaxRafId = 0
+  }
   if (wrapperRef.value) wrapperRef.value.style.transform = ''
 }
 </script>
@@ -238,6 +253,8 @@ function onMouseLeave() {
   outline: none;
   touch-action: pan-y;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .carousel-container:active {
@@ -254,7 +271,7 @@ function onMouseLeave() {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.1s ease-out;
+  will-change: transform;
 }
 
 .galaxy-card {
