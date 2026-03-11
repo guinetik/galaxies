@@ -3,14 +3,14 @@
     class="carousel-container"
     ref="containerRef"
     tabindex="0"
-    @wheel.prevent="onWheel"
     @keydown="onKeydown"
     @mousedown="onMouseDown"
     @mousemove="onMouseMove"
     @mouseup="onMouseUp"
     @mouseleave="onMouseLeave"
-    @touchstart.passive="onTouchStart"
-    @touchend.passive="onTouchEnd"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
   >
     <div class="carousel-wrapper" ref="wrapperRef">
       <RouterLink
@@ -48,7 +48,7 @@
       aria-label="Previous"
       @click.stop="navigate(-1)"
     >
-      ‹
+      <span class="carousel-nav-icon">‹</span>
     </button>
     <button
       v-if="items.length > 1"
@@ -57,7 +57,7 @@
       aria-label="Next"
       @click.stop="navigate(1)"
     >
-      ›
+      <span class="carousel-nav-icon">›</span>
     </button>
   </div>
 </template>
@@ -93,10 +93,12 @@ const wrapperRef = ref<HTMLElement | null>(null)
 const currentIndex = ref(0)
 const isAnimating = ref(false)
 const touchStartX = ref(0)
+const touchStartY = ref(0)
 const touchEndX = ref(0)
 const isDragging = ref(false)
 const dragStartX = ref(0)
-let lastWheelTime = 0
+/** Set when navigating from drag; suppresses the next click to avoid accidental navigation. */
+const shouldIgnoreNextClick = ref(false)
 
 const total = computed(() => props.items.length)
 
@@ -142,6 +144,10 @@ function navigate(direction: number) {
 }
 
 function onCardClick(index: number) {
+  if (shouldIgnoreNextClick.value) {
+    shouldIgnoreNextClick.value = false
+    return
+  }
   if (index === currentIndex.value) {
     router.push(`/g/${props.items[index].pgc}`)
   } else {
@@ -149,11 +155,12 @@ function onCardClick(index: number) {
   }
 }
 
-function onWheel(e: WheelEvent) {
-  if (isAnimating.value || Date.now() - lastWheelTime < 400) return
-  lastWheelTime = Date.now()
-  if (e.deltaY > 0) navigate(1)
-  else if (e.deltaY < 0) navigate(-1)
+/** Prevents page scroll when user is swiping horizontally. */
+function onTouchMove(e: TouchEvent) {
+  if (e.touches.length !== 1) return
+  const dx = Math.abs(e.touches[0].screenX - touchStartX.value)
+  const dy = Math.abs(e.touches[0].screenY - touchStartY.value)
+  if (dx > dy && dx > 10) e.preventDefault()
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -170,13 +177,18 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 function onTouchStart(e: TouchEvent) {
-  touchStartX.value = e.changedTouches[0].screenX
+  const t = e.changedTouches[0]
+  touchStartX.value = t.screenX
+  touchStartY.value = t.screenY
 }
 
 function onTouchEnd(e: TouchEvent) {
   touchEndX.value = e.changedTouches[0].screenX
   const diff = touchStartX.value - touchEndX.value
-  if (Math.abs(diff) > 50) navigate(diff > 0 ? 1 : -1)
+  if (Math.abs(diff) > 50) {
+    shouldIgnoreNextClick.value = true
+    navigate(diff > 0 ? 1 : -1)
+  }
 }
 
 function onMouseDown(e: MouseEvent) {
@@ -201,7 +213,10 @@ function onMouseUp(e: MouseEvent) {
   if (!isDragging.value) return
   isDragging.value = false
   const diff = dragStartX.value - e.clientX
-  if (Math.abs(diff) > 50) navigate(diff > 0 ? 1 : -1)
+  if (Math.abs(diff) > 50) {
+    shouldIgnoreNextClick.value = true
+    navigate(diff > 0 ? 1 : -1)
+  }
 }
 
 function onMouseLeave() {
@@ -221,6 +236,12 @@ function onMouseLeave() {
   justify-content: center;
   overflow: hidden;
   outline: none;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.carousel-container:active {
+  cursor: grabbing;
 }
 
 .carousel-container:focus-visible {
@@ -368,6 +389,7 @@ function onMouseLeave() {
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-size: 1.5rem;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,6 +400,12 @@ function onMouseLeave() {
 .carousel-nav:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(34, 211, 238, 0.5);
+}
+
+.carousel-nav-icon {
+  display: block;
+  line-height: 0;
+  transform: translateY(-0.08em);
 }
 
 .carousel-nav-left {
