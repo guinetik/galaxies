@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-IMAGES_DEFAULT_DIR = "../../images"
+IMAGES_DEFAULT_DIR = r"D:\Developer\galaxies\src\main\images"
 
 # Thread-safe counters
 stats_lock = Lock()
@@ -52,7 +52,7 @@ stats = {"uploaded": 0, "skipped": 0, "failed": 0}
 
 # Content types for our files
 CONTENT_TYPES = {
-    ".webp": "image/webp",
+    ".png": "image/png",
     ".json": "application/json",
 }
 
