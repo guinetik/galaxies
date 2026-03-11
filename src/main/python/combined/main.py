@@ -96,6 +96,7 @@ def load_cf4(db_path):
         d["b_mag"] = None
         d["diameter_arcsec"] = None
         d["axial_ratio"] = None
+        d["position_angle"] = None
         d["ba"] = None
         galaxies[d["pgc"]] = d
 
@@ -131,7 +132,7 @@ def load_fss_ugc(db_path):
 
     fss_rows = []
     for row in cur.execute("SELECT id, name, ra, dec, velocity, pgc, morphology, b_mag, "
-                           "diameter_arcsec, axial_ratio "
+                           "diameter_arcsec, axial_ratio, position_angle "
                            "FROM galaxies WHERE catalog = 'FSS'"):
         fss_rows.append(dict(row))
 
@@ -158,6 +159,7 @@ def fss_pgc_join(cf4, fss_rows):
             cf4[pgc]["b_mag"] = fss["b_mag"]
             cf4[pgc]["diameter_arcsec"] = fss["diameter_arcsec"]
             cf4[pgc]["axial_ratio"] = fss["axial_ratio"]
+            cf4[pgc]["position_angle"] = fss["position_angle"]
             if cf4[pgc]["name"] is None:
                 cf4[pgc]["name"] = fss["name"]
             matched += 1
@@ -278,7 +280,7 @@ def make_empty_galaxy():
         "log_ms_t": None, "e_log_ms_t": None,
         "log_sfr_nuv": None, "e_log_sfr_nuv": None,
         "morphology": None, "b_mag": None,
-        "diameter_arcsec": None, "axial_ratio": None, "ba": None,
+        "diameter_arcsec": None, "axial_ratio": None, "position_angle": None, "ba": None,
     }
 
 
@@ -371,6 +373,7 @@ def add_unmatched_fss(cf4, unmatched):
         gal["b_mag"] = fss.get("b_mag")
         gal["diameter_arcsec"] = fss.get("diameter_arcsec")
         gal["axial_ratio"] = fss.get("axial_ratio")
+        gal["position_angle"] = fss.get("position_angle")
         cf4[pgc] = gal
         added += 1
 
@@ -466,6 +469,7 @@ GALAXIES_COLUMNS = [
     ("b_mag",         "REAL"),
     ("diameter_arcsec", "INTEGER"),
     ("axial_ratio",     "REAL"),
+    ("position_angle",  "INTEGER"),
     ("ba",              "REAL"),
 ]
 
