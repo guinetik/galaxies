@@ -341,8 +341,8 @@ export class GalaxyField {
     const cameraDistanceMpc = cameraDistanceMly / 3.26
     const cameraLogLevel = Math.log2(Math.max(1, cameraDistanceMpc))
 
-    /** Only pick galaxies with effective visibility above 25% (avoids very faint/edge galaxies) */
-    const PICK_ALPHA_THRESHOLD = 0.25
+    /** Only pick galaxies with effective visibility above 10% (avoids very faint/edge galaxies) */
+    const PICK_ALPHA_THRESHOLD = 0.10
 
     for (let i = 0; i < this.galaxies.length; i++) {
       const alpha = this.computeVisibilityAlpha(this.redshifts[i], maxRedshift, minRedshift)

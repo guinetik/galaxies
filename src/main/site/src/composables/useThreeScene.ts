@@ -29,17 +29,21 @@ export function useThreeScene() {
   // We rotate this group around X to simulate observer latitude.
   let pivot: THREE.Group | null = null
 
-  // Spherical look direction
-  let theta = Math.PI // azimuth (looking south)
-  let phi = 1.68      // start angled down enough for Earth arc visibility
-
-  // Drag state
-  let isDragging = false
-  let lastX = 0
-  let lastY = 0
+  // Drag state (constants first — used by initial theta)
   const DRAG_SENSITIVITY = 0.003
   /** Touch base sensitivity — lower than mouse for finer control on mobile */
   const DRAG_SENSITIVITY_TOUCH = 0.0018
+  /** Equivalent rotation for 90px drag left at default FOV (used for initial angle) */
+  const INITIAL_OFFSET_DRAG_PX = 150
+  const INITIAL_THETA_OFFSET = INITIAL_OFFSET_DRAG_PX * DRAG_SENSITIVITY
+
+  // Spherical look direction
+  let theta = Math.PI + INITIAL_THETA_OFFSET // azimuth (looking south + ~50px drag-left equivalent)
+  let phi = 1.68      // start angled down enough for Earth arc visibility
+
+  let isDragging = false
+  let lastX = 0
+  let lastY = 0
 
   // Drag momentum / inertia
   let velocityTheta = 0
