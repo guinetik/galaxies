@@ -302,7 +302,6 @@ export class NSACompositeScene {
         uHas_i: { value: bandData.i ? 1.0 : 0.0 },
         uHas_z: { value: bandData.z ? 1.0 : 0.0 },
         uHas_nuv: { value: bandData.nuv ? 1.0 : 0.0 },
-        uTheme: { value: 1.0 },
         uTime: { value: 0.0 },
         uResolution: {
           value: new THREE.Vector2(width * this.renderer.getPixelRatio(), height * this.renderer.getPixelRatio()),

@@ -19,9 +19,9 @@ varying float vFilamentarity;
 varying float vMorphDepth;
 
 void main() {
-  // Flatten Z for thin disk appearance — preserve structural depth for color mapping
+  // Flatten Z for disk appearance — enough depth to separate layers on rotation
   vec3 displaced = aPosition;
-  displaced.z *= 0.3;
+  displaced.z *= 0.45;
 
   vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
   float camDepth = max(-mvPosition.z, 0.001);
@@ -39,7 +39,9 @@ void main() {
   vIntensity = aIntensity;
   vCameraDepth = camDepth;
   vFilamentarity = aFilamentarity;
-  // Morphology z-depth (structural, not camera) normalized to ~[0,1]
-  // Raw z is typically in [-0.5, 0.5] from the morphology builder
-  vMorphDepth = clamp(aPosition.z * 1.8 + 0.5, 0.0, 1.0);
+  // Color-driving depth: use intensity, not random z-position.
+  // Intensity correlates with galaxy structure (core=bright, arms=dim)
+  // so colors naturally reveal the silhouette.
+  // The random z still drives physical parallax during rotation.
+  vMorphDepth = sqrt(aIntensity);
 }

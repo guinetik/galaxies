@@ -44,7 +44,7 @@ export function getDefaultMorphologyOptions(
   return {
     sampleStep: Math.max(1, Math.ceil(Math.max(width, height) / 550)),
     intensityThreshold: 0.003,
-    depthScale: 0.4,
+    depthScale: 0.6,
     sizeRange: [1.5, 8.5],
     seed,
   }
@@ -79,17 +79,24 @@ export function buildMorphologyPointCloud(
     for (let col = 0; col < input.width; col += step) {
       const idx = row * input.width + col
 
-      // i-band alone for intensity (highest SNR, per Makarenko et al. 2014)
-      const i = Math.sqrt(clamp01(input.bands.i[idx] ?? 0))
-
-      if (i < options.intensityThreshold) {
-        continue
-      }
-
-      // Other bands only for color derivation
+      // All bands for threshold gating — multi-band average rejects sky noise
+      // that single-band i would pass (16-bit data preserves faint residuals).
+      const u = Math.sqrt(clamp01(input.bands.u[idx] ?? 0))
       const g = Math.sqrt(clamp01(input.bands.g[idx] ?? 0))
       const r = Math.sqrt(clamp01(input.bands.r[idx] ?? 0))
+      const i = Math.sqrt(clamp01(input.bands.i[idx] ?? 0))
       const z = Math.sqrt(clamp01(input.bands.z[idx] ?? 0))
+      const nuv = Math.sqrt(clamp01(input.bands.nuv[idx] ?? 0))
+
+      // Same weighted formula as NSA 3D — naturally low for sky pixels
+      const dust = (i + z) * 0.5
+      const stellar = (g + r) * 0.5
+      const hot = (u + nuv) * 0.5
+      const gateIntensity = dust * 0.25 + stellar * 0.4 + hot * 0.35
+
+      if (gateIntensity < options.intensityThreshold) {
+        continue
+      }
 
       // ── Structure tensor analysis (Makarenko et al. 2014) ──
       const fx = Math.floor(col / step)
@@ -105,8 +112,8 @@ export function buildMorphologyPointCloud(
 
       const px = input.width === 1 ? 0 : col / denomX - 0.5
       const py = input.height === 1 ? 0 : 0.5 - row / denomY
-      const size = lerp(minSize, maxSize, clamp01(i))
-      const color = deriveSpectralColor6(0, g, r, i, z, 0)
+      const size = lerp(minSize, maxSize, clamp01(gateIntensity))
+      const color = deriveSpectralColor6(u, g, r, i, z, nuv)
 
       points.push({
         x: px,
@@ -114,7 +121,7 @@ export function buildMorphologyPointCloud(
         z: depth,
         color,
         size,
-        intensity: i,
+        intensity: gateIntensity,
         filamentarity: filam,
       })
     }
