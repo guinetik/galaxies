@@ -33,6 +33,7 @@
  */
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { mpcToDistanceModulus } from '@/lib/astronomy'
 import * as d3 from 'd3'
 import IntuitionMachine from './IntuitionMachine.vue'
 
@@ -45,10 +46,7 @@ const dataRef = ref<HTMLElement | null>(null)
 const distanceMpc = ref(70)
 
 /** DM = 5 * log10(d_pc / 10), where d_pc = distanceMpc * 1e6 */
-const dm = computed(() => {
-  const dPc = distanceMpc.value * 1e6
-  return 5 * Math.log10(dPc / 10)
-})
+const dm = computed(() => mpcToDistanceModulus(distanceMpc.value))
 
 /** Absolute magnitude of reference star (arbitrary but consistent) */
 const M_ABS = -20

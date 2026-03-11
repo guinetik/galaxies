@@ -1,7 +1,7 @@
 /**
  * Shader modes available in the NSA composite viewer.
  */
-export type NsaShaderMode = 'lupton' | 'custom' | 'volumetric' | 'nsa3d' | 'nsamorphology'
+export type NsaShaderMode = 'lupton' | 'composite' | 'custom' | 'volumetric' | 'nsa3d' | 'nsamorphology'
 
 /**
  * Interaction modes used by the NSA composite scene.

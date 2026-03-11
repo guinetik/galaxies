@@ -182,6 +182,7 @@
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { distanceModulusToMpc } from '@/lib/astronomy'
 
 const { t } = useI18n()
 
@@ -212,7 +213,7 @@ const distanceMpc = computed(() => {
   const M = -2.5 * absLogL + 4.74
   const m = 22
   const dm = m - M
-  return Math.pow(10, dm / 5 - 5)
+  return distanceModulusToMpc(dm)
 })
 
 function x(r: number) {

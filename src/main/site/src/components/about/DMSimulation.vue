@@ -31,6 +31,7 @@
  */
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { mpcToDistanceModulus } from '@/lib/astronomy'
 import * as d3 from 'd3'
 
 const { t } = useI18n()
@@ -39,10 +40,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const distanceMpc = ref(70)
 
 /** DM = 5 * log10(d/10) where d is in parsecs. 1 Mpc = 1e6 pc */
-const dm = computed(() => {
-  const dPc = distanceMpc.value * 1e6
-  return 5 * Math.log10(dPc / 10)
-})
+const dm = computed(() => mpcToDistanceModulus(distanceMpc.value))
 
 const WIDTH = 360
 const HEIGHT = 140
@@ -70,7 +68,7 @@ function redraw() {
   const line = d3
     .line<number>()
     .x((d) => scaleX(d))
-    .y((d) => scaleY(5 * Math.log10((d * 1e6) / 10)))
+    .y((d) => scaleY(mpcToDistanceModulus(d)))
     .curve(d3.curveMonotoneX)
 
   const curveData = d3.range(1, 501, 2)

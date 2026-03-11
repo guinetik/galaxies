@@ -377,6 +377,8 @@ import { useGalaxyData } from '@/composables/useGalaxyData'
 import { useSimbadLookup } from '@/composables/useSimbadLookup'
 import type { NSAMetadata } from '@/types/nsa'
 import { NSACompositeScene, computeAutoParams, type ShaderMode } from '@/three/nsa/NSACompositeScene'
+import { formatRA, formatDec } from '@/lib/astronomy'
+import { stretchImage, filterPresets } from '@/lib/image'
 import type { Galaxy } from '@/types/galaxy'
 import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 
@@ -456,14 +458,6 @@ const stfEnabled = ref(false)
 const stfCanvasEl = ref<HTMLCanvasElement | null>(null)
 // Cache: band → stretched ImageData so we don't recompute on toggle
 const stfCache = new Map<string, ImageData>()
-
-const filterPresets = [
-  { label: 'Normal', value: 'none' },
-  { label: 'Negative', value: 'invert(1)' },
-  { label: 'Cyanotype', value: 'sepia(1) hue-rotate(180deg) saturate(1.5)' },
-  { label: 'Amber', value: 'sepia(1) saturate(1.5)' },
-  { label: 'Hard', value: 'contrast(1.5) brightness(0.9)' },
-]
 
 const lightboxStyle = computed(() => {
   const base = `brightness(${lbBrightness.value}%) contrast(${lbContrast.value}%)`
@@ -589,127 +583,6 @@ watch(shaderMode, (mode, oldMode) => {
   scene.value.setShader(mode)
   onParamChange()
 })
-
-/**
- * Midtone Transfer Function (PixInsight).
- * Maps (0,0), (m,0.5), (1,1) via rational interpolation.
- */
-function mtf(x: number, m: number): number {
-  if (x <= 0) return 0
-  if (x >= 1) return 1
-  if (x === m) return 0.5
-  return ((m - 1) * x) / ((2 * m - 1) * x - m)
-}
-
-/**
- * Find median from a 256-bin histogram. O(256) instead of O(n log n).
- */
-function medianFromHistogram(hist: Uint32Array, total: number): number {
-  const half = total >>> 1
-  let cumulative = 0
-  for (let i = 0; i < 256; i++) {
-    cumulative += hist[i]
-    if (cumulative > half) return i / 255
-  }
-  return 1
-}
-
-/**
- * Compute Auto STF parameters from a channel's 8-bit pixel data.
- * Uses histogram-based median/MAD (O(n) instead of sorting).
- * Algorithm: PixInsight AutoSTF (Juan Conejero).
- *   C = -2.8 (shadow clipping in sigma units)
- *   B = 0.10 (target background level — lower than PI default 0.25 because
- *             16-bit PNGs preserve more faint signal than 8-bit WebPs)
- *
- * TODO: Works well for i-band but blows out weaker bands (u, z, nuv) where
- * the signal is mostly noise. Consider an SNR gate (skip stretch if median/MAD
- * ratio is too low) or per-band B adjustment based on metadata data_ranges.
- */
-function computeStfParams(hist: Uint32Array, total: number): { c0: number; m: number } {
-  const C = -2.8
-  const B = 0.10
-
-  const median = medianFromHistogram(hist, total)
-
-  // MAD via deviation histogram: for 8-bit data, deviations are also discrete
-  // |val/255 - median| → bucket by rounding to nearest 1/255
-  const devHist = new Uint32Array(256)
-  for (let i = 0; i < 256; i++) {
-    if (hist[i] === 0) continue
-    const dev = Math.round(Math.abs(i / 255 - median) * 255)
-    devHist[Math.min(dev, 255)] += hist[i]
-  }
-  const mad = medianFromHistogram(devHist, total)
-
-  // Shadow clip: median + C * 1.4826 * MAD (C is negative → clips below median)
-  const c0 = Math.max(0, Math.min(1, median + C * 1.4826 * mad))
-
-  // Midtones balance: PixInsight mtf(m=B, x=medianShifted)
-  // Our mtf(x, m) → call as mtf(medianShifted, B)
-  const medianShifted = median - c0
-  const m = medianShifted > 0 ? mtf(medianShifted, B) : 0.5
-
-  return { c0, m }
-}
-
-/**
- * Apply Auto STF stretch to an ImageData in-place.
- * Processes each RGB channel independently (per PixInsight convention).
- * Uses a 256-entry lookup table so the per-pixel work is a single array lookup.
- */
-function applyAutoStf(imageData: ImageData): void {
-  const { data, width, height } = imageData
-  const pixelCount = width * height
-
-  for (let ch = 0; ch < 3; ch++) {
-    // Build histogram for this channel — O(n)
-    const hist = new Uint32Array(256)
-    for (let i = 0; i < pixelCount; i++) {
-      hist[data[i * 4 + ch]]++
-    }
-
-    const { c0, m } = computeStfParams(hist, pixelCount)
-
-    // Build 256-entry LUT — O(256)
-    const lut = new Uint8Array(256)
-    for (let i = 0; i < 256; i++) {
-      let x = i / 255
-      x = Math.max(0, (x - c0) / (1 - c0))
-      x = mtf(x, m)
-      lut[i] = Math.round(x * 255)
-    }
-
-    // Apply LUT to every pixel — O(n), single array lookup per pixel
-    for (let i = 0; i < pixelCount; i++) {
-      const idx = i * 4 + ch
-      data[idx] = lut[data[idx]]
-    }
-  }
-}
-
-/**
- * Load an image URL into an offscreen canvas, apply Auto STF, and return the stretched ImageData.
- */
-async function stretchImage(url: string): Promise<ImageData> {
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.src = url
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('Failed to load image'))
-  })
-
-  const offscreen = document.createElement('canvas')
-  offscreen.width = img.naturalWidth
-  offscreen.height = img.naturalHeight
-  const ctx = offscreen.getContext('2d')!
-  ctx.drawImage(img, 0, 0)
-
-  const imageData = ctx.getImageData(0, 0, offscreen.width, offscreen.height)
-  applyAutoStf(imageData)
-  return imageData
-}
 
 /**
  * Render the stretched ImageData onto the visible STF canvas.
@@ -880,29 +753,6 @@ function onPointerUp(e: PointerEvent) {
     }
     dragHistory = []
   }
-}
-
-/**
- * Converts decimal degrees to sexagesimal RA string (HHhMMmSS.Ss).
- */
-function formatRA(deg: number): string {
-  const h = deg / 15
-  const hh = Math.floor(h)
-  const mm = Math.floor((h - hh) * 60)
-  const ss = ((h - hh) * 60 - mm) * 60
-  return `${String(hh).padStart(2, '0')}h${String(mm).padStart(2, '0')}m${ss.toFixed(1).padStart(4, '0')}s`
-}
-
-/**
- * Converts decimal degrees to sexagesimal Dec string (+DD°MM'SS.S").
- */
-function formatDec(deg: number): string {
-  const sign = deg >= 0 ? '+' : '-'
-  const abs = Math.abs(deg)
-  const dd = Math.floor(abs)
-  const mm = Math.floor((abs - dd) * 60)
-  const ss = ((abs - dd) * 60 - mm) * 60
-  return `${sign}${String(dd).padStart(2, '0')}°${String(mm).padStart(2, '0')}'${ss.toFixed(1).padStart(4, '0')}"`
 }
 
 /**

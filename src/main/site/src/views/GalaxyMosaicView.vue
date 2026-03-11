@@ -75,6 +75,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGalaxyData } from '@/composables/useGalaxyData'
+import { formatRA, formatDec } from '@/lib/astronomy'
 import type { Galaxy } from '@/types/galaxy'
 
 const { t } = useI18n()
@@ -91,22 +92,6 @@ const currentRa = ref(0)
 const currentDec = ref(0)
 const aladinLoading = ref(true)
 const aladinError = ref<string | null>(null)
-
-function formatRA(ra: number): string {
-  const hours = Math.floor(ra / 15)
-  const minutes = Math.floor((ra / 15 - hours) * 60)
-  const seconds = ((ra / 15 - hours) * 60 - minutes) * 60
-  return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toFixed(1).padStart(4, '0')}s`
-}
-
-function formatDec(dec: number): string {
-  const sign = dec >= 0 ? '+' : '−'
-  const absDec = Math.abs(dec)
-  const degrees = Math.floor(absDec)
-  const minutes = Math.floor((absDec - degrees) * 60)
-  const seconds = ((absDec - degrees) * 60 - minutes) * 60
-  return `${sign}${degrees.toString().padStart(2, '0')}° ${minutes.toString().padStart(2, '0')}′ ${seconds.toFixed(1).padStart(4, '0')}″`
-}
 
 function goBack() {
   router.push(`/g/${pgc}`)

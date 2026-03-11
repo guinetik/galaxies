@@ -15,10 +15,10 @@
         <p class="cosmo-body">{{ t('pages.cosmography.ladder.intro') }}</p>
         <div class="ladder-chart">
           <div class="ladder-axis">
-            <span :style="{ left: mpcToPercent(1) + '%' }">1</span>
-            <span :style="{ left: mpcToPercent(10) + '%' }">10</span>
-            <span :style="{ left: mpcToPercent(100) + '%' }">100</span>
-            <span :style="{ left: mpcToPercent(600) + '%' }">600 Mpc</span>
+            <span :style="{ left: mpcToPercent(1, 1, 600) + '%' }">1</span>
+            <span :style="{ left: mpcToPercent(10, 1, 600) + '%' }">10</span>
+            <span :style="{ left: mpcToPercent(100, 1, 600) + '%' }">100</span>
+            <span :style="{ left: mpcToPercent(600, 1, 600) + '%' }">600 Mpc</span>
           </div>
           <div class="ladder-rows">
             <div
@@ -33,8 +33,8 @@
                   <div
                     class="ladder-bar"
                     :style="{
-                      left: mpcToPercent(ladderRanges[key][0]) + '%',
-                      width: (mpcToPercent(ladderRanges[key][1]) - mpcToPercent(ladderRanges[key][0])) + '%',
+                      left: mpcToPercent(ladderRanges[key][0], 1, 600) + '%',
+                      width: (mpcToPercent(ladderRanges[key][1], 1, 600) - mpcToPercent(ladderRanges[key][0], 1, 600)) + '%',
                     }"
                   />
                 </div>
@@ -113,6 +113,7 @@ import { useI18n } from 'vue-i18n'
 import CosmographyBackground from '@/components/CosmographyBackground.vue'
 import TelescopeLens from '@/components/TelescopeLens.vue'
 import MethodExperiment from '@/components/cosmography/MethodExperiment.vue'
+import { mpcToPercent } from '@/lib/math'
 
 const { t } = useI18n()
 
@@ -129,13 +130,6 @@ const ladderRanges: Record<string, [number, number]> = {
   tf: [10, 250],
   fp: [20, 300],
   snia: [50, 600],
-}
-
-// Log-scale positioning: map Mpc to percentage (1 Mpc = 0%, 600 Mpc = 100%)
-const LOG_MIN = Math.log10(1)
-const LOG_MAX = Math.log10(600)
-function mpcToPercent(mpc: number): number {
-  return ((Math.log10(mpc) - LOG_MIN) / (LOG_MAX - LOG_MIN)) * 100
 }
 
 // Scroll tracking (same pattern as AboutView)

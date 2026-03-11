@@ -129,6 +129,7 @@
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { distanceModulusToMpc } from '@/lib/astronomy'
 
 const { t } = useI18n()
 
@@ -155,8 +156,7 @@ const apparentMag = computed(() => APPARENT_MAG)
 
 const distanceMpc = computed(() => {
   const dm = apparentMag.value - absoluteMag.value
-  const dPc = Math.pow(10, (dm + 5) / 5)
-  return dPc / 1e6
+  return distanceModulusToMpc(dm)
 })
 
 /** Cepheid radius (longer period = brighter = bigger star) */

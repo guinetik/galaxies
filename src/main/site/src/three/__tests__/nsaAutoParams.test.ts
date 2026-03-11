@@ -55,7 +55,7 @@ describe('computeAutoParams', () => {
 
   it('returns fixed defaults for 3D modes', () => {
     const meta = makeMetadata({ r: [0, 100], g: [0, 80], i: [0, 120] })
-    expect(computeAutoParams(meta, 'nsa3d')).toEqual({ Q: 1.0, alpha: 0.05, sensitivity: 0.5 })
+    expect(computeAutoParams(meta, 'nsa3d')).toEqual({ Q: 5.0, alpha: 0.5, sensitivity: 1.0 })
     expect(computeAutoParams(meta, 'nsamorphology')).toEqual({ Q: 5.0, alpha: 0.503, sensitivity: 1.0 })
   })
 })

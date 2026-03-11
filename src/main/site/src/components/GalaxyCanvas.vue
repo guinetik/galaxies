@@ -12,6 +12,7 @@ import { EarthHorizon } from '@/three/EarthHorizon'
 import { BackgroundStars } from '@/three/BackgroundStars'
 import { generateGalaxyTextureAtlas } from '@/three/GalaxyTextures'
 import { LOCATIONS, CAMERA_FOV_MIN, CAMERA_FOV_DEFAULT } from '@/three/constants'
+import { clamp, easeInOutCubic } from '@/lib/math'
 import type { Galaxy } from '@/types/galaxy'
 import type { MorphologyCategory } from '@/three/galaxy-detail/morphology'
 import { selectPreset, assignPresetFromPgc, presetToCategory } from '@/three/galaxy-detail/morphology'
@@ -62,11 +63,6 @@ function getAllGalaxiesCount() {
 }
 
 const INTRO_DURATION_MS = 10000
-
-/** Cubic ease-in-out: slow start (deep field lingers during hero fade), rush through mid-range, gentle landing. */
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
 
 /**
  * Animate FOV from CAMERA_FOV_MIN (deep space) back to CAMERA_FOV_DEFAULT (local).
@@ -126,13 +122,6 @@ let latestPointerClientY = 0
 let pointerInsideCanvas = false
 let hoveredGalaxyPgc: number | null = null
 const HOVER_PICK_INTERVAL_SECONDS = 1 / 24
-
-/**
- * Clamp a scalar into the provided range.
- */
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
 
 /**
  * Compute frame-rate independent parallax follow strength.

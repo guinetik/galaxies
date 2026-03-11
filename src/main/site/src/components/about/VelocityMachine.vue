@@ -34,6 +34,7 @@
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { hubbleVelocity } from '@/lib/astronomy'
 import * as d3 from 'd3'
 import IntuitionMachine from './IntuitionMachine.vue'
 
@@ -202,7 +203,7 @@ function update() {
   // Compute current state per galaxy
   const galaxies = BASE_DISTANCES.map((baseDist) => {
     const dist = baseDist * a
-    const vel = Math.round(H0 * dist)
+    const vel = Math.round(hubbleVelocity(dist, H0))
     const color = velocityColor(vel)
     const redshiftFraction = Math.min(vel / 30000, 1)
     return { baseDist, dist, vel, color, redshiftFraction }

@@ -57,6 +57,7 @@
  */
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { seededRandom } from '@/lib/math'
 
 const { t } = useI18n()
 
@@ -79,12 +80,6 @@ const interpretation = computed(() => {
   if (grainLevel.value > 0.3) return t('pages.cosmography.experiments.sbf.interpretMid')
   return t('pages.cosmography.experiments.sbf.interpretNearby')
 })
-
-/** Seeded random for reproducible draws */
-function seededRandom(seed: number) {
-  const x = Math.sin(seed) * 10000
-  return x - Math.floor(x)
-}
 
 /** Draw procedural SBF visualization: star field, central object, grain overlay */
 function draw() {

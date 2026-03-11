@@ -242,6 +242,7 @@
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { distanceModulusToMpc } from '@/lib/astronomy'
 
 const { t } = useI18n()
 
@@ -275,7 +276,7 @@ const distanceMpc = computed(() => {
   const M = peakMag.value
   const m = apparentMag.value
   const dm = m - M
-  return Math.pow(10, dm / 5 - 5)
+  return distanceModulusToMpc(dm)
 })
 
 /** Explosion brightness: m=18 bright, m=26 dim. Only the explosion, not the graph. */

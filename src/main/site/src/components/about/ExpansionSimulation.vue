@@ -31,6 +31,7 @@
  */
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { hubbleVelocity } from '@/lib/astronomy'
 import * as d3 from 'd3'
 
 const { t } = useI18n()
@@ -91,7 +92,7 @@ function init() {
   galaxyGroups.each(function (this: d3.BaseType, d: number) {
     const g = d3.select(this as SVGGElement)
     const x = scaleX(d)
-    const v = Math.round(H0 * d)
+    const v = Math.round(hubbleVelocity(d, H0))
     const color = velocityToColor(v)
     g.attr('transform', `translate(${x}, ${HEIGHT / 2})`)
     g.append('circle')
@@ -126,7 +127,7 @@ function animate() {
     const g = d3.select(this as SVGGElement)
     const baseX = scaleX(d)
     const expandedX = 40 + (baseX - 40) * a
-    const v = Math.round(H0 * d)
+    const v = Math.round(hubbleVelocity(d, H0))
     const color = velocityToColor(v)
 
     g.attr('transform', `translate(${expandedX}, ${HEIGHT / 2})`)

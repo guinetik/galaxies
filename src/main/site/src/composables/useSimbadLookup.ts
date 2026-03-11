@@ -1,4 +1,5 @@
 import { ref, readonly } from 'vue'
+import { arcsecToDeg } from '@/lib/astronomy'
 
 /**
  * Result from SIMBAD cone search
@@ -65,7 +66,7 @@ export function useSimbadLookup() {
     results.value = []
 
     try {
-      const radiusDeg = radiusArcsec / 3600
+      const radiusDeg = arcsecToDeg(radiusArcsec)
 
       if (options?.objectTypeFilter === 'starsAndGalaxies') {
         // TAP API: filter at source — stars only (exclude Nova, Em*, galaxies)
