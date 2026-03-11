@@ -19,13 +19,29 @@
       </div>
 
       <div v-else class="aladin-wrapper">
+        <!-- Error fallback when Aladin Lite fails -->
+        <div v-if="aladinError" class="aladin-error-overlay">
+          <div class="error-content">
+            <span class="error-icon">⚠</span>
+            <h2>Sky atlas unavailable</h2>
+            <p class="error-message">{{ aladinError }}</p>
+            <div class="error-actions">
+              <button class="retry-btn" @click="retryAladin">
+                {{ t('pages.galaxyMosaic.retry') || 'Retry' }}
+              </button>
+              <button class="back-btn" @click="goBack">
+                {{ t('pages.galaxyPhoto.back') || 'Back to Galaxy' }}
+              </button>
+            </div>
+          </div>
+        </div>
         <!-- Loading overlay while Aladin Lite loads -->
-        <div v-if="aladinLoading" class="aladin-loading-overlay">
+        <div v-else-if="aladinLoading" class="aladin-loading-overlay">
           <div class="loading-spinner"></div>
           <p>{{ t('app.loading') || 'Loading sky atlas…' }}</p>
         </div>
         <!-- Aladin Lite container -->
-        <div ref="aladinContainerEl" class="aladin-container"></div>
+        <div v-show="!aladinError" ref="aladinContainerEl" class="aladin-container"></div>
 
         <!-- Controls overlay -->
         <div class="controls-overlay">
@@ -74,6 +90,7 @@ let aladin: any = null
 const currentRa = ref(0)
 const currentDec = ref(0)
 const aladinLoading = ref(true)
+const aladinError = ref<string | null>(null)
 
 function formatRA(ra: number): string {
   const hours = Math.floor(ra / 15)
@@ -155,10 +172,17 @@ onMounted(async () => {
     updateCoordinates()
   } catch (error) {
     console.error('Failed to initialize Aladin Lite:', error)
+    aladinError.value = error instanceof Error ? error.message : 'Failed to load sky atlas'
   } finally {
     aladinLoading.value = false
   }
 })
+
+function retryAladin() {
+  aladinError.value = null
+  aladinLoading.value = true
+  window.location.reload()
+}
 
 onUnmounted(() => {
   // Aladin Lite cleanup (if available)
@@ -275,6 +299,80 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.8);
   z-index: 8;
   color: rgba(255, 255, 255, 0.7);
+}
+
+.aladin-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 15;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 480px;
+  padding: 32px;
+}
+
+.error-icon {
+  font-size: 48px;
+  color: rgba(245, 158, 11, 0.9);
+  display: block;
+  margin-bottom: 16px;
+}
+
+.error-content h2 {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.error-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.retry-btn,
+.back-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.retry-btn {
+  background: rgba(34, 211, 238, 0.2);
+  border: 1px solid #22d3ee;
+  color: #22d3ee;
+}
+
+.retry-btn:hover {
+  background: rgba(34, 211, 238, 0.3);
+  color: #fff;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .status-container {
