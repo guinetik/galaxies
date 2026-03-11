@@ -18,14 +18,6 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 
 // ─── Layer-based visual mapping ─────────────────────────────────────────────
 
-function layerSaturation(layer: Star['layer']): number {
-  switch (layer) {
-    case 'dust':   return 0.3
-    case 'star':   return 0.65
-    case 'bright': return 0.5
-  }
-}
-
 function layerLightness(layer: Star['layer'], brightness: number): number {
   switch (layer) {
     case 'dust':   return brightness * 0.4
@@ -78,8 +70,8 @@ export class GalaxyParticles {
       positions[i * 3 + 1] = star.y
       positions[i * 3 + 2] = z
 
-      // HSL → RGB with layer-dependent saturation and lightness
-      const s = layerSaturation(star.layer)
+      // HSL → RGB with per-spectral-class saturation and layer lightness
+      const s = star.sat
       const l = layerLightness(star.layer, star.brightness)
       const [r, g, b] = hslToRgb(star.hue, s, l)
       backgroundColors[i * 4] = foregroundColors[i * 4] = r

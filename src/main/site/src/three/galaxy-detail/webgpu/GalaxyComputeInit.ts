@@ -386,68 +386,72 @@ export function createComputeInit(
     buffers.originalPositionBuffer.element(idx).assign(position)
 
     // ─── Color: realistic spectral class system (no green stars) ─────
-    // Stars follow the main sequence: M(red) → K(orange) → G(yellow) →
-    // F(yellow-white) → A/B(blue-white) → O(blue).
-    // Inner regions favor warm (M/K/G), outer regions favor cool (A/B/O).
+    // Stars follow the main sequence: M(red) → K(orange) → G(pale yellow) →
+    // F(near-white) → A/B(blue-white) → O(blue).
+    // M-class dominates (~72% inner, ~55% outer) matching real populations.
+    // G/F classes have LOW saturation — Sun-like stars appear pale, not green.
     // Hues normalized to 0-1 range (hue/360).
     const hueRand = hash(seed.add(900))
     const hueSpread = hash(seed.add(901)) // per-star spread within class
     const hue = float(0).toVar()
+    const sat = float(0).toVar()
+    const light = float(0).toVar()
 
     If(layerVal.equal(0), () => {
       // Dust: purple-blue hues (240-280° → 0.667-0.778)
       hue.assign(hueRand.mul(0.111).add(0.667))
+      sat.assign(0.3)
+      light.assign(brightness.mul(0.4))
     }).ElseIf(layerVal.equal(2), () => {
-      // Bright: OB/giants — warm orange-red (10-45° → 0.028-0.125)
-      hue.assign(hueRand.mul(0.097).add(0.028))
+      // Bright: giants and OB stars — mix of warm and cool
+      // ~60% red giants (10-45°), ~40% blue OB (200-230°)
+      If(hueRand.lessThan(float(0.6)), () => {
+        hue.assign(hueRand.div(0.6).mul(0.097).add(0.028)) // 10-45°
+        sat.assign(0.50)
+      }).Else(() => {
+        hue.assign(hueRand.sub(0.6).div(0.4).mul(0.083).add(0.556)) // 200-230°
+        sat.assign(0.35)
+      })
+      light.assign(brightness.mul(0.85))
     }).Else(() => {
       // Star layer: weighted spectral class selection based on distance.
-      // Use cumulative thresholds that shift with distFactor.
-      // Inner (d=0): mostly M/K/G (warm). Outer (d=1): more A/B/O (cool).
-      // d blended via pow(distFactor, 0.6) to gradual transition.
+      // Cumulative thresholds shift with distance from center.
+      // Inner (d=0): dominated by old M/K. Outer (d=1): more young hot stars.
       const d = pow(clamp(distFactor, float(0), float(1)), float(0.6))
 
       // Cumulative weights per spectral class [M, K, G, F, A/B, O]
-      // Inner: [0.35, 0.65, 0.90, 0.98, 1.00, 1.00]
-      // Outer: [0.05, 0.15, 0.30, 0.50, 0.85, 1.00]
-      const wM  = mix(float(0.35), float(0.05), d)
-      const wK  = mix(float(0.65), float(0.15), d)
-      const wG  = mix(float(0.90), float(0.30), d)
-      const wF  = mix(float(0.98), float(0.50), d)
-      const wAB = mix(float(1.00), float(0.85), d)
+      // Inner: [0.58, 0.78, 0.88, 0.93, 0.98, 1.00]
+      // Outer: [0.30, 0.45, 0.55, 0.65, 0.87, 1.00]
+      const wM  = mix(float(0.58), float(0.30), d)
+      const wK  = mix(float(0.78), float(0.45), d)
+      const wG  = mix(float(0.88), float(0.55), d)
+      const wF  = mix(float(0.93), float(0.65), d)
+      const wAB = mix(float(0.98), float(0.87), d)
       // O class gets remainder to 1.0
 
-      // Select spectral class by threshold
-      // M: hue 10° (0.028), K: 25° (0.069), G: 42° (0.117),
-      // F: 55° (0.153), A/B: 210° (0.583), O: 225° (0.625)
-      // Each with a small spread from hueSpread
+      // Select spectral class by threshold — hue AND saturation per class.
+      // G/F classes get very low saturation so they appear white/pale yellow,
+      // never green. Real blackbody curves peak broadly for these temperatures.
       If(hueRand.lessThan(wM), () => {
         hue.assign(float(0.028).add(hueSpread.sub(0.5).mul(0.022))) // 10° ±4°
+        sat.assign(0.85)  // visibly orange-red
       }).ElseIf(hueRand.lessThan(wK), () => {
         hue.assign(float(0.069).add(hueSpread.sub(0.5).mul(0.022))) // 25° ±4°
+        sat.assign(0.60)  // warm orange
       }).ElseIf(hueRand.lessThan(wG), () => {
-        hue.assign(float(0.117).add(hueSpread.sub(0.5).mul(0.017))) // 42° ±3°
+        hue.assign(float(0.133).add(hueSpread.sub(0.5).mul(0.014))) // 48° ±2.5°
+        sat.assign(0.22)  // pale yellow — Sun is NOT green
       }).ElseIf(hueRand.lessThan(wF), () => {
-        hue.assign(float(0.153).add(hueSpread.sub(0.5).mul(0.014))) // 55° ±2.5°
+        hue.assign(float(0.153).add(hueSpread.sub(0.5).mul(0.011))) // 55° ±2°
+        sat.assign(0.12)  // near-white
       }).ElseIf(hueRand.lessThan(wAB), () => {
-        hue.assign(float(0.583).add(hueSpread.sub(0.5).mul(0.042))) // 210° ±7.5°
+        hue.assign(float(0.597).add(hueSpread.sub(0.5).mul(0.042))) // 215° ±7.5°
+        sat.assign(0.25)  // blue-white tint
       }).Else(() => {
         hue.assign(float(0.625).add(hueSpread.sub(0.5).mul(0.028))) // 225° ±5°
+        sat.assign(0.45)  // noticeably blue
       })
-    })
-
-    // Saturation and lightness per layer
-    const sat = float(0).toVar()
-    const light = float(0).toVar()
-    If(layerVal.equal(0), () => {
-      sat.assign(0.3)
-      light.assign(brightness.mul(0.4))
-    }).ElseIf(layerVal.equal(1), () => {
-      sat.assign(0.65)
       light.assign(brightness.mul(0.6))
-    }).Else(() => {
-      sat.assign(0.5)
-      light.assign(brightness.mul(0.85))
     })
 
     const rgb = hslToRgb(hue, sat, light)

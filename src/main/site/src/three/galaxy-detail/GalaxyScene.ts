@@ -168,7 +168,7 @@ export class GalaxyScene implements IGalaxyScene {
 
     // ─── Initial orbit from position angle ───────────────────────────
 
-    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy.pgc)
+    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy)
 
     // Tilt first, then yaw around world Y so every galaxy starts above the disk.
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)

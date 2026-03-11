@@ -17,7 +17,7 @@ function makeGalaxy(overrides: Partial<Galaxy> = {}): Galaxy {
     agc: null, v_hi: null,
     log_mhi: null, e_log_mhi: null, log_ms_t: null, e_log_ms_t: null,
     log_sfr_nuv: null, e_log_sfr_nuv: null,
-    b_mag: null, diameter_arcsec: null, axial_ratio: null, ba: null,
+    b_mag: null, diameter_arcsec: null, axial_ratio: null, position_angle: null, ba: null,
     ...overrides,
   }
 }
