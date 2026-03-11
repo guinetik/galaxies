@@ -84,9 +84,9 @@ const methodEntries = computed(() => {
 
 <style scoped>
 .galaxy-info-card {
-  position: fixed;
-  top: calc(var(--header-height) + 12px);
-  left: 24px;
+  position: relative;
+  width: 100%;
+  min-width: 180px;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -94,16 +94,7 @@ const methodEntries = computed(() => {
   padding: 12px 16px;
   font-size: 12px;
   color: #e0e0e0;
-  z-index: 10;
   backdrop-filter: blur(12px);
-  min-width: 180px;
-}
-
-@media (max-width: 767px) {
-  .galaxy-info-card {
-    top: auto;
-    bottom: 24px;
-  }
 }
 
 .info-row {
