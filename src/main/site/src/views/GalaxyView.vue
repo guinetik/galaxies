@@ -1,7 +1,10 @@
 <template>
   <div class="w-full h-full">
     <GalaxyDetail v-if="galaxy" :galaxy="galaxy" :renderer="renderer" :key="renderer" @active-renderer="activeRenderer = $event" @ready="sceneReady = true" />
-    <GalaxyInfoCard v-if="galaxy" :galaxy="galaxy" />
+    <div v-if="galaxy" class="info-cards-column">
+      <GalaxyInfoCard :galaxy="galaxy" />
+      <KnownStarsCard :galaxy="galaxy" />
+    </div>
     <div class="top-header">
       <div class="top-buttons">
         <button v-if="supportsWebGPU" class="data-button renderer-toggle" @click="toggleRenderer">
@@ -37,6 +40,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GalaxyDetail from '@/components/GalaxyDetail.vue'
 import GalaxyInfoCard from '@/components/GalaxyInfoCard.vue'
+import KnownStarsCard from '@/components/KnownStarsCard.vue'
 import GalaxyDataSidebar from '@/components/GalaxyDataSidebar.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useGalaxyData } from '@/composables/useGalaxyData'
@@ -129,6 +133,28 @@ onMounted(async () => {
   z-index: 20;
   pointer-events: none;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.info-cards-column {
+  position: fixed;
+  top: calc(var(--header-height) + 12px);
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: fit-content;
+  max-width: 260px;
+  z-index: 10;
+}
+
+@media (max-width: 767px) {
+  .info-cards-column {
+    top: auto;
+    bottom: 24px;
+    max-height: 45vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .not-found {
