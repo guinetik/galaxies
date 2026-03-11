@@ -174,7 +174,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.targetZoom = initialZoom
 
     // ─── Initial orbit from PGC seed ───────────────────────────────────
-    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy.pgc)
+    const { initRotY, initTiltX } = getInitialOrbitAngles(galaxy)
     const qTilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), initTiltX)
     const qRot = new THREE.Quaternion().setFromAxisAngle(_yAxis, initRotY)
     // Tilt first, then yaw around world Y so every galaxy starts above the disk.

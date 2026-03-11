@@ -20,6 +20,7 @@ export interface Star {
   y: number
   rotationSpeed: number
   hue: number
+  sat: number
   brightness: number
   size: number
   alpha: number
@@ -55,17 +56,22 @@ const CONFIG = {
 interface SpectralClass {
   hue: number
   spread: number
+  sat: number
   wInner: number
   wOuter: number
 }
 
+// Main-sequence proportions tuned for visual richness while staying realistic.
+// M-class dominates but not overwhelmingly — outer regions have enough blue
+// (OB associations in spiral arms) to create warm-to-cool radial contrast.
+// G/F have LOW saturation — Sun-like stars appear pale yellow, never green.
 const STELLAR_HUES: SpectralClass[] = [
-  { hue: 10, spread: 8, wInner: 0.35, wOuter: 0.05 },   // M — red dwarfs
-  { hue: 25, spread: 8, wInner: 0.30, wOuter: 0.10 },   // K — orange
-  { hue: 42, spread: 6, wInner: 0.25, wOuter: 0.15 },   // G — yellow (Sun-like)
-  { hue: 55, spread: 5, wInner: 0.08, wOuter: 0.20 },   // F — yellow-white
-  { hue: 210, spread: 15, wInner: 0.02, wOuter: 0.35 },  // A/B — blue-white
-  { hue: 225, spread: 10, wInner: 0.00, wOuter: 0.15 },  // O — hot blue
+  { hue: 10,  spread: 8,  sat: 0.85, wInner: 0.58, wOuter: 0.30 }, // M — red dwarfs
+  { hue: 25,  spread: 8,  sat: 0.60, wInner: 0.20, wOuter: 0.15 }, // K — orange
+  { hue: 48,  spread: 5,  sat: 0.22, wInner: 0.10, wOuter: 0.10 }, // G — pale yellow (Sun)
+  { hue: 55,  spread: 4,  sat: 0.12, wInner: 0.05, wOuter: 0.10 }, // F — near-white
+  { hue: 215, spread: 15, sat: 0.25, wInner: 0.05, wOuter: 0.22 }, // A/B — blue-white
+  { hue: 225, spread: 10, sat: 0.45, wInner: 0.02, wOuter: 0.13 }, // O — hot blue
 ]
 
 // ─── Helper functions ────────────────────────────────────────────────────────
@@ -110,16 +116,27 @@ function layerProperties(layer: Layer): LayerProps {
 }
 
 /**
- * Selects a stellar hue using the same broad radial spectral weighting as the
- * WebGPU generator so both renderers share the same population mix.
+ * Selects a stellar hue and per-class saturation using the same broad radial
+ * spectral weighting as the WebGPU generator so both renderers share the
+ * same population mix.
  */
-function pickHue(layer: Layer, distFactor: number, _isHII: boolean): number {
+function pickHueAndSat(layer: Layer, distFactor: number): { hue: number; sat: number } {
   const v = CONFIG.visual
   if (layer === 'dust') {
-    return v.dustHueRange[0] + Math.random() * (v.dustHueRange[1] - v.dustHueRange[0])
+    return {
+      hue: v.dustHueRange[0] + Math.random() * (v.dustHueRange[1] - v.dustHueRange[0]),
+      sat: 0.3,
+    }
   }
   if (layer === 'bright') {
-    return v.brightHueRange[0] + Math.random() * (v.brightHueRange[1] - v.brightHueRange[0])
+    // ~60% red giants (10-45°), ~40% blue OB stars (200-230°)
+    if (Math.random() < 0.6) {
+      return {
+        hue: v.brightHueRange[0] + Math.random() * (v.brightHueRange[1] - v.brightHueRange[0]),
+        sat: 0.50,
+      }
+    }
+    return { hue: 200 + Math.random() * 30, sat: 0.35 }
   }
   // Weighted selection from spectral classes based on radial position
   const d = Math.pow(distFactor, 0.6)
@@ -131,10 +148,10 @@ function pickHue(layer: Layer, distFactor: number, _isHII: boolean): number {
   for (const s of STELLAR_HUES) {
     roll -= s.wInner * (1 - d) + s.wOuter * d
     if (roll <= 0) {
-      return s.hue + (Math.random() - 0.5) * s.spread
+      return { hue: s.hue + (Math.random() - 0.5) * s.spread, sat: s.sat }
     }
   }
-  return 42 // fallback: Sun-like yellow
+  return { hue: 48, sat: 0.22 } // fallback: Sun-like
 }
 
 function computeRotationSpeed(r: number): number {
@@ -169,12 +186,14 @@ function generateFieldStar(galaxyRadius: number): Star {
   const props = layerProperties(layer)
   const distFactor = radius / galaxyRadius
 
+  const spec = pickHueAndSat(layer, distFactor)
   return {
     radius,
     angle,
     y,
     rotationSpeed: computeRotationSpeed(radius),
-    hue: pickHue(layer, distFactor, false),
+    hue: spec.hue,
+    sat: spec.sat,
     brightness: props.brightness,
     size: props.size,
     alpha: props.alpha,
@@ -244,14 +263,15 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
       const layer = assignLayer(Math.random())
 
       const props = layerProperties(layer)
-      const hue = pickHue(layer, distFactor, false)
+      const spec = pickHueAndSat(layer, distFactor)
 
       stars.push({
         radius: actualRadius,
         angle: actualAngle,
         y,
         rotationSpeed,
-        hue,
+        hue: spec.hue,
+        sat: spec.sat,
         brightness: props.brightness,
         size: props.size,
         alpha: props.alpha,
@@ -283,14 +303,15 @@ function generateBarStars(p: GalaxyRenderParams, count: number): Star[] {
     const actualAngle = Math.atan2(z, x)
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
-    const hue = pickHue(layer, 0.1, false) // near-core colors
+    const spec = pickHueAndSat(layer, 0.1) // near-core colors
 
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
       y: (Math.random() - 0.5) * galaxyRadius * 0.04,
       rotationSpeed: computeRotationSpeed(actualRadius),
-      hue,
+      hue: spec.hue,
+      sat: spec.sat,
       brightness: props.brightness,
       size: props.size,
       alpha: props.alpha,
@@ -319,12 +340,14 @@ function generateBulgeStars(p: GalaxyRenderParams, count: number): Star[] {
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
 
+    const spec = pickHueAndSat(layer, 0.1)
     stars.push({
       radius: r,
       angle: theta,
       y,
       rotationSpeed: computeRotationSpeed(r) * 0.5,
-      hue: pickHue(layer, 0.1, false),
+      hue: spec.hue,
+      sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
       size: props.size * (1.0 + (1.0 - distFactor) * 0.3),
       alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
@@ -358,14 +381,15 @@ function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
 
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
-    const hue = pickHue(layer, distFactor, false)
+    const spec = pickHueAndSat(layer, distFactor)
 
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
       y: (Math.random() - 0.5) * galaxyRadius * 0.1 * (1 - distFactor * 0.5),
       rotationSpeed: computeRotationSpeed(actualRadius) * 0.3,
-      hue,
+      hue: spec.hue,
+      sat: spec.sat,
       brightness: props.brightness,
       size: props.size,
       alpha: props.alpha,
@@ -406,12 +430,14 @@ function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
 
+    const spec = pickHueAndSat(layer, distFactor * 0.2)
     stars.push({
       radius: r,
       angle: theta,
       y,
       rotationSpeed: computeRotationSpeed(r) * (bulgeBlend > 0 ? 0.5 : 1.0),
-      hue: pickHue(layer, distFactor * 0.2, false),
+      hue: spec.hue,
+      sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
       size: props.size * (1.0 + bulgeBlend * 0.3),
       alpha: Math.min(props.alpha * coreBrightBoost, 0.95),
@@ -476,14 +502,15 @@ function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
 
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
-        const hue = pickHue(layer, distFactor, false)
+    const spec = pickHueAndSat(layer, distFactor)
 
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
       y: (Math.random() - 0.5) * galaxyRadius * 0.12,
       rotationSpeed: computeRotationSpeed(actualRadius) * (0.5 + Math.random() * 0.5),
-      hue,
+      hue: spec.hue,
+      sat: spec.sat,
       brightness: props.brightness,
       size: props.size,
       alpha: props.alpha,

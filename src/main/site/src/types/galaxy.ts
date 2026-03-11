@@ -43,6 +43,7 @@ export interface Galaxy {
   b_mag: number | null
   diameter_arcsec: number | null
   axial_ratio: number | null
+  position_angle: number | null
   ba: number | null
 }
 
