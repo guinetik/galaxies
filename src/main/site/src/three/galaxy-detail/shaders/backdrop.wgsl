@@ -165,23 +165,20 @@ fn brightRegions(p: vec3<f32>, seed: f32) -> f32 {
 
 // ─── Emission colors ──────────────────────────────────────────────────────
 
-fn nebulaEmissionColor(hue: f32, variation: f32) -> vec3<f32> {
-  let hAlpha = vec3<f32>(0.9, 0.3, 0.35);
-  let oiii   = vec3<f32>(0.2, 0.7, 0.65);
-  let sii    = vec3<f32>(0.8, 0.25, 0.2);
-  let hBeta  = vec3<f32>(0.3, 0.5, 0.8);
+fn nebulaEmissionColor(hue: f32, variation: f32, seed: f32) -> vec3<f32> {
+  // IQ cosine palette with seed-driven phase for unique colors per galaxy
+  let s1 = seedHash(seed + 10.0);
+  let s2 = seedHash(seed + 20.0);
+  let s3 = seedHash(seed + 30.0);
 
-  var col: vec3<f32>;
-  if (hue < 0.25) {
-    col = mix(hAlpha, oiii, hue / 0.25);
-  } else if (hue < 0.5) {
-    col = mix(oiii, hBeta, (hue - 0.25) / 0.25);
-  } else if (hue < 0.75) {
-    col = mix(hBeta, sii, (hue - 0.5) / 0.25);
-  } else {
-    col = mix(sii, hAlpha, (hue - 0.75) / 0.25);
-  }
-  return col + (variation - 0.5) * 0.15;
+  let a = vec3<f32>(0.5, 0.4, 0.5);
+  let b = vec3<f32>(0.5, 0.4, 0.45);
+  let c = vec3<f32>(1.0, 1.0, 0.8);
+  let d = vec3<f32>(s1, s2, s3);
+
+  var col = a + b * cos(6.283185 * (c * hue + d));
+  col = col + (variation - 0.5) * 0.12;
+  return max(col, vec3<f32>(0.0));
 }
 
 fn starColorFromTemp(temp: f32) -> vec3<f32> {
@@ -355,7 +352,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
     let cc = normalize(vec3<f32>(seedHash(cs) - 0.5, seedHash(cs + 0.1) - 0.5, seedHash(cs + 0.2) - 0.5));
     let csz = 0.15 + seedHash(cs + 0.3) * 0.25;
     let ch = fract(sh1 + 0.3 + seedHash(cs + 0.4) * 0.4);
-    let ccol = nebulaEmissionColor(ch, seedHash(cs + 0.5));
+    let ccol = nebulaEmissionColor(ch, seedHash(cs + 0.5), uSeed);
     let cloud = distantGasCloud(dir, cs, cc, csz, ccol);
     finalColor = mix(finalColor, finalColor + cloud.rgb * uNebulaIntensity, cloud.a);
   }
@@ -379,7 +376,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
   let colorNoise = fbm3D(animPos * 1.2 + vec3<f32>(sh3 * 10.0), 3) * 0.5 + 0.5;
   let regionalHue = fbm3D(animPos * 0.4 + sh4 * 20.0, 2) * 0.3;
   let hue = fract(sh1 + colorNoise * 0.25 + regionalHue);
-  var nebulaColor = nebulaEmissionColor(hue, colorNoise);
+  var nebulaColor = nebulaEmissionColor(hue, colorNoise, uSeed);
 
   var hotspots = fbm3D(animPos * 2.5 + sh6 * 30.0, 2);
   hotspots = pow(max(hotspots + 0.3, 0.0), 2.0);
@@ -398,7 +395,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
   nebulaColor = nebulaColor + nebulaColor * edgeGlow * 0.5;
 
   let brightEdge = pow(max(brightSpots - 0.2, 0.0), 0.5);
-  nebulaColor = nebulaColor + nebulaEmissionColor(hue + 0.1, 0.8) * brightEdge * 0.3;
+  nebulaColor = nebulaColor + nebulaEmissionColor(hue + 0.1, 0.8, uSeed) * brightEdge * 0.3;
 
   let dustLane = smoothstep(0.2, 0.5, fbm3D(animPos * 1.5 + vec3<f32>(sh2 * 5.0), 3));
   nebulaColor = nebulaColor * (0.5 + dustLane * 0.5);
@@ -418,7 +415,7 @@ fn backdrop(dir: vec3<f32>, uTime: f32, uSeed: f32, uNebulaIntensity: f32) -> ve
     ));
     let ksz = 0.02 + seedHash(ks + 0.3) * 0.03;
     let kh = fract(sh1 + 0.15 + seedHash(ks + 0.4) * 0.2);
-    let kcol = nebulaEmissionColor(kh, 0.7) * 1.5;
+    let kcol = nebulaEmissionColor(kh, 0.7, uSeed) * 1.5;
     let knot = emissionKnot(dir, ks, kc, ksz, kcol);
     nebulaColor = nebulaColor + knot.rgb;
     nebulaAlpha = max(nebulaAlpha, knot.a);

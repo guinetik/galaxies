@@ -217,28 +217,30 @@ float brightRegions(vec3 p, float seed) {
 }
 
 // =============================================================================
-// EMISSION COLORS — physically-inspired nebula palette
+// EMISSION COLORS — IQ cosine palette with seed-driven phase
+// Replaces fixed 4-color cycle with unique palette per galaxy.
+// Formula: color(t) = a + b * cos(2π * (c*t + d))
+// Phase vector d is derived from uSeed → every galaxy sky is unique.
+// Reference: Inigo Quilez, "Procedural Color Palettes"
 // =============================================================================
 
 vec3 nebulaEmissionColor(float hue, float variation) {
-  vec3 hAlpha = vec3(0.9, 0.3, 0.35);   // H-alpha red
-  vec3 oiii   = vec3(0.2, 0.7, 0.65);   // OIII teal
-  vec3 sii    = vec3(0.8, 0.25, 0.2);   // SII deep red
-  vec3 hBeta  = vec3(0.3, 0.5, 0.8);    // H-beta blue
+  // Seed-driven phase offset — this is what creates per-galaxy variety
+  float s1 = seedHash(uSeed + 10.0);
+  float s2 = seedHash(uSeed + 20.0);
+  float s3 = seedHash(uSeed + 30.0);
 
-  vec3 color;
-  if (hue < 0.25) {
-    color = mix(hAlpha, oiii, hue / 0.25);
-  } else if (hue < 0.5) {
-    color = mix(oiii, hBeta, (hue - 0.25) / 0.25);
-  } else if (hue < 0.75) {
-    color = mix(hBeta, sii, (hue - 0.5) / 0.25);
-  } else {
-    color = mix(sii, hAlpha, (hue - 0.75) / 0.25);
-  }
+  // a = brightness center, b = contrast amplitude
+  // Tuned for nebula aesthetics: rich darks, saturated mids, bright peaks
+  vec3 a = vec3(0.5, 0.4, 0.5);
+  vec3 b = vec3(0.5, 0.4, 0.45);
+  // c ≈ 1.0 = one smooth color cycle; slight desync on blue for richer hues
+  vec3 c = vec3(1.0, 1.0, 0.8);
+  vec3 d = vec3(s1, s2, s3);
 
-  color += (variation - 0.5) * 0.15;
-  return color;
+  vec3 color = a + b * cos(6.283185 * (c * hue + d));
+  color += (variation - 0.5) * 0.12;
+  return max(color, vec3(0.0));
 }
 
 // =============================================================================
