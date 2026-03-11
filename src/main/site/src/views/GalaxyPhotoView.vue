@@ -1383,7 +1383,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-top: 1rem;
+  padding: 0.5rem 0 0.5rem 0;
   overflow-y: auto;
 }
 
@@ -1391,13 +1391,13 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 1.5rem 1rem;
+  padding: 0 1rem 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 
 .tune-drawer-title {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   margin: 0;
@@ -1405,8 +1405,8 @@ onBeforeUnmount(() => {
 }
 
 .tune-drawer-close {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1414,7 +1414,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
   transition: all 0.2s;
@@ -1428,14 +1428,14 @@ onBeforeUnmount(() => {
 
 .tune-drawer-body {
   flex: 1;
-  padding: 1.5rem;
+  padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
 .tune-best-fit {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
   align-self: flex-start;
 }
 
@@ -1471,7 +1471,33 @@ onBeforeUnmount(() => {
   color: #fff;
 }
 
-/* ── Controls ── */
+/* ── Controls (tune drawer) ── */
+.tune-drawer .control-group {
+  margin-bottom: 0.75rem;
+}
+
+.tune-drawer .control-group:last-child {
+  margin-bottom: 0;
+}
+
+.tune-drawer .label-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.tune-drawer .control-group label {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tune-drawer .param-value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
+  color: #22d3ee;
+}
+
+/* Base control-group for other uses */
 .control-group {
   margin-bottom: 1.5rem;
 }
@@ -1526,7 +1552,7 @@ onBeforeUnmount(() => {
 .theme-toggle {
   display: flex;
   background: rgba(0, 0, 0, 0.3);
-  padding: 4px;
+  padding: 3px;
   border-radius: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1536,8 +1562,8 @@ onBeforeUnmount(() => {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  padding: 8px;
-  font-size: 0.875rem;
+  padding: 6px;
+  font-size: 0.8125rem;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
