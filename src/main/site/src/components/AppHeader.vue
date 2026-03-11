@@ -34,6 +34,7 @@
     <!-- Desktop tools (right) -->
     <div class="hidden md:flex flex-1 items-center gap-4 justify-end">
       <select
+        v-if="isHomePage"
         :value="currentLocation"
         class="bg-white/10 text-white/80 text-xs rounded px-2 py-1 border border-white/20 cursor-pointer"
         @change="$emit('update:location', ($event.target as HTMLSelectElement).value)"
@@ -101,7 +102,7 @@
 
         <div class="mobile-menu-divider" />
 
-        <div class="mobile-menu-controls">
+        <div v-if="isHomePage" class="mobile-menu-controls">
           <label class="mobile-label">{{ t('header.location') }}</label>
           <select
             :value="currentLocation"
@@ -130,11 +131,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { LOCATIONS } from '@/three/constants'
 
 const menuOpen = ref(false)
+const route = useRoute()
+const isHomePage = computed(() => route.path === '/')
 
 defineProps<{
   currentLocation: string
