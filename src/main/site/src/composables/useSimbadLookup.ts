@@ -13,6 +13,33 @@ export interface SimbadObject {
 }
 
 /**
+ * Object types to exclude (emission-based, radio, etc.).
+ * SIMBAD classifies as "peculiar emitters" when physical nature is unknown.
+ */
+const EXCLUDED_OTYPES = [
+  'radio',
+  'em*',
+  'ir',
+  'uv',
+  'x',
+  'gam',
+  'gamma',
+  'grb',
+  'pulsar',
+  'maser',
+]
+
+/**
+ * Returns true if the object type should be shown (not filtered out).
+ * Excludes emission-based types (Radio, Em*, IR, X, etc.).
+ */
+export function isDisplayableSimbadType(otype: string): boolean {
+  if (!otype || otype === 'Unknown') return false
+  const lower = otype.toLowerCase()
+  return !EXCLUDED_OTYPES.some((ex) => lower.includes(ex))
+}
+
+/**
  * Composable for querying SIMBAD astronomical objects by coordinates
  */
 export function useSimbadLookup() {
@@ -25,76 +52,72 @@ export function useSimbadLookup() {
    * @param ra Right ascension in decimal degrees
    * @param dec Declination in decimal degrees
    * @param radiusArcsec Search radius in arcseconds (default: 30)
+   * @param options.objectTypeFilter When 'starsAndGalaxies', uses TAP API to filter at source (excludes Nova, Em*, etc.)
    */
   async function query(
     ra: number,
     dec: number,
-    radiusArcsec: number = 30
+    radiusArcsec: number = 30,
+    options?: { objectTypeFilter?: 'starsAndGalaxies' }
   ): Promise<void> {
     loading.value = true
     error.value = null
     results.value = []
 
     try {
-      const radiusDeg = radiusArcsec / 3600 // Convert arcseconds to degrees
+      const radiusDeg = radiusArcsec / 3600
 
-      // Build SIMBAD cone search URL
-      const url = new URL('https://simbad.cds.unistra.fr/cone/')
-      url.searchParams.set('RA', ra.toString())
-      url.searchParams.set('DEC', dec.toString())
-      url.searchParams.set('SR', radiusDeg.toString())
-      url.searchParams.set('RESPONSEFORMAT', 'json')
-      url.searchParams.set('VERB', '2')
-
-      const response = await fetch(url.toString())
-      if (!response.ok) {
-        throw new Error(`SIMBAD API error: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-
-      // Debug: Log the raw response structure
-      //console.log('SIMBAD response:', data)
-      //console.log('Has data.data:', !!data.data)
-      //console.log('Data array length:', data.data?.length || 0)
-      if (data.data && data.data.length > 0) {
-        //console.log('First row keys:', Object.keys(data.data[0]))
-        //console.log('First row:', data.data[0])
-      }
-
-      // Parse SIMBAD JSON response
-      // The API returns { columns: [...], data: [[...], [...]] }
-      // where columns describe the field names and data contains the rows
-      if (data.columns && data.data && Array.isArray(data.data)) {
-        // Create a mapping of column names to indices
-        const columnMap: Record<string, number> = {}
-        data.columns.forEach((col: any, idx: number) => {
-          columnMap[col.name.toLowerCase()] = idx
-        })
-
-        console.log('Column map:', columnMap)
-
-        // Convert array rows to objects using the column mapping
-        results.value = data.data
-          .map((row: any[]) => {
-            const mainIdIdx = columnMap['main_id']
-            const typeIdx = columnMap['otype']
-            const raIdx = columnMap['ra']
-            const decIdx = columnMap['dec']
-
-            const name = row[mainIdIdx] || 'Unknown'
-            return {
-              name,
-              type: row[typeIdx] || 'Unknown',
-              ra: raIdx !== undefined ? parseFloat(row[raIdx]) : undefined,
-              dec: decIdx !== undefined ? parseFloat(row[decIdx]) : undefined,
-              simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(name)}`,
-            }
-          })
-          .filter((obj: any) => obj.name && obj.name !== 'Unknown') // Only include objects with names
-          .slice(0, 50) // Keep up to 50 for component to filter
+      if (options?.objectTypeFilter === 'starsAndGalaxies') {
+        // TAP API: filter at source — stars only (exclude Nova, Em*, galaxies)
+        const adql = `SELECT TOP 50 main_id, ra, dec, otype FROM basic WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${ra}, ${dec}, ${radiusDeg})) = 1 AND otype = 'Star..' AND otype NOT IN ('No*', 'Em*')`
+        const url = `https://simbad.cds.unistra.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=json&QUERY=${encodeURIComponent(adql)}`
+        const response = await fetch(url)
+        if (!response.ok) throw new Error(`SIMBAD TAP error: ${response.statusText}`)
+        const data = await response.json()
+        if (data.data && Array.isArray(data.data)) {
+          results.value = data.data.map((row: unknown[]) => ({
+            name: row[0] || 'Unknown',
+            type: row[3] || 'Unknown',
+            ra: typeof row[1] === 'number' ? row[1] : undefined,
+            dec: typeof row[2] === 'number' ? row[2] : undefined,
+            simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(String(row[0] || ''))}`,
+          })).filter((obj: SimbadObject) => obj.name && obj.name !== 'Unknown')
+        }
       } else {
-        results.value = []
+        // Cone search (all types, client-side filter)
+        const coneUrl = new URL('https://simbad.cds.unistra.fr/cone/')
+        coneUrl.searchParams.set('RA', ra.toString())
+        coneUrl.searchParams.set('DEC', dec.toString())
+        coneUrl.searchParams.set('SR', radiusDeg.toString())
+        coneUrl.searchParams.set('RESPONSEFORMAT', 'json')
+        coneUrl.searchParams.set('VERB', '2')
+        const response = await fetch(coneUrl.toString())
+        if (!response.ok) throw new Error(`SIMBAD API error: ${response.statusText}`)
+        const data = await response.json()
+        if (data.columns && data.data && Array.isArray(data.data)) {
+          const columnMap: Record<string, number> = {}
+          data.columns.forEach((col: { name: string }, idx: number) => {
+            columnMap[col.name.toLowerCase()] = idx
+          })
+          results.value = data.data
+            .map((row: unknown[]) => {
+              const mainIdIdx = columnMap['main_id']
+              const typeIdx = columnMap['otype']
+              const raIdx = columnMap['ra']
+              const decIdx = columnMap['dec']
+              const arr = row as unknown[]
+              const name = arr[mainIdIdx] || 'Unknown'
+              return {
+                name,
+                type: arr[typeIdx] || 'Unknown',
+                ra: raIdx !== undefined ? parseFloat(arr[raIdx] as string) : undefined,
+                dec: decIdx !== undefined ? parseFloat(arr[decIdx] as string) : undefined,
+                simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(String(name))}`,
+              }
+            })
+            .filter((obj: SimbadObject) => obj.name && obj.name !== 'Unknown' && isDisplayableSimbadType(obj.type))
+            .slice(0, 50)
+        }
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
