@@ -75,9 +75,9 @@ void main() {
 
   vec3 infra = vec3(longWave, visible, shortWave);
   vec3 astral = vec3(
-    visible * 0.45 + shortWave * 0.10,
-    visible * 0.80 + longWave * 0.05,
-    shortWave + longWave * 0.12
+    luminance * 0.25 + shortWave * 0.15,
+    luminance * 0.35 + visible * 0.25,
+    luminance * 0.70 + shortWave * 0.50
   );
 
   vec3 themed = mix(infra, astral, clamp(uTheme, 0.0, 1.0));

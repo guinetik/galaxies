@@ -619,11 +619,16 @@ function medianFromHistogram(hist: Uint32Array, total: number): number {
  * Uses histogram-based median/MAD (O(n) instead of sorting).
  * Algorithm: PixInsight AutoSTF (Juan Conejero).
  *   C = -2.8 (shadow clipping in sigma units)
- *   B = 0.25 (target background level)
+ *   B = 0.10 (target background level — lower than PI default 0.25 because
+ *             16-bit PNGs preserve more faint signal than 8-bit WebPs)
+ *
+ * TODO: Works well for i-band but blows out weaker bands (u, z, nuv) where
+ * the signal is mostly noise. Consider an SNR gate (skip stretch if median/MAD
+ * ratio is too low) or per-band B adjustment based on metadata data_ranges.
  */
 function computeStfParams(hist: Uint32Array, total: number): { c0: number; m: number } {
   const C = -2.8
-  const B = 0.25
+  const B = 0.10
 
   const median = medianFromHistogram(hist, total)
 
