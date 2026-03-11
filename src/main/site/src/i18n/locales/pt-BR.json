@@ -190,6 +190,10 @@
     "galaxy": {
       "dataButton": "Dados",
       "photoButton": "Foto",
+      "knownStars": {
+        "title": "Estrelas Conhecidas",
+        "empty": "Nenhum objeto catalogado no SIMBAD"
+      },
       "size": "Tamanho",
       "sizeObserved": "observado",
       "sizeMass": "est. pela massa",
@@ -255,6 +259,9 @@
         "nsa3d": "Nuvem de pontos 3D heurística. Cada pixel acima de um limiar de brilho se torna um ponto 3D, com profundidade atribuída por ruído determinístico e leve inclinação espectral (regiões UV quentes para frente, regiões infravermelhas empoeiradas para trás). As seis bandas espectrais determinam a cor de cada ponto baseado em seus comprimentos de onda físicos. Arraste para orbitar, role para ampliar.",
         "nsamorphology": "Nuvem de morfologia por tensor de estrutura, baseada em Makarenko et al. (2014). Em vez de profundidade aleatória, a filamentaridade local do campo de intensidade determina a espessura em z: estruturas redondas (núcleo, nós de formação estelar) ganham profundidade volumétrica, enquanto estruturas filamentares (braços espirais, caudas de maré) se achatam em folhas finas. Camadas de profundidade são coloridas como nebulosas de emissão — diferentes posições z recebem diferentes matizes, e a mistura aditiva as combina conforme você orbita."
       }
+    },
+    "galaxyMosaic": {
+      "retry": "Tentar novamente"
     },
     "map": {
       "title": "Mapa Cósmico",

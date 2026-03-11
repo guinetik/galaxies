@@ -148,6 +148,10 @@
     "galaxy": {
       "dataButton": "Data",
       "photoButton": "Photo",
+      "knownStars": {
+        "title": "Known Stars",
+        "empty": "No catalogued objects in SIMBAD"
+      },
       "size": "Size",
       "sizeObserved": "observed",
       "sizeMass": "est. from mass",
@@ -213,6 +217,9 @@
         "nsa3d": "Heuristic 3D point cloud. Each pixel above a brightness threshold becomes a 3D point, with depth assigned from deterministic noise and a gentle spectral tilt (UV-hot regions forward, infrared-dusty regions back). The six spectral bands drive per-point color based on their physical wavelengths. Drag to orbit, scroll to zoom.",
         "nsamorphology": "Structure-tensor morphology cloud, based on Makarenko et al. (2014). Instead of random depth, the local filamentarity of the intensity field drives the z-thickness: round structures (galaxy core, star-forming knots) get volumetric depth, while filamentary structures (spiral arms, tidal tails) collapse to thin sheets. Depth layers are color-coded like emission nebulae — different z-positions get different hues, and additive blending mixes them as you orbit."
       }
+    },
+    "galaxyMosaic": {
+      "retry": "Retry"
     },
     "map": {
       "title": "Cosmic Map",
