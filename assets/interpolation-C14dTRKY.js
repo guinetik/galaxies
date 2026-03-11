@@ -1,0 +1,1 @@
+function c(n,o,t){return Math.max(o,Math.min(t,n))}function r(n){return n<.5?4*n*n*n:1-Math.pow(-2*n+2,3)/2}function s(n,o,t){const a=Math.log10(o),e=Math.log10(t);return(Math.log10(n)-a)/(e-a)*100}function u(n){const o=Math.sin(n)*1e4;return o-Math.floor(o)}export{c,r as e,s as m,u as s};
