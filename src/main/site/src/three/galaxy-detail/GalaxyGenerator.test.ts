@@ -130,8 +130,8 @@ describe('generateGalaxy', () => {
       bandProfile: {
         // Mock band profile with strong features
         availability: {
-          real: { u: false, g: false, r: false, i: false, z: false, w1: false },
-          fallback: { u: true, g: true, r: true, i: true, z: true, w1: true },
+          real: { u: false, g: false, r: false, i: false, z: false, nuv: false },
+          fallback: { u: true, g: true, r: true, i: true, z: true, nuv: true },
         },
         globalColorBalance: { hot: 0.7, stellar: 0.3, dust: 0.4 },
         concentration: 0.5,
@@ -174,8 +174,8 @@ describe('generateGalaxy', () => {
       bandProfile: {
         // armScatterScale 1.5 should widen arms
         availability: {
-          real: { u: false, g: false, r: false, i: false, z: false, w1: false },
-          fallback: { u: true, g: true, r: true, i: true, z: true, w1: true },
+          real: { u: false, g: false, r: false, i: false, z: false, nuv: false },
+          fallback: { u: true, g: true, r: true, i: true, z: true, nuv: true },
         },
         globalColorBalance: { hot: 0.5, stellar: 0.5, dust: 0.5 },
         concentration: 0.5,
