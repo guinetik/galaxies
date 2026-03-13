@@ -24,9 +24,9 @@
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import CepheidExperiment from './experiments/CepheidExperiment.vue'
-import SBFExperiment from './experiments/SBFExperiment.vue'
-import TullyFisherExperiment from './experiments/TullyFisherExperiment.vue'
+import CepheidMachine from './experiments/CepheidMachine.vue'
+import SBFMachine from './experiments/SBFMachine.vue'
+import TullyFisherMachine from './experiments/TullyFisherMachine.vue'
 import SNIaExperiment from './experiments/SNIaExperiment.vue'
 
 const props = defineProps<{
@@ -38,9 +38,9 @@ const { t } = useI18n()
 const isExpanded = ref(false)
 
 const EXPERIMENT_MAP: Record<string, object> = {
-  ceph: CepheidExperiment,
-  sbf: SBFExperiment,
-  tf: TullyFisherExperiment,
+  ceph: CepheidMachine,
+  sbf: SBFMachine,
+  tf: TullyFisherMachine,
   snia: SNIaExperiment,
 }
 

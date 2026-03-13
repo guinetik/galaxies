@@ -47,6 +47,67 @@ const W = 300
 const H = 180
 const UNIVERSE_AGE = 13800 // Mly (≈13.8 billion years)
 
+/**
+ * Convert a wavelength in nm (380–780) to an RGB hex string.
+ * Based on Dan Bruton's approximate visible-spectrum algorithm.
+ */
+function wavelengthToHex(nm: number): string {
+  let r = 0, g = 0, b = 0
+  if (nm >= 380 && nm < 440) {
+    r = -(nm - 440) / (440 - 380)
+    g = 0
+    b = 1
+  } else if (nm >= 440 && nm < 490) {
+    r = 0
+    g = (nm - 440) / (490 - 440)
+    b = 1
+  } else if (nm >= 490 && nm < 510) {
+    r = 0
+    g = 1
+    b = -(nm - 510) / (510 - 490)
+  } else if (nm >= 510 && nm < 580) {
+    r = (nm - 510) / (580 - 510)
+    g = 1
+    b = 0
+  } else if (nm >= 580 && nm < 645) {
+    r = 1
+    g = -(nm - 645) / (645 - 580)
+    b = 0
+  } else if (nm >= 645 && nm <= 780) {
+    r = 1
+    g = 0
+    b = 0
+  }
+
+  // Intensity falloff at edges of visible spectrum
+  let factor = 1.0
+  if (nm >= 380 && nm < 420) factor = 0.3 + 0.7 * (nm - 380) / (420 - 380)
+  else if (nm > 700 && nm <= 780) factor = 0.3 + 0.7 * (780 - nm) / (780 - 700)
+
+  const gamma = 0.8
+  const ri = Math.round(255 * Math.pow(r * factor, gamma))
+  const gi = Math.round(255 * Math.pow(g * factor, gamma))
+  const bi = Math.round(255 * Math.pow(b * factor, gamma))
+  return `rgb(${ri},${gi},${bi})`
+}
+
+/** Rest wavelength of emitted light — blue-white starlight */
+const REST_WAVELENGTH = 470 // nm (blue)
+
+/**
+ * Compute the observed wavelength for a photon at a given travel progress.
+ * Uses exaggerated redshift so the effect is visible at 1–500 Mly scales.
+ * Real cosmological z at 500 Mly ≈ 0.04 — far too small to see,
+ * so we amplify it for educational intuition.
+ */
+function observedWavelength(distanceMly: number, progress: number): number {
+  // Exaggerated redshift: map 0–500 Mly to z ≈ 0–0.6
+  const zMax = (distanceMly / 500) * 0.6
+  // Photon accumulates redshift as it travels (progress 0→1)
+  const z = zMax * progress
+  return REST_WAVELENGTH * (1 + z)
+}
+
 interface Photon {
   progress: number
   id: number
@@ -268,7 +329,6 @@ function animate(time: number) {
         enter
           .append('circle')
           .attr('r', 1.5)
-          .attr('fill', '#ffe066')
           .attr('filter', 'url(#photon-glow)')
           .attr('opacity', 0.9),
       (update) => update,
@@ -276,6 +336,7 @@ function animate(time: number) {
     )
       .attr('cx', (d) => gx + (earthX - gx) * d.progress)
       .attr('cy', H / 2)
+      .attr('fill', (d) => wavelengthToHex(observedWavelength(distance.value, d.progress)))
       .attr('opacity', (d) => 0.9 - d.progress * 0.4)
   }
 
