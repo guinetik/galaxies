@@ -206,20 +206,31 @@ function applyCentralClearZone(stars: Star[], params: GalaxyRenderParams): Star[
  * Generates a diffuse field star with radial spectral weighting instead of a
  * fixed warm tint so outskirts can still contain cooler populations.
  */
-function generateFieldStar(galaxyRadius: number): Star {
+function generateFieldStar(
+  galaxyRadius: number,
+  influence: BandInfluenceConfig | null = null,
+): Star {
   const angle = Math.random() * TAU
   const radius = Math.sqrt(Math.random()) * galaxyRadius
-  const y = (Math.random() - 0.5) * galaxyRadius * 0.08
+  let y = (Math.random() - 0.5) * galaxyRadius * 0.08
   const layer = assignLayer(Math.random())
   const props = layerProperties(layer)
   const distFactor = radius / galaxyRadius
 
   const spec = pickHueAndSat(layer, distFactor)
+
+  const x = Math.cos(angle) * radius
+  const z = Math.sin(angle) * radius
+  const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+
+  const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
+  const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
+
   return {
-    radius,
-    angle,
-    y,
-    rotationSpeed: computeRotationSpeed(radius),
+    radius: silhouettedRadius,
+    angle: silhouettedAngle,
+    y: silhouetted.y,
+    rotationSpeed: computeRotationSpeed(silhouettedRadius),
     hue: spec.hue,
     sat: spec.sat,
     brightness: props.brightness,
@@ -333,7 +344,11 @@ function generateArmStars(
 
 // ─── Bar star generator ─────────────────────────────────────────────────────
 
-function generateBarStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateBarStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
   const galaxyRadius = p.galaxyRadius
   const barLength = p.morphology.barLength * galaxyRadius
@@ -342,21 +357,28 @@ function generateBarStars(p: GalaxyRenderParams, count: number): Star[] {
   for (let i = 0; i < count; i++) {
     const alongBar = (Math.random() - 0.5) * 2 * barLength
     const acrossBar = (Math.random() - 0.5) * barWidth
-    const x = alongBar
-    const z = acrossBar
+    let x = alongBar
+    let z = acrossBar
+    let y = (Math.random() - 0.5) * galaxyRadius * 0.04
     const actualRadius = Math.sqrt(x * x + z * z)
     if (actualRadius > galaxyRadius) continue
 
-    const actualAngle = Math.atan2(z, x)
+    const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+    const finalX = silhouetted.x
+    const finalY = silhouetted.y
+    const finalZ = silhouetted.z
+
+    const silhouettedRadius = Math.sqrt(finalX * finalX + finalZ * finalZ)
+    const silhouettedAngle = Math.atan2(finalZ, finalX)
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
     const spec = pickHueAndSat(layer, 0.1) // near-core colors
 
     stars.push({
-      radius: actualRadius,
-      angle: actualAngle,
-      y: (Math.random() - 0.5) * galaxyRadius * 0.04,
-      rotationSpeed: computeRotationSpeed(actualRadius),
+      radius: silhouettedRadius,
+      angle: silhouettedAngle,
+      y: finalY,
+      rotationSpeed: computeRotationSpeed(silhouettedRadius),
       hue: spec.hue,
       sat: spec.sat,
       brightness: props.brightness,
@@ -372,27 +394,39 @@ function generateBarStars(p: GalaxyRenderParams, count: number): Star[] {
 
 // ─── Bulge star generator ───────────────────────────────────────────────────
 
-function generateBulgeStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateBulgeStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
   const bulgeRadius = p.morphology.bulgeRadius * p.galaxyRadius
+  const bulgeBoost = influence?.bulgeBoost ?? 0
 
   for (let i = 0; i < count; i++) {
     const r = Math.pow(Math.random(), 0.6) * bulgeRadius
     const theta = Math.random() * TAU
-    const y = (Math.random() - 0.5) * bulgeRadius * 0.5
+    let y = (Math.random() - 0.5) * bulgeRadius * 0.5
 
     // Bulge stars are mostly old, warm population — brighter toward center
     const distFactor = r / bulgeRadius
-    const coreBrightBoost = 1.0 + (1.0 - distFactor) * 0.5
+    const coreBrightBoost = 1.0 + (1.0 - distFactor) * (0.4 + bulgeBoost * 0.2)
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
 
+    const x = Math.cos(theta) * r
+    const z = Math.sin(theta) * r
+    const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+
+    const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
+    const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
+
     const spec = pickHueAndSat(layer, 0.1)
     stars.push({
-      radius: r,
-      angle: theta,
-      y,
-      rotationSpeed: computeRotationSpeed(r) * 0.5,
+      radius: silhouettedRadius,
+      angle: silhouettedAngle,
+      y: silhouetted.y,
+      rotationSpeed: computeRotationSpeed(silhouettedRadius) * 0.5,
       hue: spec.hue,
       sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
@@ -408,7 +442,11 @@ function generateBulgeStars(p: GalaxyRenderParams, count: number): Star[] {
 
 // ─── Elliptical star generator ──────────────────────────────────────────────
 
-function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateEllipticalStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
   const galaxyRadius = p.galaxyRadius
   const axisRatio = p.morphology.axisRatio
@@ -419,11 +457,14 @@ function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
     const r = Math.pow(u, 0.4) * galaxyRadius
     const theta = v * TAU
 
-    const x = r * Math.cos(theta)
-    const z = r * Math.sin(theta) * axisRatio
+    let x = r * Math.cos(theta)
+    let z = r * Math.sin(theta) * axisRatio
+    let y = (Math.random() - 0.5) * galaxyRadius * 0.1 * (1 - r / galaxyRadius * 0.5)
 
-    const actualRadius = Math.sqrt(x * x + z * z)
-    const actualAngle = Math.atan2(z, x)
+    const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+
+    const actualRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
+    const actualAngle = Math.atan2(silhouetted.z, silhouetted.x)
     const distFactor = actualRadius / galaxyRadius
 
     const layer = assignLayer(Math.random())
@@ -433,7 +474,7 @@ function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
-      y: (Math.random() - 0.5) * galaxyRadius * 0.1 * (1 - distFactor * 0.5),
+      y: silhouetted.y,
       rotationSpeed: computeRotationSpeed(actualRadius) * 0.3,
       hue: spec.hue,
       sat: spec.sat,
@@ -454,7 +495,11 @@ function generateEllipticalStars(p: GalaxyRenderParams, count: number): Star[] {
 // to a lens edge. Generated as a single continuous distribution to avoid
 // visible gaps between bulge and disk components.
 
-function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateLenticularStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
   const galaxyRadius = p.galaxyRadius
   const bulgeRadius = p.morphology.bulgeRadius * galaxyRadius
@@ -464,25 +509,34 @@ function generateLenticularStars(p: GalaxyRenderParams, count: number): Star[] {
     const r = Math.pow(Math.random(), 0.55) * galaxyRadius
     const theta = Math.random() * TAU
     const distFactor = r / galaxyRadius
+    const diskThicknessScale = influence?.diskThicknessScale ?? 1
 
     // Match the WebGPU lens profile: a fuller central thickness that tapers
     // quadratically toward the disk edge.
-    const thickness = galaxyRadius * 0.06 * Math.pow(Math.max(1 - distFactor, 0), 2)
-    const y = (Math.random() - 0.5) * thickness
+    const baseThickness = galaxyRadius * 0.06 * Math.pow(Math.max(1 - distFactor, 0), 2)
+    const thickness = baseThickness * diskThicknessScale
+    let y = (Math.random() - 0.5) * thickness
 
     // Match the WebGPU continuous bulge weighting instead of a hard in/out split.
     const bulgeBlend = Math.max(0, Math.min(1, 1 - r / Math.max(bulgeRadius, 1)))
     const coreBrightBoost = 1.0 + bulgeBlend * 0.4
+
+    let x = Math.cos(theta) * r
+    let z = Math.sin(theta) * r
+    const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+
+    const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
+    const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
 
     const layer = assignLayer(Math.random())
     const props = layerProperties(layer)
 
     const spec = pickHueAndSat(layer, distFactor * 0.2)
     stars.push({
-      radius: r,
-      angle: theta,
-      y,
-      rotationSpeed: computeRotationSpeed(r) * (bulgeBlend > 0 ? 0.5 : 1.0),
+      radius: silhouettedRadius,
+      angle: silhouettedAngle,
+      y: silhouetted.y,
+      rotationSpeed: computeRotationSpeed(silhouettedRadius) * (bulgeBlend > 0 ? 0.5 : 1.0),
       hue: spec.hue,
       sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
@@ -506,11 +560,16 @@ interface Clump {
   isHII: boolean
 }
 
-function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateClumpStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
   const galaxyRadius = p.galaxyRadius
   const irregularity = p.morphology.irregularity
   const clumpCount = p.morphology.clumpCount
+  const clumpBoost = influence?.clumpBoost ?? 0
 
   const clumps: Clump[] = []
   for (let c = 0; c < clumpCount; c++) {
@@ -519,7 +578,7 @@ function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
     clumps.push({
       x: Math.cos(angle) * r,
       z: Math.sin(angle) * r,
-      sigma: 30 + Math.random() * 80,
+      sigma: (30 + Math.random() * 80) * (1 - clumpBoost * 0.3),
       weight: 0.5 + Math.random(),
       isHII: Math.random() < CONFIG.visual.hiiRegionChance,
     })
@@ -541,10 +600,13 @@ function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
       z = Math.sin(angle) * r + (Math.random() - 0.5) * 60
     }
 
-    const actualRadius = Math.sqrt(x * x + z * z)
+    let y = (Math.random() - 0.5) * galaxyRadius * 0.12
+    const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+
+    const actualRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
     if (actualRadius > galaxyRadius * 1.1) continue
 
-    const actualAngle = Math.atan2(z, x)
+    const actualAngle = Math.atan2(silhouetted.z, silhouetted.x)
     const distFactor = actualRadius / galaxyRadius
 
     const layer = assignLayer(Math.random())
@@ -554,7 +616,7 @@ function generateClumpStars(p: GalaxyRenderParams, count: number): Star[] {
     stars.push({
       radius: actualRadius,
       angle: actualAngle,
-      y: (Math.random() - 0.5) * galaxyRadius * 0.12,
+      y: silhouetted.y,
       rotationSpeed: computeRotationSpeed(actualRadius) * (0.5 + Math.random() * 0.5),
       hue: spec.hue,
       sat: spec.sat,
@@ -575,6 +637,7 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
   const m = params.morphology
   const totalStars = params.starCount
   const galaxyRadius = params.galaxyRadius
+  const influence = deriveBandInfluenceConfig(params.bandProfile) ?? null
   let stars: Star[] = []
 
   const hasBar = m.barLength > 0
@@ -587,19 +650,19 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
 
   if (isElliptical) {
     // Elliptical: all stars go to elliptical envelope
-    stars.push(...generateEllipticalStars(params, totalStars))
+    stars.push(...generateEllipticalStars(params, totalStars, influence))
 
   } else if (isLenticular) {
     // Lenticular: single smooth oblate distribution (no bulge/disk split)
-    stars.push(...generateLenticularStars(params, totalStars))
+    stars.push(...generateLenticularStars(params, totalStars, influence))
 
   } else if (hasClumps) {
     // Irregular: all non-field stars go to clumps
     const fieldCount = Math.floor(totalStars * m.fieldStarFraction)
     const clumpStarCount = totalStars - fieldCount
-    stars.push(...generateClumpStars(params, clumpStarCount))
+    stars.push(...generateClumpStars(params, clumpStarCount, influence))
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius))
+      stars.push(generateFieldStar(galaxyRadius, influence))
     }
 
   } else if (hasBar && hasArms) {
@@ -607,44 +670,44 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     const barCount = Math.floor(totalStars * 0.25)
     const remainingAfterBar = totalStars - barCount
 
-    stars.push(...generateBarStars(params, barCount))
+    stars.push(...generateBarStars(params, barCount, influence))
 
     // Arm stars: 90% of remaining (after bar), matching old barred logic
     const armCount = Math.floor(remainingAfterBar * 0.9)
-    stars.push(...generateArmStars(params, armCount))
+    stars.push(...generateArmStars(params, armCount, influence))
 
     // Bulge stars (additional, scaled by bulge/galaxy ratio)
     const bulgeRadius = m.bulgeRadius * galaxyRadius
     if (bulgeRadius > 0) {
       const bulgeFrac = Math.min(0.20, 0.08 + 0.18 * (bulgeRadius / galaxyRadius))
       const bulgeCount = Math.floor(totalStars * bulgeFrac)
-      stars.push(...generateBulgeStars(params, bulgeCount))
+      stars.push(...generateBulgeStars(params, bulgeCount, influence))
     }
 
     // Field stars: 10% of remaining
     const fieldCount = Math.floor(remainingAfterBar * 0.1)
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius))
+      stars.push(generateFieldStar(galaxyRadius, influence))
     }
 
   } else if (hasArms) {
     // Unbarred spiral: arms + bulge + field
     const fieldStarFraction = m.fieldStarFraction
     const armCount = Math.floor(totalStars * (1 - fieldStarFraction))
-    stars.push(...generateArmStars(params, armCount))
+    stars.push(...generateArmStars(params, armCount, influence))
 
     // Bulge stars (additional, scaled by bulge/galaxy ratio)
     const bulgeRadius = m.bulgeRadius * galaxyRadius
     if (bulgeRadius > 0) {
       const bulgeFrac = Math.min(0.25, 0.10 + 0.20 * (bulgeRadius / galaxyRadius))
       const bulgeCount = Math.floor(totalStars * bulgeFrac)
-      stars.push(...generateBulgeStars(params, bulgeCount))
+      stars.push(...generateBulgeStars(params, bulgeCount, influence))
     }
 
     // Field stars
     const fieldCount = Math.floor(totalStars * fieldStarFraction)
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius))
+      stars.push(generateFieldStar(galaxyRadius, influence))
     }
   }
 
