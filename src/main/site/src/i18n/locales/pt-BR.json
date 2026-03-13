@@ -66,11 +66,11 @@
     },
     "about": {
       "title": "Galáxias",
-      "subtitle": "Dezenas de milhares de galáxias. Distâncias medidas. Uma esfera celeste.",
+      "subtitle": "O universo local mapeado a partir de observações reais. Cada galáxia posicionada à sua verdadeira distância medida da Terra.",
       "backToSky": "Voltar ao Céu",
       "data": {
         "title": "Os Dados",
-        "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém dezenas de milhares de galáxias com distâncias medidas por métodos observacionais diretos — não estimativas derivadas da expansão do universo.",
+        "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém dezenas de milhares de galáxias com distâncias medidas por métodos observacionais diretos, não estimativas derivadas da expansão do universo.",
         "methodsTitle": "Oito Maneiras de Medir Distâncias",
         "methodsIntro": "Cada galáxia no catálogo tem sua distância determinada por um ou mais destes métodos, formando uma escada de distâncias cósmicas:",
         "methods": {
@@ -121,27 +121,27 @@
       },
       "measurements": {
         "title": "Lendo os Números",
-        "intro": "Quando você passa o mouse sobre uma galáxia, vê valores como 238 Mly e 4.403 km/s. Veja o que significam — uma introdução rápida antes de explorar a seção de Cosmografia.",
+        "intro": "Quando você passa o mouse sobre uma galáxia, vê valores como 238 Mly e 4.403 km/s. Veja o que significam, uma introdução rápida antes de explorar a seção de Cosmografia.",
         "mly": {
-          "title": "Mly — Milhões de anos-luz",
-          "desc": "Distância em milhões de anos-luz. Um ano-luz é a distância que a luz percorre em um ano — cerca de 9,5 trilhões de km. Então 238 Mly significa que a luz da galáxia levou 238 milhões de anos para nos alcançar. Estamos vendo-a como era há 238 milhões de anos.",
+          "title": "Mly: Milhões de anos-luz",
+          "desc": "Distância em milhões de anos-luz. Um ano-luz é a distância que a luz percorre em um ano, cerca de 9,5 trilhões de km. Então 238 Mly significa que a luz da galáxia levou 238 milhões de anos para nos alcançar. Estamos vendo-a como era há 238 milhões de anos.",
           "baseAlt": "Tooltip da galáxia mostrando distância em Mly",
           "zoomAlt": "Diagrama: Terra, raio de luz, galáxia distante"
         },
         "velocity": {
-          "title": "km/s — Velocidade",
-          "desc": "Quilômetros por segundo. Galáxias se afastam de nós porque o universo está se expandindo. Quanto mais rápido uma galáxia se afasta, mais avermelhada sua luz — e mais distante ela está. Essa velocidade de recessão é medida em km/s.",
+          "title": "km/s: Velocidade",
+          "desc": "Quilômetros por segundo. Galáxias se afastam de nós porque o universo está se expandindo. Quanto mais rápido uma galáxia se afasta, mais avermelhada sua luz, e mais distante ela está. Essa velocidade de recessão é medida em km/s.",
           "baseAlt": "Tooltip mostrando velocidade em km/s",
           "zoomAlt": "Diagrama: Galáxia recuando, espectro avermelhado"
         },
         "cmb": {
           "title": "Velocidade CMB",
-          "desc": "Velocidade de recessão no referencial da Radiação Cósmica de Fundo. A Terra se move a ~370 km/s em direção ao Grande Atrator. A velocidade CMB corrige isso — mostra quão rápido a galáxia recua em relação ao referencial do próprio universo.",
+          "desc": "Velocidade de recessão no referencial da Radiação Cósmica de Fundo. A Terra se move a ~370 km/s em direção ao Grande Atrator. A velocidade CMB corrige isso: mostra quão rápido a galáxia recua em relação ao referencial do próprio universo.",
           "baseAlt": "Mapa cósmico com galáxias codificadas por cor",
           "zoomAlt": "Diagrama: referencial CMB vs referencial terrestre"
         },
         "dm": {
-          "title": "DM — Módulo de Distância",
+          "title": "DM: Módulo de Distância",
           "desc": "O módulo de distância (m − M) é a diferença entre magnitude aparente e absoluta. Relaciona-se diretamente à distância: m − M = 5 log₁₀(d/10 pc). Um módulo de 25 corresponde a 1 Mpc. Astrônomos usam DM porque é aditivo ao combinar medições.",
           "baseAlt": "Painel de dados da galáxia mostrando valor DM",
           "zoomAlt": "Diagrama: Escala de magnitude"
@@ -166,14 +166,14 @@
       },
       "mapping": {
         "title": "Dos Dados ao Céu",
-        "positioning": "Cada galáxia é posicionada em uma esfera celeste usando sua ascensão reta e declinação — o mesmo sistema de coordenadas que astrônomos usam para localizar objetos no céu noturno. Você está olhando para fora da Terra, cercado pelo universo observável.",
-        "visibility": "Nem todas as galáxias são visíveis ao mesmo tempo. Conforme você aproxima o zoom, a visão revela progressivamente galáxias mais distantes — da vizinhança local no ângulo mais amplo, até o campo profundo completo no zoom máximo. Este filtro baseado em redshift espelha como telescópios reais funcionam: exposições mais profundas revelam objetos mais fracos e distantes.",
-        "sizing": "O tamanho da galáxia na tela é determinado pela distância medida. Galáxias mais próximas aparecem maiores, distantes menores — uma representação direta de sua proximidade física, não uma escolha estética arbitrária."
+        "positioning": "Cada galáxia é posicionada em uma esfera celeste usando sua ascensão reta e declinação, o mesmo sistema de coordenadas que astrônomos usam para localizar objetos no céu noturno. Você está olhando para fora da Terra, cercado pelo universo observável.",
+        "visibility": "Nem todas as galáxias são visíveis ao mesmo tempo. Conforme você aproxima o zoom, a visão revela progressivamente galáxias mais distantes, da vizinhança local no ângulo mais amplo até o campo profundo completo no zoom máximo. Este filtro baseado em redshift espelha como telescópios reais funcionam: exposições mais profundas revelam objetos mais fracos e distantes.",
+        "sizing": "O tamanho da galáxia na tela é determinado pela distância medida. Galáxias mais próximas aparecem maiores, distantes menores: uma representação direta de sua proximidade física, não uma escolha estética arbitrária."
       },
       "rendering": {
         "title": "Renderização Procedural de Galáxias",
-        "intro": "O Cosmicflows-4 fornece dados excelentes de distância, mas nenhuma informação morfológica — sem tipo de galáxia, sem magnitude de brilho, sem diâmetro. Cada galáxia que você vê na visão detalhada é gerada proceduralmente.",
-        "morphology": "Cada galáxia recebe um tipo morfológico baseado em seu número de catálogo PGC, usando uma função aleatória com semente ponderada pelas proporções cósmicas observadas: ~35% espiral, ~35% espiral barrada, ~15% elíptica, ~10% lenticular e ~5% irregular. O mesmo número PGC sempre produz a mesma galáxia — a geração é determinística.",
+        "intro": "O Cosmicflows-4 fornece dados excelentes de distância, mas nenhuma informação morfológica: sem tipo de galáxia, sem magnitude de brilho, sem diâmetro. Cada galáxia que você vê na visão detalhada é gerada proceduralmente.",
+        "morphology": "Cada galáxia recebe um tipo morfológico baseado em seu número de catálogo PGC, usando uma função aleatória com semente ponderada pelas proporções cósmicas observadas: ~35% espiral, ~35% espiral barrada, ~15% elíptica, ~10% lenticular e ~5% irregular. O mesmo número PGC sempre produz a mesma galáxia. A geração é determinística.",
         "particles": "A visão detalhada renderiza cada galáxia como um sistema de partículas de dezenas de milhares de estrelas, moldado por parâmetros específicos da morfologia: número e curvatura dos braços espirais, comprimento da barra, elipticidade, tamanho do bojo e espessura do disco. Todos os parâmetros são derivados do gerador aleatório com semente.",
         "blackhole": "No centro de cada galáxia, um buraco negro supermassivo é renderizado com um disco de acreção e efeito de lente gravitacional. A lente distorce o campo estelar ao redor em um passo de pós-processamento, com intensidade proporcional ao nível de zoom da câmera."
       },
@@ -190,6 +190,11 @@
     "galaxy": {
       "dataButton": "Dados",
       "photoButton": "Foto",
+      "info": {
+        "title": "O Que Você Está Vendo",
+        "bandGuided": "Dados de imagem reais do NASA-Sloan Atlas moldaram a aparência desta galáxia. Observações em múltiplas bandas espectrais, do ultravioleta ao infravermelho, informaram sua estrutura, proporções e cor. O que você vê é uma reconstrução tridimensional construída a partir de medições reais desta galáxia.",
+        "proceduralFallback": "Esta galáxia não está no nosso conjunto de dados de imagem, então sua aparência foi gerada proceduralmente a partir de registros do catálogo: distância, tipo morfológico e tamanho físico estimado. A galáxia é real e catalogada—sua posição e distância são medidas—mas o que você vê aqui é uma reconstrução, não uma renderização de observações reais."
+      },
       "knownStars": {
         "title": "Estrelas Conhecidas",
         "empty": "Nenhum objeto catalogado no SIMBAD"
@@ -257,7 +262,7 @@
         "custom": "Composição multi-banda personalizada. Todas as seis bandas espectrais contribuem para a imagem final através de mapeamento de intensidade por zonas. O comprimento de onda físico de cada banda determina a cor, criando diversidade espectral na estrutura da galáxia.",
         "volumetric": "Renderização volumétrica trata as seis bandas espectrais como camadas de densidade, misturando-as com ruído procedural para produzir uma estética de nuvem de gás. Zonas de intensidade são suavemente transicionadas, dando à galáxia uma aparência orgânica e nebular.",
         "nsa3d": "Nuvem de pontos 3D heurística. Cada pixel acima de um limiar de brilho se torna um ponto 3D, com profundidade atribuída por ruído determinístico e leve inclinação espectral (regiões UV quentes para frente, regiões infravermelhas empoeiradas para trás). As seis bandas espectrais determinam a cor de cada ponto baseado em seus comprimentos de onda físicos. Arraste para orbitar, role para ampliar.",
-        "nsamorphology": "Nuvem de morfologia por tensor de estrutura, baseada em Makarenko et al. (2014). Em vez de profundidade aleatória, a filamentaridade local do campo de intensidade determina a espessura em z: estruturas redondas (núcleo, nós de formação estelar) ganham profundidade volumétrica, enquanto estruturas filamentares (braços espirais, caudas de maré) se achatam em folhas finas. Camadas de profundidade são coloridas como nebulosas de emissão — diferentes posições z recebem diferentes matizes, e a mistura aditiva as combina conforme você orbita."
+        "nsamorphology": "Nuvem de morfologia por tensor de estrutura, baseada em Makarenko et al. (2014). Em vez de profundidade aleatória, a filamentaridade local do campo de intensidade determina a espessura em z: estruturas redondas (núcleo, nós de formação estelar) ganham profundidade volumétrica, enquanto estruturas filamentares (braços espirais, caudas de maré) se achatam em folhas finas. Camadas de profundidade são coloridas como nebulosas de emissão—diferentes posições z recebem diferentes matizes, e a mistura aditiva as combina conforme você orbita."
       }
     },
     "galaxyMosaic": {
@@ -265,7 +270,7 @@
     },
     "map": {
       "title": "Mapa Cósmico",
-      "subtitle": "Grupos de galáxias e galáxias individuais plotados em coordenadas supergalácticas — um atlas tridimensional do universo local.",
+      "subtitle": "Grupos de galáxias e galáxias individuais plotados em coordenadas supergalácticas: um atlas tridimensional do universo local.",
       "backToSky": "Voltar ao Céu",
       "groups": "Grupos",
       "galaxies": "Galáxias",
@@ -274,11 +279,11 @@
       "loading": "Carregando",
       "info": "Info",
       "infoTitle": "A Teia Cósmica",
-      "infoIntro": "Você está observando a distribuição tridimensional de galáxias do catálogo Cosmicflows-4, mapeadas em coordenadas supergalácticas. Em vez de olhar para fora da Terra, você agora vê o universo de fora — a disposição espacial real das galáxias no espaço cósmico.",
-      "infoStructure": "A estrutura em larga escala do universo não é aleatória. As galáxias se agrupam ao longo de filamentos e folhas, cercando vastos vazios. Esta rede — a teia cósmica — é o maior padrão conhecido na natureza, moldado pela gravidade ao longo de bilhões de anos.",
+      "infoIntro": "Você está observando a distribuição tridimensional de galáxias do catálogo Cosmicflows-4, mapeadas em coordenadas supergalácticas. Em vez de olhar para fora da Terra, você agora vê o universo de fora: a disposição espacial real das galáxias no espaço cósmico.",
+      "infoStructure": "A estrutura em larga escala do universo não é aleatória. As galáxias se agrupam ao longo de filamentos e folhas, cercando vastos vazios. Esta rede—a teia cósmica—é o maior padrão conhecido na natureza, moldado pela gravidade ao longo de bilhões de anos.",
       "infoCoords": "Os eixos mostram coordenadas cartesianas supergalácticas (SGX, SGY, SGZ), medidas em km/s de velocidade de recessão. Esta representação em espaço de velocidade preserva a estrutura de redshift observada: galáxias próximas estão perto da origem, distantes estão longe.",
-      "infoColors": "As cores codificam a velocidade CMB — a velocidade de recessão da galáxia após correção do nosso movimento em relação à radiação cósmica de fundo. Galáxias azuis estão próximas (recessão lenta), vermelhas e laranjas estão distantes (recessão rápida). Isto espelha o esquema de cores usado no artigo de Tully et al. (2023).",
-      "infoGroups": "No modo Grupos, as galáxias são agrupadas por associação gravitacional — cada ponto representa um grupo ou aglomerado de galáxias. No modo Galáxias, cada entrada individual do catálogo é plotada separadamente.",
+      "infoColors": "As cores codificam a velocidade CMB: a velocidade de recessão da galáxia após correção do nosso movimento em relação à radiação cósmica de fundo. Galáxias azuis estão próximas (recessão lenta), vermelhas e laranjas estão distantes (recessão rápida). Isto espelha o esquema de cores usado no artigo de Tully et al. (2023).",
+      "infoGroups": "No modo Grupos, as galáxias são agrupadas por associação gravitacional, e cada ponto representa um grupo ou aglomerado de galáxias. No modo Galáxias, cada entrada individual do catálogo é plotada separadamente.",
       "distributionTitle": "Distribuição de Velocidade",
       "statsTitle": "Estatísticas",
       "statsPoints": "Pontos exibidos",
@@ -289,17 +294,17 @@
     },
     "cosmography": {
       "title": "Cosmografia",
-      "subtitle": "Como medimos o universo — a ciência, os instrumentos, as observações.",
+      "subtitle": "Como medimos o universo: a ciência, os instrumentos, as observações.",
       "backToSky": "Voltar ao Céu",
       "ladder": {
         "title": "A Escada de Distâncias",
-        "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas — cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
+        "intro": "Medir distâncias a galáxias é um dos problemas mais difíceis da astronomia. Nenhum método funciona em todas as escalas, então os astrônomos encadeiam técnicas, cada uma calibrada contra a anterior. Esta 'escada de distâncias' alcança desde nossos vizinhos estelares mais próximos até o limite do universo observável.",
         "rangeMpc": "Alcance (Mpc)"
       },
       "experimentTitle": "Explorar: Como funciona",
       "experiments": {
         "ceph": {
-          "intro": "Apontamos um telescópio para uma galáxia distante e encontramos uma estrela que brilha e escurece em um ritmo constante. Esse ritmo — quantos dias entre cada pulso — nos diz o quão brilhante a estrela realmente é. Compare com o quão fraca ela parece daqui, e sabemos a distância.",
+          "intro": "Apontamos um telescópio para uma galáxia distante e encontramos uma estrela que brilha e escurece em um ritmo constante. Esse ritmo—quantos dias entre cada pulso—nos diz o quão brilhante a estrela realmente é. Compare com o quão fraca ela parece daqui, e sabemos a distância.",
           "earth": "Terra",
           "weObserve": "Observamos daqui",
           "distantGalaxy": "Galáxia distante",
@@ -311,16 +316,16 @@
           "distance": "Distância"
         },
         "sbf": {
-          "intro": "Olhe uma galáxia próxima pelo telescópio — você vê estrelas individuais, então a imagem parece granulada. Agora olhe uma galáxia distante: essas estrelas se misturam em um brilho suave. Quanto mais granulação vemos, mais próxima a galáxia. Arraste o controle para comparar.",
+          "intro": "Olhe uma galáxia próxima pelo telescópio e você vê estrelas individuais; a imagem parece granulada. Agora olhe uma galáxia distante: essas estrelas se misturam em um brilho suave. Quanto mais granulação vemos, mais próxima a galáxia. Arraste o controle para comparar.",
           "chartTitle": "Brilho Superficial: Próximo vs Distante",
           "nearby": "Próxima (granulada)",
           "distant": "Distante (suave)",
           "distanceLabel": "Distância simulada",
           "grainLevel": "Nível de granulação",
           "interpretation": "Interpretação",
-          "interpretNearby": "Resolvida — estrelas individuais visíveis",
+          "interpretNearby": "Resolvida: estrelas individuais visíveis",
           "interpretMid": "Parcialmente resolvida",
-          "interpretFar": "Suave — estrelas misturadas",
+          "interpretFar": "Suave: estrelas misturadas",
           "note": "SBF mede a amplitude das flutuações pixel a pixel para derivar a distância."
         },
         "tf": {
@@ -334,7 +339,7 @@
           "note": "A curva observada permanece plana; só o disco luminoso cairia. Essa diferença é matéria escura. Tully-Fisher usa a velocidade plana: L ∝ W^3.5."
         },
         "snia": {
-          "intro": "Uma anã branca explode em uma galáxia distante — vemos brilhar e depois escurecer. Essas explosões são quase idênticas. A rapidez com que escurecem nos diz o brilho de pico verdadeiro. Compare com o quão fracas parecem, e medimos distâncias a bilhões de anos-luz.",
+          "intro": "Uma anã branca explode em uma galáxia distante. Vemos brilhar e depois escurecer. Essas explosões são quase idênticas, e a rapidez com que escurecem nos diz o brilho de pico verdadeiro. Compare com o quão fracas parecem, e medimos distâncias a bilhões de anos-luz.",
           "chartTitle": "Curva de Luz com Correção de Stretch",
           "magLabel": "Magnitude",
           "daysLabel": "Dias desde B-max",
@@ -357,7 +362,7 @@
           "instruments": "Hubble, JWST",
           "range": "1 – 30",
           "count": "588",
-          "desc": "Estrelas variáveis Cefeidas pulsam com um período diretamente proporcional à sua luminosidade intrínseca — uma relação descoberta por Henrietta Swan Leavitt em 1912. Ao medir a rapidez com que uma Cefeida brilha e escurece, os astrônomos sabem exatamente quão luminosa ela realmente é. Comparar isso com o quão brilhante ela aparenta ser fornece a distância. As Cefeidas são o degrau fundamental da escada de distâncias, calibrando cada método que alcança mais longe.",
+          "desc": "Estrelas variáveis Cefeidas pulsam com um período diretamente proporcional à sua luminosidade intrínseca, uma relação descoberta por Henrietta Swan Leavitt em 1912. Ao medir a rapidez com que uma Cefeida brilha e escurece, os astrônomos sabem exatamente quão luminosa ela realmente é. Comparar isso com o quão brilhante ela aparenta ser fornece a distância. As Cefeidas são o degrau fundamental da escada de distâncias, calibrando cada método que alcança mais longe.",
           "telescopeAlt": "Hubble Space Telescope orbiting Earth with solar panels extended against the blackness of space",
           "observationAlt": "HST image of Cepheid variable star in galaxy NGC 4258 showing periodic brightness pulsation"
         },
@@ -367,7 +372,7 @@
           "instruments": "Hubble, JWST",
           "range": "1 – 20",
           "count": "1,242",
-          "desc": "Conforme estrelas de baixa massa envelhecem, elas ascendem o ramo das gigantes vermelhas — tornando-se maiores e mais luminosas. Em uma luminosidade precisa, o hélio se ignita em um flash e a estrela muda rapidamente de caráter. Este corte brusco no brilho é notavelmente consistente em todas as galáxias, tornando-o uma excelente vela padrão. Distâncias TRGB são medidas a partir de diagramas cor-magnitude de populações estelares resolvidas.",
+          "desc": "Conforme estrelas de baixa massa envelhecem, elas ascendem o ramo das gigantes vermelhas, tornando-se maiores e mais luminosas. Em uma luminosidade precisa, o hélio se ignita em um flash e a estrela muda rapidamente de caráter. Este corte brusco no brilho é notavelmente consistente em todas as galáxias, tornando-o uma excelente vela padrão. Distâncias TRGB são medidas a partir de diagramas cor-magnitude de populações estelares resolvidas.",
           "telescopeAlt": "James Webb Space Telescope in deep space with its golden hexagonal mirror array fully deployed",
           "observationAlt": "Color-magnitude diagram showing a dense field of red giant branch stars with the luminosity tip clearly marked"
         },
@@ -377,7 +382,7 @@
           "instruments": "VLBA",
           "range": "1 – 170",
           "count": "36",
-          "desc": "Moléculas de água orbitando buracos negros supermassivos podem formar lasers naturais de micro-ondas — masers. Usando Interferometria de Base Muito Longa, os astrônomos rastreiam pontos individuais de maser orbitando o buraco negro central. A geometria de seu movimento fornece uma distância puramente geométrica — sem suposições sobre luminosidade. As distâncias extragalácticas mais precisas já medidas vêm de masers em NGC 4258.",
+          "desc": "Moléculas de água orbitando buracos negros supermassivos podem formar lasers naturais de micro-ondas: masers. Usando Interferometria de Base Muito Longa, os astrônomos rastreiam pontos individuais de maser orbitando o buraco negro central. A geometria de seu movimento fornece uma distância puramente geométrica, sem suposições sobre luminosidade. As distâncias extragalácticas mais precisas já medidas vêm de masers em NGC 4258.",
           "telescopeAlt": "Very Long Baseline Array radio antenna dish under a starry night sky in the American desert",
           "observationAlt": "Water maser emission spectrum and orbital map from the accretion disk of galaxy NGC 4258"
         },
@@ -387,7 +392,7 @@
           "instruments": "Hubble, Gemini",
           "range": "5 – 120",
           "count": "730",
-          "desc": "Observe uma galáxia de perto e você pode resolver estrelas brilhantes individuais — a imagem parece granulada. Observe uma galáxia mais distante e essas estrelas se fundem em um brilho suave. A amplitude dessa granulosidade pixel a pixel depende da distância. SBF funciona melhor para galáxias elípticas com populações estelares suaves e antigas, onde o sinal de flutuação é mais limpo.",
+          "desc": "Observe uma galáxia de perto e você pode resolver estrelas brilhantes individuais; a imagem parece granulada. Observe uma galáxia mais distante e essas estrelas se fundem em um brilho suave. A amplitude dessa granulosidade pixel a pixel depende da distância. SBF funciona melhor para galáxias elípticas com populações estelares suaves e antigas, onde o sinal de flutuação é mais limpo.",
           "telescopeAlt": "Gemini Observatory telescope dome on Mauna Kea summit at twilight with clear sky above",
           "observationAlt": "Galaxy image pair showing high surface brightness fluctuations nearby vs smooth appearance at greater distance"
         },
@@ -397,7 +402,7 @@
           "instruments": "Ground optical telescopes",
           "range": "5 – 200",
           "count": "218",
-          "desc": "Quando uma estrela massiva esgota seu combustível nuclear, seu núcleo colapsa e as camadas externas explodem como uma supernova Tipo II. A fotosfera em expansão atua como um indicador geométrico de distância — medindo a rapidez com que se expande (a partir de deslocamentos de linhas espectrais) e quão grande ela aparenta ser (a partir de seu brilho e temperatura), o tamanho físico e, portanto, a distância podem ser calculados.",
+          "desc": "Quando uma estrela massiva esgota seu combustível nuclear, seu núcleo colapsa e as camadas externas explodem como uma supernova Tipo II. A fotosfera em expansão atua como um indicador geométrico de distância: medindo a rapidez com que se expande (a partir de deslocamentos de linhas espectrais) e quão grande ela aparenta ser (a partir de seu brilho e temperatura), o tamanho físico e, portanto, a distância podem ser calculados.",
           "telescopeAlt": "Large optical telescope dome interior with slit open to reveal the night sky during an observation session",
           "observationAlt": "Before and after images of a galaxy showing the sudden appearance of a bright Type II supernova"
         },
@@ -427,7 +432,7 @@
           "instruments": "Survey telescopes, Hubble",
           "range": "50 – 500+",
           "count": "1,867",
-          "desc": "Quando uma estrela anã branca acumula matéria suficiente de uma companheira para atingir o limite de Chandrasekhar (1,4 massas solares), ela detona completamente. Essas explosões termonucleares têm luminosidades de pico notavelmente uniformes — após uma pequena correção pela rapidez com que desvanecem, tornam-se 'velas padronizáveis.' Supernovas Tipo Ia são visíveis a bilhões de anos-luz e são o degrau de maior alcance da escada de distâncias. Sua descoberta da expansão acelerada do universo ganhou o Prêmio Nobel de Física de 2011.",
+          "desc": "Quando uma estrela anã branca acumula matéria suficiente de uma companheira para atingir o limite de Chandrasekhar (1,4 massas solares), ela detona completamente. Essas explosões termonucleares têm luminosidades de pico notavelmente uniformes: após uma pequena correção pela rapidez com que desvanecem, tornam-se 'velas padronizáveis.' Supernovas Tipo Ia são visíveis a bilhões de anos-luz e são o degrau de maior alcance da escada de distâncias. Sua descoberta da expansão acelerada do universo ganhou o Prêmio Nobel de Física de 2011.",
           "telescopeAlt": "Array of survey telescope domes at Cerro Tololo Inter-American Observatory in Chile at sunset",
           "observationAlt": "Type Ia supernova light curves from multiple events overlaid showing standardizable peak brightness after correction"
         }
@@ -439,7 +444,7 @@
           "name": "Cosmicflows-4",
           "team": "Tully, Courtois, Kourkchi et al. (2023)",
           "count": "55,877",
-          "desc": "A fundação — medições precisas de distância usando todos os oito métodos da escada de distâncias cósmicas."
+          "desc": "A fundação. Medições precisas de distância usando todos os oito métodos da escada de distâncias cósmicas."
         },
         "alfalfa": {
           "name": "ALFALFA-SDSS",
@@ -451,7 +456,7 @@
           "name": "Flat Galaxy Survey",
           "team": "Karachentsev et al.",
           "count": "~3,700",
-          "desc": "Classificações morfológicas — tipos de Hubble reais a partir da observação direta de galáxias de disco vistas de perfil."
+          "desc": "Classificações morfológicas: tipos de Hubble reais a partir da observação direta de galáxias de disco vistas de perfil."
         },
         "ugc": {
           "name": "Uppsala General Catalogue",
@@ -468,12 +473,12 @@
     },
     "spacetime": {
       "title": "Tecido do Espaço-Tempo",
-      "subtitle": "A gravidade deforma o tecido do espaço-tempo. Onde as galáxias se agrupam, a grade afunda em poços profundos — revelando a arquitetura invisível da massa.",
+      "subtitle": "A gravidade deforma o tecido do espaço-tempo. Onde as galáxias se agrupam, a grade afunda em poços profundos, revelando a arquitetura invisível da massa.",
       "backToSky": "Voltar ao Céu",
       "loading": "Calculando campo de densidade...",
       "velocityLabel": "Velocidade (km/s)",
       "infoTitle": "O Que Você Está Vendo",
-      "infoBody": "Esta grade representa o plano supergaláctico — um corte 2D pelo universo onde a maior parte da estrutura em larga escala existe. Cada vértice é deslocado para baixo proporcionalmente à densidade local de galáxias: aglomerados criam poços profundos, vazios permanecem planos. Os pontos de galáxias são coloridos por velocidade de recessão, a mesma escala do Mapa Cósmico.",
+      "infoBody": "Esta grade representa o plano supergaláctico, um corte 2D pelo universo onde a maior parte da estrutura em larga escala existe. Cada vértice é deslocado para baixo proporcionalmente à densidade local de galáxias: aglomerados criam poços profundos, vazios permanecem planos. Os pontos de galáxias são coloridos por velocidade de recessão, a mesma escala do Mapa Cósmico.",
       "structures": "Estruturas",
       "stats": {
         "groups": "Grupos no corte",
@@ -483,12 +488,12 @@
     },
     "localGroup": {
       "title": "Grupo Local",
-      "subtitle": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico — um atlas 3D do universo local.",
+      "subtitle": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico: um atlas 3D do universo local.",
       "backToSky": "Voltar ao Céu",
       "loading": "Carregando universo local...",
       "velocityLabel": "V_CMB (km/s)",
       "infoTitle": "O Universo Local em 3D",
-      "infoBody": "Grupos de galáxias são plotados em coordenadas cartesianas supergalácticas dentro de um cilindro de raio 100 Mpc. O eixo vertical é SGZ — altura acima e abaixo do plano supergaláctico onde a maioria das estruturas em larga escala se concentra. As cores codificam a velocidade de recessão CMB. Arraste para girar, role para ampliar.",
+      "infoBody": "Grupos de galáxias são plotados em coordenadas cartesianas supergalácticas dentro de um cilindro de raio 100 Mpc. O eixo vertical é SGZ, altura acima e abaixo do plano supergaláctico onde a maioria das estruturas em larga escala se concentra. As cores codificam a velocidade de recessão CMB. Arraste para girar, role para ampliar.",
       "structures": "Estruturas",
       "stats": {
         "radius": "Raio do cilindro",
@@ -498,7 +503,7 @@
     },
     "tour": {
       "title": "Tour de Galáxias",
-      "subtitle": "Explore galáxias icônicas por morfologia — espirais, elípticas, barradas e mais.",
+      "subtitle": "Explore galáxias icônicas por morfologia: espirais, elípticas, barradas e mais.",
       "shuffle": "Embaralhar",
       "shuffleSubtitle": "Uma galáxia por tipo morfológico",
       "shuffleEmpty": "Nenhuma seleção ainda. Clique em Embaralhar.",

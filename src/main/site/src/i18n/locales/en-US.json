@@ -66,38 +66,38 @@
     },
     "about": {
       "title": "Galaxies",
-      "subtitle": "Tens of thousands of galaxies. Measured distances. One celestial sphere.",
+      "subtitle": "The local universe mapped from real observations. Every galaxy placed at its true measured distance from Earth.",
       "backToSky": "Back to Sky",
       "data": {
         "title": "The Data",
-        "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains tens of thousands of galaxies with distances measured through direct observational methods — not estimates derived from the expansion of the universe.",
+        "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains tens of thousands of galaxies with distances measured through direct observational methods, not estimates derived from the expansion of the universe.",
         "paperLink": "Read the paper",
         "dataLink": "Explore the data",
         "downloadDb": "Download DB (18 MB)"
       },
       "measurements": {
         "title": "Reading the Numbers",
-        "intro": "When you hover over a galaxy, you see values like 238 Mly and 4,403 km/s. Here's what those mean — a quick primer before you dive into the Cosmography section.",
+        "intro": "When you hover over a galaxy, you see values like 238 Mly and 4,403 km/s. Here's what those mean, a quick primer before you dive into the Cosmography section.",
         "mly": {
-          "title": "Mly — Million light-years",
-          "desc": "Distance in millions of light-years. One light-year is how far light travels in a year — about 9.5 trillion km. So 238 Mly means the galaxy's light took 238 million years to reach us. We are seeing it as it was 238 million years ago.",
-          "baseAlt": "Galaxy tooltip or cosmic map showing distance in Mly (e.g. 238 Mly) — the number users see when hovering a galaxy",
+          "title": "Mly: Million light-years",
+          "desc": "Distance in millions of light-years. One light-year is how far light travels in a year, about 9.5 trillion km. So 238 Mly means the galaxy's light took 238 million years to reach us. We are seeing it as it was 238 million years ago.",
+          "baseAlt": "Galaxy tooltip or cosmic map showing distance in Mly (e.g. 238 Mly), the number users see when hovering a galaxy",
           "zoomAlt": "Diagram: Earth, light ray, distant galaxy. Label: 1 Mly = distance light travels in 1 million years. 238 Mly = 238 million years of travel. Scale bar from local to distant."
         },
         "velocity": {
-          "title": "km/s — Velocity",
-          "desc": "Kilometers per second. Galaxies recede from us because the universe is expanding. The faster a galaxy moves away, the more redshifted its light — and the farther it is. This recession velocity is measured in km/s.",
+          "title": "km/s: Velocity",
+          "desc": "Kilometers per second. Galaxies recede from us because the universe is expanding. The faster a galaxy moves away, the more redshifted its light, and the farther it is. This recession velocity is measured in km/s.",
           "baseAlt": "Galaxy tooltip or cosmic map showing velocity in km/s (e.g. 4,403 km/s)",
           "zoomAlt": "Diagram: Galaxy receding, redshifted spectrum. Label: km/s = kilometers per second. Recession velocity from Doppler shift. Faster = farther (Hubble flow)."
         },
         "cmb": {
           "title": "CMB Velocity",
-          "desc": "Recession velocity in the Cosmic Microwave Background rest frame. Earth moves at ~370 km/s toward the Great Attractor. CMB velocity corrects for that — it tells you how fast the galaxy recedes relative to the universe's own rest frame, not our moving viewpoint.",
+          "desc": "Recession velocity in the Cosmic Microwave Background rest frame. Earth moves at ~370 km/s toward the Great Attractor. CMB velocity corrects for that: it tells you how fast the galaxy recedes relative to the universe's own rest frame, not our moving viewpoint.",
           "baseAlt": "Cosmic map with color-coded galaxies (blue = nearby, red = distant) showing CMB velocity scale",
           "zoomAlt": "Diagram: CMB rest frame vs. Earth frame. Label: CMB velocity = recession speed after correcting for our 370 km/s motion. Puts us in the universe's rest frame."
         },
         "dm": {
-          "title": "DM — Distance Modulus",
+          "title": "DM: Distance Modulus",
           "desc": "Distance modulus (m − M) is the difference between apparent and absolute magnitude. It relates directly to distance: m − M = 5 log₁₀(d/10 pc). A modulus of 25 corresponds to 1 Mpc. Astronomers use DM because it's additive when combining measurements.",
           "baseAlt": "Galaxy data panel showing DM value (e.g. 34.15)",
           "zoomAlt": "Diagram: Magnitude scale. Label: DM = m − M = 5 log₁₀(d/10 pc). Distance modulus relates apparent brightness to true brightness. DM 25 ≈ 1 Mpc."
@@ -111,7 +111,7 @@
         "sim": {
           "play": "Play",
           "pause": "Pause",
-          "expansionCaption": "Galaxies recede faster the farther they are. v = H₀ × d (Hubble's law). Colors show redshift — farther galaxies appear redder.",
+          "expansionCaption": "Galaxies recede faster the farther they are. v = H₀ × d (Hubble's law). Colors show redshift: farther galaxies appear redder.",
           "cmbCaption": "Earth moves ~370 km/s. CMB velocity subtracts our motion so we measure in the universe's rest frame.",
           "earthFrame": "Earth Frame",
           "cmbFrameLabel": "CMB Frame",
@@ -123,15 +123,15 @@
       "mapping": {
         "title": "From Data to Sky",
         "imageAlt": "Celestial sphere showing galaxies at different zoom levels, from wide-angle sparse view to deep-field dense view",
-        "positioning": "Each galaxy is placed on a celestial sphere using its right ascension and declination — the same coordinate system astronomers use to locate objects in the night sky. You are looking outward from Earth, surrounded by the observable universe.",
-        "visibility": "Not all galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies — from the local neighborhood at the widest angle, down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
-        "sizing": "Galaxy size on screen is determined by measured distance. Closer galaxies appear larger, distant ones smaller — a direct representation of their physical proximity, not an arbitrary aesthetic choice."
+        "positioning": "Each galaxy is placed on a celestial sphere using its right ascension and declination, the same coordinate system astronomers use to locate objects in the night sky. You are looking outward from Earth, surrounded by the observable universe.",
+        "visibility": "Not all galaxies are visible at once. As you zoom in, the view reveals progressively more distant galaxies, from the local neighborhood at the widest angle down to the full deep field at maximum zoom. This redshift-based culling mirrors how real telescopes work: deeper exposures reveal fainter, more distant objects.",
+        "sizing": "Galaxy size on screen is determined by measured distance. Closer galaxies appear larger, distant ones smaller: a direct representation of physical proximity, not an arbitrary aesthetic choice."
       },
       "rendering": {
         "title": "Procedural Galaxy Rendering",
         "imageAlt": "Side-by-side comparison of five procedurally generated galaxy types: spiral, barred spiral, elliptical, lenticular, and irregular",
-        "intro": "Cosmicflows-4 provides superb distance data but no morphological information — no galaxy type, no brightness magnitude, no diameter. Every galaxy you see in the detail view is procedurally generated.",
-        "morphology": "Each galaxy is assigned a morphological type based on its PGC catalog number, using a seeded random function weighted by observed cosmic proportions: ~35% spiral, ~35% barred spiral, ~15% elliptical, ~10% lenticular, and ~5% irregular. The same PGC number always produces the same galaxy — the generation is deterministic.",
+        "intro": "Cosmicflows-4 provides superb distance data but no morphological information: no galaxy type, no brightness magnitude, no diameter. Every galaxy you see in the detail view is procedurally generated.",
+        "morphology": "Each galaxy is assigned a morphological type based on its PGC catalog number, using a seeded random function weighted by observed cosmic proportions: ~35% spiral, ~35% barred spiral, ~15% elliptical, ~10% lenticular, and ~5% irregular. The same PGC number always produces the same galaxy. The generation is deterministic.",
         "particles": "The detail view renders each galaxy as a particle system of tens of thousands of stars, shaped by morphology-specific parameters: spiral arm count and tightness, bar length, ellipticity, bulge size, and disk thickness. All parameters are derived from the seeded random generator.",
         "blackhole": "At the center of each galaxy, a supermassive black hole is rendered with an accretion disk and gravitational lensing effect. The lensing warps the surrounding starfield in a post-processing pass, with strength proportional to the camera zoom level."
       },
@@ -148,6 +148,11 @@
     "galaxy": {
       "dataButton": "Data",
       "photoButton": "Photo",
+      "info": {
+        "title": "What You're Seeing",
+        "bandGuided": "Real imaging data from the NASA-Sloan Atlas shaped this galaxy's appearance. Observations across multiple spectral bands, from ultraviolet through infrared, informed its structure, proportions, and color. What you see is a three-dimensional reconstruction built from actual measurements of this galaxy.",
+        "proceduralFallback": "This galaxy is not in our imaging dataset, so its appearance was generated procedurally from catalog records: distance, morphological type, and estimated physical size. The galaxy is real and catalogued—its position and distance are measured—but what you see here is a reconstruction, not a rendering of actual observations."
+      },
       "knownStars": {
         "title": "Known Stars",
         "empty": "No catalogued objects in SIMBAD"
@@ -215,7 +220,7 @@
         "custom": "Custom multi-band composite. All six spectral bands contribute to the final image through zone-based intensity mapping. Each band's physical wavelength drives the color, creating spectral diversity across the galaxy structure.",
         "volumetric": "Volumetric rendering treats the six spectral bands as density layers, blending them with procedural noise to produce a gas-cloud aesthetic. Intensity zones are smoothly transitioned to avoid hard edges, giving the galaxy an organic, nebular appearance.",
         "nsa3d": "Heuristic 3D point cloud. Each pixel above a brightness threshold becomes a 3D point, with depth assigned from deterministic noise and a gentle spectral tilt (UV-hot regions forward, infrared-dusty regions back). The six spectral bands drive per-point color based on their physical wavelengths. Drag to orbit, scroll to zoom.",
-        "nsamorphology": "Structure-tensor morphology cloud, based on Makarenko et al. (2014). Instead of random depth, the local filamentarity of the intensity field drives the z-thickness: round structures (galaxy core, star-forming knots) get volumetric depth, while filamentary structures (spiral arms, tidal tails) collapse to thin sheets. Depth layers are color-coded like emission nebulae — different z-positions get different hues, and additive blending mixes them as you orbit."
+        "nsamorphology": "Structure-tensor morphology cloud, based on Makarenko et al. (2014). Instead of random depth, the local filamentarity of the intensity field drives the z-thickness: round structures (galaxy core, star-forming knots) get volumetric depth, while filamentary structures (spiral arms, tidal tails) collapse to thin sheets. Depth layers are color-coded like emission nebulae—different z-positions get different hues, and additive blending mixes them as you orbit."
       }
     },
     "galaxyMosaic": {
@@ -223,7 +228,7 @@
     },
     "map": {
       "title": "Cosmic Map",
-      "subtitle": "Galaxy groups and individual galaxies plotted in supergalactic coordinates — a three-dimensional atlas of the local universe.",
+      "subtitle": "Galaxy groups and individual galaxies plotted in supergalactic coordinates: a three-dimensional atlas of the local universe.",
       "backToSky": "Back to Sky",
       "groups": "Groups",
       "galaxies": "Galaxies",
@@ -232,11 +237,11 @@
       "loading": "Loading",
       "info": "Info",
       "infoTitle": "The Cosmic Web",
-      "infoIntro": "You are looking at the three-dimensional distribution of galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside — the actual spatial arrangement of galaxies in cosmic space.",
-      "infoStructure": "The large-scale structure of the universe is not random. Galaxies cluster along filaments and sheets, surrounding vast empty voids. This network — the cosmic web — is the largest known pattern in nature, shaped by gravity over billions of years.",
+      "infoIntro": "You are looking at the three-dimensional distribution of galaxies from the Cosmicflows-4 catalog, mapped in supergalactic coordinates. Instead of looking outward from Earth, you are now seeing the universe from outside: the actual spatial arrangement of galaxies in cosmic space.",
+      "infoStructure": "The large-scale structure of the universe is not random. Galaxies cluster along filaments and sheets, surrounding vast empty voids. This network—the cosmic web—is the largest known pattern in nature, shaped by gravity over billions of years.",
       "infoCoords": "The axes show supergalactic Cartesian coordinates (SGX, SGY, SGZ), measured in km/s of recession velocity. This velocity-space representation preserves the observed redshift structure: nearby galaxies are near the origin, distant ones are far out.",
-      "infoColors": "Colors encode CMB velocity — the galaxy's recession speed after correcting for our motion relative to the cosmic microwave background. Blue galaxies are nearby (slow recession), red and orange are far away (fast recession). This mirrors the color scheme used in the Tully et al. (2023) paper.",
-      "infoGroups": "In Groups mode, galaxies are clustered by gravitational association — each point represents a galaxy group or cluster. In Galaxies mode, each individual catalog entry is plotted separately.",
+      "infoColors": "Colors encode CMB velocity: the galaxy's recession speed after correcting for our motion relative to the cosmic microwave background. Blue galaxies are nearby (slow recession), red and orange are far away (fast recession). This mirrors the color scheme used in the Tully et al. (2023) paper.",
+      "infoGroups": "In Groups mode, galaxies are clustered by gravitational association, and each point represents a galaxy group or cluster. In Galaxies mode, each individual catalog entry is plotted separately.",
       "distributionTitle": "Velocity Distribution",
       "statsTitle": "Statistics",
       "statsPoints": "Points displayed",
@@ -247,17 +252,17 @@
     },
     "cosmography": {
       "title": "Cosmography",
-      "subtitle": "How we measure the universe — the science, the instruments, the observations.",
+      "subtitle": "How we measure the universe: the science, the instruments, the observations.",
       "backToSky": "Back to Sky",
       "ladder": {
         "title": "The Distance Ladder",
-        "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together — each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
+        "intro": "Measuring distances to galaxies is one of the hardest problems in astronomy. No single method works at all scales, so astronomers chain techniques together, each calibrated against the previous one. This 'distance ladder' reaches from our nearest stellar neighbors to the edge of the observable universe.",
         "rangeMpc": "Range (Mpc)"
       },
       "experimentTitle": "Explore: How it works",
       "experiments": {
         "ceph": {
-          "intro": "We point a telescope at a distant galaxy and spot a star that brightens and dims in a steady rhythm. That rhythm — how many days between each pulse — tells us how bright the star truly is. Compare that to how dim it looks from here, and we know the distance.",
+          "intro": "We point a telescope at a distant galaxy and spot a star that brightens and dims in a steady rhythm. That rhythm—how many days between each pulse—tells us how bright the star truly is. Compare that to how dim it looks from here, and we know the distance.",
           "earth": "Earth",
           "weObserve": "We observe from here",
           "distantGalaxy": "Distant galaxy",
@@ -269,16 +274,16 @@
           "distance": "Distance"
         },
         "sbf": {
-          "intro": "Look at a nearby galaxy through a telescope — you can see individual stars, so the image looks grainy. Now look at a faraway galaxy: those stars blur into a smooth glow. The more grain we see, the closer the galaxy. Drag the slider to compare.",
+          "intro": "Look at a nearby galaxy through a telescope and you can see individual stars, so the image looks grainy. Now look at a faraway galaxy: those stars blur into a smooth glow. The more grain we see, the closer the galaxy. Drag the slider to compare.",
           "chartTitle": "Surface Brightness: Nearby vs Distant",
           "nearby": "Nearby (grainy)",
           "distant": "Distant (smooth)",
           "distanceLabel": "Simulated distance",
           "grainLevel": "Grain level",
           "interpretation": "Interpretation",
-          "interpretNearby": "Resolved — individual stars visible",
+          "interpretNearby": "Resolved: individual stars visible",
           "interpretMid": "Partially resolved",
-          "interpretFar": "Smooth — stars blended",
+          "interpretFar": "Smooth: stars blended",
           "note": "SBF measures the amplitude of pixel-to-pixel fluctuations to derive distance."
         },
         "tf": {
@@ -292,7 +297,7 @@
           "note": "The observed curve stays flat; the luminous disk alone would fall. That gap is dark matter. Tully-Fisher uses the flat velocity: L ∝ W^3.5."
         },
         "snia": {
-          "intro": "A white dwarf explodes in a distant galaxy — we see it brighten, then fade. These explosions are nearly identical. How fast they fade tells us their true peak brightness. Compare to how dim they look, and we measure distances across billions of light-years.",
+          "intro": "A white dwarf explodes in a distant galaxy. We see it brighten, then fade. These explosions are nearly identical, and how fast they fade tells us their true peak brightness. Compare to how dim they look, and we measure distances across billions of light-years.",
           "chartTitle": "Light Curve with Stretch Correction",
           "magLabel": "Magnitude",
           "daysLabel": "Days from B-max",
@@ -315,7 +320,7 @@
           "instruments": "Hubble, JWST",
           "range": "1 – 30",
           "count": "588",
-          "desc": "Cepheid variable stars pulsate with a period directly proportional to their intrinsic luminosity — a relationship discovered by Henrietta Swan Leavitt in 1912. By measuring how fast a Cepheid brightens and dims, astronomers know exactly how luminous it truly is. Comparing that to how bright it appears gives the distance. Cepheids are the foundational rung of the distance ladder, calibrating every method that reaches further.",
+          "desc": "Cepheid variable stars pulsate with a period directly proportional to their intrinsic luminosity, a relationship discovered by Henrietta Swan Leavitt in 1912. By measuring how fast a Cepheid brightens and dims, astronomers know exactly how luminous it truly is. Comparing that to how bright it appears gives the distance. Cepheids are the foundational rung of the distance ladder, calibrating every method that reaches further.",
           "telescopeAlt": "Hubble Space Telescope orbiting Earth with solar panels extended against the blackness of space",
           "observationAlt": "HST image of Cepheid variable star in galaxy NGC 4258 showing periodic brightness pulsation"
         },
@@ -325,7 +330,7 @@
           "instruments": "Hubble, JWST",
           "range": "1 – 20",
           "count": "1,242",
-          "desc": "As low-mass stars age, they ascend the red giant branch — growing larger and more luminous. At a precise luminosity, helium ignites in a flash and the star rapidly changes character. This sharp cutoff in brightness is remarkably consistent across all galaxies, making it an excellent standard candle. TRGB distances are measured from color-magnitude diagrams of resolved stellar populations.",
+          "desc": "As low-mass stars age, they ascend the red giant branch, growing larger and more luminous. At a precise luminosity, helium ignites in a flash and the star rapidly changes character. This sharp cutoff in brightness is remarkably consistent across all galaxies, making it an excellent standard candle. TRGB distances are measured from color-magnitude diagrams of resolved stellar populations.",
           "telescopeAlt": "James Webb Space Telescope in deep space with its golden hexagonal mirror array fully deployed",
           "observationAlt": "Color-magnitude diagram showing a dense field of red giant branch stars with the luminosity tip clearly marked"
         },
@@ -335,7 +340,7 @@
           "instruments": "VLBA",
           "range": "1 – 170",
           "count": "36",
-          "desc": "Water molecules orbiting supermassive black holes can form natural microwave lasers — masers. Using Very Long Baseline Interferometry, astronomers track individual maser spots orbiting the central black hole. The geometry of their motion gives a purely geometric distance — no assumptions about luminosity needed. The most precise extragalactic distances ever measured come from masers in NGC 4258.",
+          "desc": "Water molecules orbiting supermassive black holes can form natural microwave lasers: masers. Using Very Long Baseline Interferometry, astronomers track individual maser spots orbiting the central black hole. The geometry of their motion gives a purely geometric distance, with no assumptions about luminosity needed. The most precise extragalactic distances ever measured come from masers in NGC 4258.",
           "telescopeAlt": "Very Long Baseline Array radio antenna dish under a starry night sky in the American desert",
           "observationAlt": "Water maser emission spectrum and orbital map from the accretion disk of galaxy NGC 4258"
         },
@@ -345,7 +350,7 @@
           "instruments": "Hubble, Gemini",
           "range": "5 – 120",
           "count": "730",
-          "desc": "Look at a galaxy close up and you can resolve individual bright stars — the image looks grainy. Look at a more distant galaxy and those stars blur together into a smooth glow. The amplitude of this pixel-to-pixel graininess depends on distance. SBF works best for elliptical galaxies with smooth, old stellar populations where the fluctuation signal is cleanest.",
+          "desc": "Look at a galaxy close up and you can resolve individual bright stars; the image looks grainy. Look at a more distant galaxy and those stars blur together into a smooth glow. The amplitude of this pixel-to-pixel graininess depends on distance. SBF works best for elliptical galaxies with smooth, old stellar populations where the fluctuation signal is cleanest.",
           "telescopeAlt": "Gemini Observatory telescope dome on Mauna Kea summit at twilight with clear sky above",
           "observationAlt": "Galaxy image pair showing high surface brightness fluctuations nearby vs smooth appearance at greater distance"
         },
@@ -355,7 +360,7 @@
           "instruments": "Ground optical telescopes",
           "range": "5 – 200",
           "count": "218",
-          "desc": "When a massive star exhausts its nuclear fuel, its core collapses and the outer layers explode as a Type II supernova. The expanding photosphere acts as a geometric distance indicator — by measuring how fast it expands (from spectral line shifts) and how large it appears (from its brightness and temperature), the physical size and thus the distance can be calculated.",
+          "desc": "When a massive star exhausts its nuclear fuel, its core collapses and the outer layers explode as a Type II supernova. The expanding photosphere acts as a geometric distance indicator: by measuring how fast it expands (from spectral line shifts) and how large it appears (from its brightness and temperature), the physical size and thus the distance can be calculated.",
           "telescopeAlt": "Large optical telescope dome interior with slit open to reveal the night sky during an observation session",
           "observationAlt": "Before and after images of a galaxy showing the sudden appearance of a bright Type II supernova"
         },
@@ -385,7 +390,7 @@
           "instruments": "Survey telescopes, Hubble",
           "range": "50 – 500+",
           "count": "1,867",
-          "desc": "When a white dwarf star accretes enough matter from a companion to reach the Chandrasekhar limit (1.4 solar masses), it detonates completely. These thermonuclear explosions have remarkably uniform peak luminosities — after a small correction for how fast they fade, they become 'standardizable candles.' Type Ia supernovae are visible across billions of light-years and are the furthest-reaching rung of the distance ladder. Their discovery of the accelerating expansion of the universe won the 2011 Nobel Prize in Physics.",
+          "desc": "When a white dwarf star accretes enough matter from a companion to reach the Chandrasekhar limit (1.4 solar masses), it detonates completely. These thermonuclear explosions have remarkably uniform peak luminosities: after a small correction for how fast they fade, they become 'standardizable candles.' Type Ia supernovae are visible across billions of light-years and are the furthest-reaching rung of the distance ladder. Their discovery of the accelerating expansion of the universe won the 2011 Nobel Prize in Physics.",
           "telescopeAlt": "Array of survey telescope domes at Cerro Tololo Inter-American Observatory in Chile at sunset",
           "observationAlt": "Type Ia supernova light curves from multiple events overlaid showing standardizable peak brightness after correction"
         }
@@ -397,7 +402,7 @@
           "name": "Cosmicflows-4",
           "team": "Tully, Courtois, Kourkchi et al. (2023)",
           "count": "55,877",
-          "desc": "The foundation — precision distance measurements using all eight methods of the cosmic distance ladder."
+          "desc": "The foundation. Precision distance measurements using all eight methods of the cosmic distance ladder."
         },
         "alfalfa": {
           "name": "ALFALFA-SDSS",
@@ -409,7 +414,7 @@
           "name": "Flat Galaxy Survey",
           "team": "Karachentsev et al.",
           "count": "~3,700",
-          "desc": "Morphological classifications — real Hubble types from direct observation of edge-on disk galaxies."
+          "desc": "Morphological classifications: real Hubble types from direct observation of edge-on disk galaxies."
         },
         "ugc": {
           "name": "Uppsala General Catalogue",
@@ -426,12 +431,12 @@
     },
     "spacetime": {
       "title": "Spacetime Fabric",
-      "subtitle": "Gravity warps the fabric of spacetime. Where galaxies cluster, the grid sinks into deep wells — revealing the invisible architecture of mass.",
+      "subtitle": "Gravity warps the fabric of spacetime. Where galaxies cluster, the grid sinks into deep wells, revealing the invisible architecture of mass.",
       "backToSky": "Back to Sky",
       "loading": "Computing density field...",
       "velocityLabel": "Velocity (km/s)",
       "infoTitle": "What You're Seeing",
-      "infoBody": "This grid represents the supergalactic plane — a 2D slice through the universe where most of the large-scale structure lives. Each vertex is displaced downward in proportion to the local galaxy density: clusters create deep wells, voids remain flat. The galaxy dots are color-coded by recession velocity, the same scale as the Cosmic Map.",
+      "infoBody": "This grid represents the supergalactic plane, a 2D slice through the universe where most of the large-scale structure lives. Each vertex is displaced downward in proportion to the local galaxy density: clusters create deep wells, voids remain flat. The galaxy dots are color-coded by recession velocity, the same scale as the Cosmic Map.",
       "structures": "Structures",
       "stats": {
         "groups": "Galaxy groups in slab",
@@ -441,12 +446,12 @@
     },
     "localGroup": {
       "title": "Local Group",
-      "subtitle": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane — a 3D atlas of the local universe.",
+      "subtitle": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane: a 3D atlas of the local universe.",
       "backToSky": "Back to Sky",
       "loading": "Loading local universe...",
       "velocityLabel": "V_CMB (km/s)",
       "infoTitle": "The Local Universe in 3D",
-      "infoBody": "Galaxy groups are plotted in supergalactic Cartesian coordinates inside a cylinder of radius 100 Mpc. The vertical axis is SGZ — height above and below the supergalactic plane where most large-scale structures concentrate. Colors encode CMB recession velocity. Drag to rotate, scroll to zoom.",
+      "infoBody": "Galaxy groups are plotted in supergalactic Cartesian coordinates inside a cylinder of radius 100 Mpc. The vertical axis is SGZ, height above and below the supergalactic plane where most large-scale structures concentrate. Colors encode CMB recession velocity. Drag to rotate, scroll to zoom.",
       "structures": "Structures",
       "stats": {
         "radius": "Cylinder radius",
@@ -456,7 +461,7 @@
     },
     "tour": {
       "title": "Galaxy Tour",
-      "subtitle": "Explore iconic galaxies by morphology — spirals, ellipticals, bars, and more.",
+      "subtitle": "Explore iconic galaxies by morphology: spirals, ellipticals, bars, and more.",
       "shuffle": "Shuffle",
       "shuffleSubtitle": "One galaxy per morphology type",
       "shuffleEmpty": "No picks yet. Click Shuffle.",
