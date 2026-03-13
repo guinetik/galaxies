@@ -79,6 +79,20 @@ function applyProjectedSilhouette(
   }
 }
 
+/**
+ * Linear interpolation between two values.
+ */
+function mix(start: number, end: number, t: number): number {
+  return start + (end - start) * t
+}
+
+/**
+ * Clamps a value to [0, 1] range.
+ */
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
 // ─── Stellar hues (spectral class blackbody sequence) ────────────────────────
 
 interface SpectralClass {
@@ -112,9 +126,13 @@ interface LayerProps {
   alpha: number
 }
 
-function assignLayer(roll: number): Layer {
-  const dustF = CONFIG.visual.dustFraction
-  const brightF = CONFIG.visual.brightFraction
+function assignLayer(roll: number, influence: BandInfluenceConfig | null = null): Layer {
+  const dustMix = clamp01(influence?.dustMix ?? 0.5)
+  const hotMix = clamp01((influence?.hotMix ?? 0.5) * 0.7)
+
+  const dustF = mix(0.55, 0.76, dustMix)
+  const brightF = mix(0.02, 0.08, hotMix)
+
   if (roll < dustF) return 'dust'
   if (roll > 1 - brightF) return 'bright'
   return 'star'
@@ -213,7 +231,7 @@ function generateFieldStar(
   const angle = Math.random() * TAU
   const radius = Math.sqrt(Math.random()) * galaxyRadius
   let y = (Math.random() - 0.5) * galaxyRadius * 0.08
-  const layer = assignLayer(Math.random())
+  const layer = assignLayer(Math.random(), influence)
   const props = layerProperties(layer)
   const distFactor = radius / galaxyRadius
 
@@ -318,7 +336,7 @@ function generateArmStars(
       const distFactor = actualRadius / galaxyRadius
       const rotationSpeed = computeRotationSpeed(actualRadius)
 
-      const layer = assignLayer(Math.random())
+      const layer = assignLayer(Math.random(), influence)
 
       const props = layerProperties(layer)
       const spec = pickHueAndSat(layer, distFactor)
@@ -370,7 +388,7 @@ function generateBarStars(
 
     const silhouettedRadius = Math.sqrt(finalX * finalX + finalZ * finalZ)
     const silhouettedAngle = Math.atan2(finalZ, finalX)
-    const layer = assignLayer(Math.random())
+    const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer)
     const spec = pickHueAndSat(layer, 0.1) // near-core colors
 
@@ -411,7 +429,7 @@ function generateBulgeStars(
     // Bulge stars are mostly old, warm population — brighter toward center
     const distFactor = r / bulgeRadius
     const coreBrightBoost = 1.0 + (1.0 - distFactor) * (0.4 + bulgeBoost * 0.2)
-    const layer = assignLayer(Math.random())
+    const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer)
 
     const x = Math.cos(theta) * r
@@ -467,7 +485,7 @@ function generateEllipticalStars(
     const actualAngle = Math.atan2(silhouetted.z, silhouetted.x)
     const distFactor = actualRadius / galaxyRadius
 
-    const layer = assignLayer(Math.random())
+    const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer)
     const spec = pickHueAndSat(layer, distFactor)
 
@@ -528,7 +546,7 @@ function generateLenticularStars(
     const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
     const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
 
-    const layer = assignLayer(Math.random())
+    const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer)
 
     const spec = pickHueAndSat(layer, distFactor * 0.2)
@@ -609,7 +627,7 @@ function generateClumpStars(
     const actualAngle = Math.atan2(silhouetted.z, silhouetted.x)
     const distFactor = actualRadius / galaxyRadius
 
-    const layer = assignLayer(Math.random())
+    const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer)
     const spec = pickHueAndSat(layer, distFactor)
 
