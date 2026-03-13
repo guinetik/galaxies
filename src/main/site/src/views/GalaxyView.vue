@@ -7,6 +7,9 @@
     </div>
     <div class="top-header">
       <div class="top-buttons">
+        <button class="info-btn" @click="showInfo = !showInfo" aria-label="Info">
+          i
+        </button>
         <button v-if="supportsWebGPU" class="data-button renderer-toggle" @click="toggleRenderer">
           {{ activeRenderer === 'webgpu' ? 'WebGPU' : 'WebGL' }}
         </button>
@@ -29,13 +32,24 @@
       <div v-if="galaxy" class="galaxy-title">PGC {{ galaxy.pgc }}</div>
     </div>
     <GalaxyDataSidebar v-if="galaxy" :galaxy="galaxy" v-model:show="showData" />
+    <Transition name="sidebar">
+      <div v-if="showInfo" class="info-sidebar">
+        <div class="sidebar-content">
+          <button class="sidebar-close" @click="showInfo = false" aria-label="Close">×</button>
+          <h2 class="sidebar-title">{{ t('pages.galaxy.info.title') }}</h2>
+          <div class="sidebar-section">
+            <p>{{ t(`pages.galaxy.info.${galaxyInfoKey}`) }}</p>
+          </div>
+        </div>
+      </div>
+    </Transition>
     <LoadingOverlay :is-loading="!sceneReady" />
     <div v-if="!galaxy && !isLoading" class="not-found">Galaxy not found</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GalaxyDetail from '@/components/GalaxyDetail.vue'
@@ -46,6 +60,7 @@ import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useGalaxyData } from '@/composables/useGalaxyData'
 import type { Galaxy } from '@/types/galaxy'
 import { GALAXY_IMG_BASE_URL } from '@/three/constants'
+import { getGalaxyViewInfoKey } from './galaxyViewInfo'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -53,11 +68,13 @@ const router = useRouter()
 const { ready, isLoading, getGalaxyByPgc } = useGalaxyData()
 const galaxy = ref<Galaxy | null>(null)
 const showData = ref(false)
+const showInfo = ref(false)
 const supportsWebGPU = !!navigator.gpu
 const renderer = ref<'webgpu' | 'webgl'>(supportsWebGPU ? 'webgpu' : 'webgl')
 const activeRenderer = ref<'webgpu' | 'webgl'>('webgl')
 const sceneReady = ref(false)
 const hasNSAData = ref(false)
+const galaxyInfoKey = computed(() => getGalaxyViewInfoKey(hasNSAData.value))
 
 function toggleRenderer() {
   sceneReady.value = false
@@ -116,6 +133,24 @@ onMounted(async () => {
   background: rgba(0, 0, 0, 0.7);
 }
 
+.info-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.info-btn:hover {
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 .renderer-toggle {
   font-family: monospace;
   font-size: 12px;
@@ -166,5 +201,59 @@ onMounted(async () => {
   color: rgba(255, 255, 255, 0.5);
   font-size: 18px;
   background: #000;
+}
+
+.info-sidebar {
+  position: fixed;
+  top: calc(var(--header-height) + 56px);
+  right: 24px;
+  width: min(360px, calc(100vw - 48px));
+  z-index: 30;
+}
+
+.sidebar-content {
+  position: relative;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(8, 8, 12, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+}
+
+.sidebar-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.sidebar-section {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sidebar-enter-active,
+.sidebar-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

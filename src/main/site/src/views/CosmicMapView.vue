@@ -364,13 +364,14 @@ onUnmounted(() => {
 /* ── Title ── */
 .map-title {
   position: fixed;
-  top: var(--header-height);
+  top: 0;
   left: 0;
   right: 0;
   z-index: 20;
   text-align: center;
   pointer-events: none;
-  padding: 12px 16px 0;
+  padding: calc(var(--header-height) + 12px) 16px 56px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
 }
 
 .map-title-text {
@@ -378,20 +379,20 @@ onUnmounted(() => {
   font-weight: 300;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   margin-bottom: 6px;
 }
 
 .map-subtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 300;
   max-width: 36rem;
   margin-left: auto;
   margin-right: auto;
   line-height: 1.5;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 1), 0 2px 10px rgba(0, 0, 0, 0.9);
 }
 
 /* ── Controls panel ── */
@@ -718,8 +719,8 @@ onUnmounted(() => {
 /* ── Structures nav ── */
 .structures-nav {
   position: fixed;
-  right: 24px;
-  top: var(--header-height);
+  left: 24px;
+  top: calc(var(--header-height) + 90px);
   z-index: 20;
   display: flex;
   flex-direction: column;
