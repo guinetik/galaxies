@@ -27,7 +27,7 @@ import { useI18n } from 'vue-i18n'
 import CepheidMachine from './experiments/CepheidMachine.vue'
 import SBFMachine from './experiments/SBFMachine.vue'
 import TullyFisherMachine from './experiments/TullyFisherMachine.vue'
-import SNIaExperiment from './experiments/SNIaExperiment.vue'
+import SNIaMachine from './experiments/SNIaMachine.vue'
 
 const props = defineProps<{
   methodKey: string
@@ -41,7 +41,7 @@ const EXPERIMENT_MAP: Record<string, object> = {
   ceph: CepheidMachine,
   sbf: SBFMachine,
   tf: TullyFisherMachine,
-  snia: SNIaExperiment,
+  snia: SNIaMachine,
 }
 
 const experimentComponent = computed(() => EXPERIMENT_MAP[props.methodKey] ?? null)
