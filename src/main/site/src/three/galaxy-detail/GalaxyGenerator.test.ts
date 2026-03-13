@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type { BandInfluenceConfig } from './bandInfluence'
+import { generateGalaxy } from './GalaxyGenerator'
+import { MORPHOLOGY_PRESETS } from './morphology'
+import type { GalaxyRenderParams } from './morphology'
 
 // Mock influence config for testing
 const mockInfluence: BandInfluenceConfig = {
@@ -101,5 +104,95 @@ describe('applyProjectedSilhouette', () => {
     // With 50% strength, z should be between original and fully scaled
     const fullResult = applyProjectedSilhouette(pos, mockInfluence)
     expect(Math.abs(result.z - pos.z)).toBeLessThan(Math.abs(fullResult.z - pos.z))
+  })
+})
+
+describe('generateGalaxy', () => {
+  it('generates identical output when bandProfile is null', () => {
+    const testParams: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      bandProfile: null,
+      galaxyRadius: 20,
+      starCount: 100,
+      diameterKpc: 10,
+      sizeSource: 'observed',
+    }
+
+    const starsWithoutBand = generateGalaxy(testParams)
+    expect(starsWithoutBand.length).toBeGreaterThan(0)
+    expect(starsWithoutBand[0]).toHaveProperty('radius')
+    expect(starsWithoutBand[0]).toHaveProperty('hue')
+  })
+
+  it('produces reasonable star distributions with band influence', () => {
+    const testParams: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      bandProfile: {
+        // Mock band profile with strong features
+        availability: {
+          real: { u: false, g: false, r: false, i: false, z: false, w1: false },
+          fallback: { u: true, g: true, r: true, i: true, z: true, w1: true },
+        },
+        globalColorBalance: { hot: 0.7, stellar: 0.3, dust: 0.4 },
+        concentration: 0.5,
+        armContrast: 0.8,
+        clumpiness: 0.4,
+        filamentarity: 0.6,
+        diskThicknessBias: 0.3,
+        dustLaneStrength: 0.6,
+        projectedAxisRatio: 0.75,
+        projectedAngle: 0.5,
+        projectedStrength: 0.8,
+        radialProfile: [],
+        azimuthalProfile: [],
+      },
+      galaxyRadius: 20,
+      starCount: 100,
+      diameterKpc: 10,
+      sizeSource: 'observed',
+    }
+
+    const starsWithBand = generateGalaxy(testParams)
+    expect(starsWithBand.length).toBeGreaterThan(0)
+    expect(starsWithBand[0]).toHaveProperty('radius')
+  })
+
+  it('applies armScatterScale to arm star distribution', () => {
+    const paramsBase: GalaxyRenderParams = {
+      morphology: { ...MORPHOLOGY_PRESETS.spiral, numArms: 2, armWidth: 0.15 },
+      bandProfile: null,
+      galaxyRadius: 20,
+      starCount: 50,
+      diameterKpc: 10,
+      sizeSource: 'observed',
+    }
+
+    const starsBase = generateGalaxy(paramsBase)
+
+    const paramsWithScatter: GalaxyRenderParams = {
+      ...paramsBase,
+      bandProfile: {
+        // armScatterScale 1.5 should widen arms
+        availability: {
+          real: { u: false, g: false, r: false, i: false, z: false, w1: false },
+          fallback: { u: true, g: true, r: true, i: true, z: true, w1: true },
+        },
+        globalColorBalance: { hot: 0.5, stellar: 0.5, dust: 0.5 },
+        concentration: 0.5,
+        armContrast: 1.0,
+        clumpiness: 0.4,
+        filamentarity: 0.6,
+        diskThicknessBias: 0.5,
+        dustLaneStrength: 0.3,
+        projectedAxisRatio: 1,
+        projectedAngle: 0,
+        projectedStrength: 0,
+        radialProfile: [],
+        azimuthalProfile: [],
+      },
+    }
+
+    const starsWithScatter = generateGalaxy(paramsWithScatter)
+    expect(starsWithScatter.length).toBeGreaterThan(0)
   })
 })
