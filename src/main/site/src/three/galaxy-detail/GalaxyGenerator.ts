@@ -11,6 +11,7 @@
  */
 
 import type { GalaxyRenderParams } from './morphology'
+import { deriveBandInfluenceConfig, type BandInfluenceConfig } from './bandInfluence'
 
 // ─── Star interface ──────────────────────────────────────────────────────────
 
@@ -50,6 +51,33 @@ const CONFIG = {
     hiiRegionChance: 0.15,
   },
 } as const
+
+/**
+ * Applies the observed projected ellipse to the generated XZ footprint.
+ * Rotates and scales the minor axis based on band-derived silhouette parameters.
+ */
+function applyProjectedSilhouette(
+  position: { x: number; y: number; z: number },
+  influence: BandInfluenceConfig | null,
+): { x: number; y: number; z: number } {
+  if (!influence || influence.projectedStrength === 0) {
+    return position
+  }
+
+  const c = Math.cos(influence.projectedAngle)
+  const s = Math.sin(influence.projectedAngle)
+  const major = position.x * c + position.z * s
+  const minor = position.z * c - position.x * s
+  const minorScale = influence.projectedAxisRatio * influence.projectedStrength +
+    (1 - influence.projectedStrength)
+  const shapedMinor = minor * minorScale
+
+  return {
+    x: major * c - shapedMinor * s,
+    y: position.y,
+    z: major * s + shapedMinor * c,
+  }
+}
 
 // ─── Stellar hues (spectral class blackbody sequence) ────────────────────────
 
