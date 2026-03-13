@@ -93,6 +93,13 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
 
+/**
+ * Clamps a value between min and max.
+ */
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
 // ─── Stellar hues (spectral class blackbody sequence) ────────────────────────
 
 interface SpectralClass {
@@ -172,7 +179,11 @@ function layerProperties(
  * spectral weighting as the WebGPU generator so both renderers share the
  * same population mix.
  */
-function pickHueAndSat(layer: Layer, distFactor: number): { hue: number; sat: number } {
+function pickHueAndSat(
+  layer: Layer,
+  distFactor: number,
+  influence: BandInfluenceConfig | null = null,
+): { hue: number; sat: number } {
   const v = CONFIG.visual
   if (layer === 'dust') {
     return {
@@ -192,14 +203,26 @@ function pickHueAndSat(layer: Layer, distFactor: number): { hue: number; sat: nu
   }
   // Weighted selection from spectral classes based on radial position
   const d = Math.pow(distFactor, 0.6)
+  const hotBias = (influence?.hotMix ?? 0.5 - 0.5) * 0.16
+
+  // Apply band-influenced spectral class weighting
+  const wM = clamp(mix(0.58, 0.30, d) - hotBias, 0.12, 0.8)
+  const wK = clamp(mix(0.78, 0.45, d) - hotBias * 0.75, 0.22, 0.9)
+  const wG = clamp(mix(0.88, 0.55, d) - hotBias * 0.45, 0.35, 0.96)
+  const wF = clamp(mix(0.93, 0.65, d) - hotBias * 0.25, 0.45, 0.98)
+  const wAB = clamp(mix(0.98, 0.87, d) - hotBias * 0.1, 0.7, 0.995)
+  const wO = STELLAR_HUES[5].wInner * (1 - d) + STELLAR_HUES[5].wOuter * d
+
+  const weights = [wM, wK, wG, wF, wAB, wO]
   let totalWeight = 0
-  for (const s of STELLAR_HUES) {
-    totalWeight += s.wInner * (1 - d) + s.wOuter * d
+  for (const w of weights) {
+    totalWeight += w
   }
   let roll = Math.random() * totalWeight
-  for (const s of STELLAR_HUES) {
-    roll -= s.wInner * (1 - d) + s.wOuter * d
+  for (let i = 0; i < STELLAR_HUES.length; i++) {
+    roll -= weights[i]
     if (roll <= 0) {
+      const s = STELLAR_HUES[i]
       return { hue: s.hue + (Math.random() - 0.5) * s.spread, sat: s.sat }
     }
   }
@@ -241,7 +264,7 @@ function generateFieldStar(
   const props = layerProperties(layer, influence)
   const distFactor = radius / galaxyRadius
 
-  const spec = pickHueAndSat(layer, distFactor)
+  const spec = pickHueAndSat(layer, distFactor, influence)
 
   const x = Math.cos(angle) * radius
   const z = Math.sin(angle) * radius
@@ -345,7 +368,7 @@ function generateArmStars(
       const layer = assignLayer(Math.random(), influence)
 
       const props = layerProperties(layer, influence)
-      const spec = pickHueAndSat(layer, distFactor)
+      const spec = pickHueAndSat(layer, distFactor, influence)
 
       stars.push({
         radius: actualRadius,
@@ -396,7 +419,7 @@ function generateBarStars(
     const silhouettedAngle = Math.atan2(finalZ, finalX)
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, 0.1) // near-core colors
+    const spec = pickHueAndSat(layer, 0.1, influence) // near-core colors
 
     stars.push({
       radius: silhouettedRadius,
@@ -445,7 +468,7 @@ function generateBulgeStars(
     const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
     const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
 
-    const spec = pickHueAndSat(layer, 0.1)
+    const spec = pickHueAndSat(layer, 0.1, influence)
     stars.push({
       radius: silhouettedRadius,
       angle: silhouettedAngle,
@@ -493,7 +516,7 @@ function generateEllipticalStars(
 
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, distFactor)
+    const spec = pickHueAndSat(layer, distFactor, influence)
 
     stars.push({
       radius: actualRadius,
@@ -555,7 +578,7 @@ function generateLenticularStars(
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
 
-    const spec = pickHueAndSat(layer, distFactor * 0.2)
+    const spec = pickHueAndSat(layer, distFactor * 0.2, influence)
     stars.push({
       radius: silhouettedRadius,
       angle: silhouettedAngle,
@@ -635,7 +658,7 @@ function generateClumpStars(
 
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, distFactor)
+    const spec = pickHueAndSat(layer, distFactor, influence)
 
     stars.push({
       radius: actualRadius,
