@@ -138,19 +138,25 @@ function assignLayer(roll: number, influence: BandInfluenceConfig | null = null)
   return 'star'
 }
 
-function layerProperties(layer: Layer): LayerProps {
+function layerProperties(
+  layer: Layer,
+  influence: BandInfluenceConfig | null = null,
+): LayerProps {
   switch (layer) {
     case 'dust':
+      const dustBoost = mix(0.95, 1.35, influence?.dustMix ?? 0.5)
+      const dustAlphaBoost = mix(0.9, 1.2, influence?.dustLaneStrength ?? 0)
       return {
-        size: 0.8 + Math.random() * 1.5,
-        brightness: 0.08 + Math.random() * 0.16,
-        alpha: 0.12 + Math.random() * 0.2,
+        size: (0.8 + Math.random() * 1.5) * dustBoost,
+        brightness: (0.08 + Math.random() * 0.16) * dustBoost,
+        alpha: (0.12 + Math.random() * 0.2) * dustAlphaBoost,
       }
     case 'bright':
+      const hotBoost = mix(0.9, 1.4, influence?.hotMix ?? 0.5)
       return {
-        size: 4 + Math.random() * 6,
-        brightness: 0.64 + Math.random() * 0.16,
-        alpha: 0.56 + Math.random() * 0.24,
+        size: (4 + Math.random() * 6) * hotBoost,
+        brightness: (0.64 + Math.random() * 0.16) * hotBoost,
+        alpha: (0.56 + Math.random() * 0.24) * mix(0.95, 1.2, influence?.clumpBoost ?? 0),
       }
     default: // 'star'
       return {
@@ -232,7 +238,7 @@ function generateFieldStar(
   const radius = Math.sqrt(Math.random()) * galaxyRadius
   let y = (Math.random() - 0.5) * galaxyRadius * 0.08
   const layer = assignLayer(Math.random(), influence)
-  const props = layerProperties(layer)
+  const props = layerProperties(layer, influence)
   const distFactor = radius / galaxyRadius
 
   const spec = pickHueAndSat(layer, distFactor)
@@ -338,7 +344,7 @@ function generateArmStars(
 
       const layer = assignLayer(Math.random(), influence)
 
-      const props = layerProperties(layer)
+      const props = layerProperties(layer, influence)
       const spec = pickHueAndSat(layer, distFactor)
 
       stars.push({
@@ -389,7 +395,7 @@ function generateBarStars(
     const silhouettedRadius = Math.sqrt(finalX * finalX + finalZ * finalZ)
     const silhouettedAngle = Math.atan2(finalZ, finalX)
     const layer = assignLayer(Math.random(), influence)
-    const props = layerProperties(layer)
+    const props = layerProperties(layer, influence)
     const spec = pickHueAndSat(layer, 0.1) // near-core colors
 
     stars.push({
@@ -430,7 +436,7 @@ function generateBulgeStars(
     const distFactor = r / bulgeRadius
     const coreBrightBoost = 1.0 + (1.0 - distFactor) * (0.4 + bulgeBoost * 0.2)
     const layer = assignLayer(Math.random(), influence)
-    const props = layerProperties(layer)
+    const props = layerProperties(layer, influence)
 
     const x = Math.cos(theta) * r
     const z = Math.sin(theta) * r
@@ -486,7 +492,7 @@ function generateEllipticalStars(
     const distFactor = actualRadius / galaxyRadius
 
     const layer = assignLayer(Math.random(), influence)
-    const props = layerProperties(layer)
+    const props = layerProperties(layer, influence)
     const spec = pickHueAndSat(layer, distFactor)
 
     stars.push({
@@ -547,7 +553,7 @@ function generateLenticularStars(
     const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
 
     const layer = assignLayer(Math.random(), influence)
-    const props = layerProperties(layer)
+    const props = layerProperties(layer, influence)
 
     const spec = pickHueAndSat(layer, distFactor * 0.2)
     stars.push({
@@ -628,7 +634,7 @@ function generateClumpStars(
     const distFactor = actualRadius / galaxyRadius
 
     const layer = assignLayer(Math.random(), influence)
-    const props = layerProperties(layer)
+    const props = layerProperties(layer, influence)
     const spec = pickHueAndSat(layer, distFactor)
 
     stars.push({
