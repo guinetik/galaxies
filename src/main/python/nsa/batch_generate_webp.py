@@ -35,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constants
-BANDS = ["u", "g", "r", "i", "z"]
+BANDS = ["u", "g", "r", "i", "z", "nuv"]
 FITS_BASE_URL = "http://sdss.physics.nyu.edu/mblanton/v0/detect/v0_1"
 DB_DEFAULT_PATH = r"D:\Developer\galaxies\src\main\site\public\data\galaxies_enriched.db"
 OUTPUT_DEFAULT_BASE = r"D:\Developer\galaxies\src\main\images"
@@ -70,16 +70,17 @@ def fetch_fits(nsa_iauname: str, nsa_subdir: str, nsa_pid: int) -> bytes:
 
 
 def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
-    """Extract u, g, r, i, z bands from gzipped FITS parent image.
+    """Extract u, g, r, i, z, nuv bands from gzipped FITS parent image.
 
     Args:
         fits_data: Gzipped FITS file content as bytes
 
     Returns:
-        Dict mapping band name to numpy array (float32)
+        Dict mapping band name to numpy array (float32).
+        NUV is optional — missing HDU 5 is logged and skipped.
 
     Raises:
-        ValueError: If required band HDU is missing or empty
+        ValueError: If a required optical band (u/g/r/i/z) HDU is missing or empty
     """
     with gzip.GzipFile(fileobj=BytesIO(fits_data)) as f:
         fits_buffer = BytesIO(f.read())
@@ -89,10 +90,16 @@ def extract_bands(fits_data: bytes) -> Dict[str, np.ndarray]:
 
         for idx, band in enumerate(BANDS):
             if idx >= len(hdul):
+                if band == "nuv":
+                    logger.debug(f"NUV HDU not present (only {len(hdul)} HDUs), skipping")
+                    continue
                 raise ValueError(f"Missing HDU for band {band} at index {idx}")
 
             img_data = hdul[idx].data
             if img_data is None:
+                if band == "nuv":
+                    logger.debug("NUV HDU is empty, skipping")
+                    continue
                 raise ValueError(f"Band {band} HDU is empty")
 
             bands[band] = img_data.astype(np.float32)
@@ -130,7 +137,7 @@ def save_metadata(pgc: int, output_dir: Path, band_ranges: Dict[str, Tuple[float
         "ra": ra,
         "dec": dec,
         "pixel_scale": 0.396,  # SDSS standard (not in FITS header, verified constant for all NSA)
-        "bands": BANDS,
+        "bands": list(band_ranges.keys()),
         "dimensions": list(dimensions),
         "data_ranges": band_ranges,
         "fetched_date": time.strftime("%Y-%m-%d"),
