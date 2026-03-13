@@ -6,6 +6,8 @@
 // can scale them to any absolute size.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { BandFeatureProfile } from '../bandProfile'
+
 /**
  * The 10 Hubble-sequence preset keys.
  *
@@ -92,6 +94,8 @@ export interface GalaxyMorphology {
 export interface GalaxyRenderParams {
   /** Morphology shape parameters (fractional). */
   morphology: GalaxyMorphology
+  /** Optional photometric feature vector extracted from real multi-band imagery. */
+  bandProfile?: BandFeatureProfile | null
   /** Absolute galaxy radius in renderer units. */
   galaxyRadius: number
   /** Total particle count. */

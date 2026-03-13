@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Galaxy } from '@/types/galaxy'
+import type { BandFeatureProfile } from '../bandProfile'
 import {
   type MorphologyPreset,
   type GalaxyMorphology,
@@ -194,6 +195,82 @@ function applyVariation(morph: GalaxyMorphology, rand: () => number): void {
   }
 }
 
+/**
+ * Biases the procedural morphology with compact multi-band imaging features
+ * while preserving the preset-selected galaxy family.
+ */
+function applyBandGuidance(
+  morph: GalaxyMorphology,
+  category: 'elliptical' | 'lenticular' | 'spiral' | 'barred' | 'irregular',
+  bandProfile: BandFeatureProfile | null | undefined,
+): void {
+  if (!bandProfile) {
+    return
+  }
+
+  morph.bulgeRadius = clamp(
+    morph.bulgeRadius * lerp(0.9, 1.35, bandProfile.concentration),
+    0,
+    1,
+  )
+
+  if (category === 'spiral' || category === 'barred') {
+    morph.bulgeRadius = clamp(
+      morph.bulgeRadius + bandProfile.concentration * 0.14,
+      0,
+      1,
+    )
+    morph.fieldStarFraction = clamp(
+      morph.fieldStarFraction * lerp(1.1, 0.55, bandProfile.armContrast),
+      0.02,
+      1,
+    )
+    morph.armWidth = clamp(
+      morph.armWidth * lerp(1.05, 0.75, bandProfile.filamentarity),
+      0.02,
+      1,
+    )
+    morph.spiralTightness = Math.max(
+      0,
+      morph.spiralTightness * lerp(0.95, 1.15, bandProfile.armContrast),
+    )
+    morph.irregularity = clamp(
+      morph.irregularity + bandProfile.clumpiness * 0.35,
+      0,
+      1,
+    )
+  }
+
+  if (category === 'lenticular') {
+    morph.diskThickness = clamp(
+      morph.diskThickness * lerp(1.4, 0.7, 1 - bandProfile.diskThicknessBias),
+      0,
+      1,
+    )
+  }
+
+  if (category === 'irregular') {
+    morph.irregularity = clamp(
+      morph.irregularity + bandProfile.clumpiness * 0.25,
+      0,
+      1,
+    )
+    morph.clumpCount = Math.max(
+      morph.clumpCount,
+      Math.round(lerp(3, 8, bandProfile.clumpiness)),
+    )
+  }
+
+  if (category === 'elliptical') {
+    morph.axisRatio = clamp(
+      morph.axisRatio * lerp(1.08, 0.86, bandProfile.filamentarity),
+      0.1,
+      1,
+    )
+    morph.ellipticity = 1 - morph.axisRatio
+  }
+}
+
 // -- mapGalaxyToRenderParams -------------------------------------------------
 
 /**
@@ -206,7 +283,10 @@ function applyVariation(morph: GalaxyMorphology, rand: () => number): void {
  *   5. Estimate physical size (3-tier)
  *   6. Compute starCount and galaxyRadius
  */
-export function mapGalaxyToRenderParams(galaxy: Galaxy): GalaxyRenderParams {
+export function mapGalaxyToRenderParams(
+  galaxy: Galaxy,
+  bandProfile?: BandFeatureProfile | null,
+): GalaxyRenderParams {
   const rand = mulberry32(galaxy.pgc)
 
   // 1. Select preset
@@ -235,7 +315,12 @@ export function mapGalaxyToRenderParams(galaxy: Galaxy): GalaxyRenderParams {
   // 4. Apply seeded variation
   applyVariation(morphology, rand)
 
-  // 5. Apply hard catalog overrides AFTER variation (observed data wins)
+  // 5. Apply compact multi-band guidance before observed hard overrides so
+  // true catalog measurements still win if they conflict.
+  const category = presetToCategory(preset)
+  applyBandGuidance(morphology, category, bandProfile)
+
+  // 6. Apply hard catalog overrides AFTER variation/guidance (observed data wins)
   if (preset === 'elliptical') {
     const observedBa = galaxy.axial_ratio ?? galaxy.ba
     if (observedBa != null) {
@@ -244,14 +329,13 @@ export function mapGalaxyToRenderParams(galaxy: Galaxy): GalaxyRenderParams {
     }
   }
 
-  // 6. Estimate size
-  const category = presetToCategory(preset)
+  // 7. Estimate size
   const { diameterKpc, source: sizeSource } = estimateSize(galaxy, category, rand)
 
   // Map kpc to rendering units (12 units/kpc, baseline 300 units = 25 kpc)
   const galaxyRadius = clamp(diameterKpc * 12, 30, 2400)
 
-  // 7. Star count: scale up only for massive galaxies
+  // 8. Star count: scale up only for massive galaxies
   let starCount: number
   if (galaxy.log_ms_t != null && galaxy.log_ms_t > 10.8) {
     const massScale = Math.pow(10, 0.15 * (galaxy.log_ms_t - 10.8))
@@ -262,6 +346,7 @@ export function mapGalaxyToRenderParams(galaxy: Galaxy): GalaxyRenderParams {
 
   return {
     morphology,
+    bandProfile: bandProfile ?? null,
     galaxyRadius,
     starCount,
     diameterKpc,

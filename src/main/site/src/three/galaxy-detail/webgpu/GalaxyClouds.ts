@@ -28,6 +28,7 @@ import {
   smoothstep,
   uv,
   uniform,
+  mix,
 } from 'three/tsl'
 import type { GalaxyUniforms } from './GalaxyComputeInit'
 import type { Quality } from '../qualityDetect'
@@ -105,13 +106,17 @@ export class GalaxyClouds {
           .mul(windingFactor)
 
         // Tight scatter — dust centered on the arm spine
-        const angleOffset = hash(seed.add(3)).sub(0.5).mul(0.15)
-        const radiusOffset = hash(seed.add(4)).sub(0.5).mul(uniforms.armWidth).mul(0.4)
+        const angleOffset = hash(seed.add(3)).sub(0.5)
+          .mul(mix(float(0.18), float(0.08), uniforms.bandDustLaneStrength))
+        const radiusOffset = hash(seed.add(4)).sub(0.5)
+          .mul(uniforms.armWidth)
+          .mul(mix(float(0.45), float(0.2), uniforms.bandDustLaneStrength))
         const angle = armAngle.add(spiralAngle).add(angleOffset)
 
         posX.assign(cos(angle).mul(armR.add(radiusOffset)))
         posZ.assign(sin(angle).mul(armR.add(radiusOffset)))
         const thicknessFactor = float(1.0).sub(normalizedRadius).add(0.15)
+          .mul(uniforms.bandDiskThicknessScale)
         posY.assign(hash(seed.add(5)).sub(0.5).mul(R.mul(0.03)).mul(thicknessFactor))
       })
 
@@ -127,6 +132,7 @@ export class GalaxyClouds {
         posX.assign(cos(theta).mul(r))
         posZ.assign(sin(theta).mul(r))
         const thick = R.mul(0.03).mul(float(1.0).sub(normalizedRadius.mul(0.5)))
+          .mul(uniforms.bandDiskThicknessScale)
         posY.assign(hash(seed.add(5)).sub(0.5).mul(thick))
       })
 
@@ -165,12 +171,16 @@ export class GalaxyClouds {
       origBuffer.element(idx).assign(position)
 
       // Cloud color: subtle warm tint, fades toward edges
-      const tint = vec3(0.9, 0.82, 0.78)
-      const cloudColor = tint.mul(float(0.7).sub(normalizedRadius.mul(0.3)))
+      const coolTint = vec3(0.62, 0.7, 0.9)
+      const warmTint = vec3(0.92, 0.76, 0.62)
+      const dustTint = mix(coolTint, warmTint, uniforms.bandDustMix)
+      const laneBoost = mix(float(0.7), float(1.0), uniforms.bandDustLaneStrength)
+      const cloudColor = dustTint.mul(float(0.72).sub(normalizedRadius.mul(0.28))).mul(laneBoost)
       colBuffer.element(idx).assign(cloudColor)
 
       // Size variation: larger in denser regions
       const densityFactor = float(1.0).sub(normalizedRadius.mul(0.5))
+        .mul(mix(float(0.9), float(1.15), uniforms.bandDustLaneStrength))
       const size = hash(seed.add(6)).mul(0.5).add(0.7).mul(densityFactor)
       szBuffer.element(idx).assign(size)
     })().compute(count)
