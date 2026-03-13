@@ -32,6 +32,7 @@ import {
 } from 'three/tsl'
 import * as THREE from 'three'
 import type { GalaxyRenderParams } from '../morphology'
+import { deriveBandInfluenceConfig } from '../bandInfluence'
 import { hash, hslToRgb } from './tsl-helpers'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -69,6 +70,13 @@ export interface GalaxyUniforms {
   // Common
   galaxyRadius: any
   galaxySeed: any
+  bandArmScatterScale: any
+  bandBulgeBoost: any
+  bandClumpBoost: any
+  bandHotMix: any
+  bandDustMix: any
+  bandDiskThicknessScale: any
+  bandDustLaneStrength: any
   // Compute state
   time: any
   deltaTime: any
@@ -97,25 +105,30 @@ export function createGalaxyBuffers(count: number): GalaxyBuffers {
 // ─── Create uniforms ───────────────────────────────────────────────────────
 
 export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms {
-  const m = params.morphology
-
-  return {
-    numArms: uniform(m.numArms),
-    armWidth: uniform(m.armWidth * params.galaxyRadius),
-    spiralTightness: uniform(m.spiralTightness),
-    spiralStart: uniform(m.spiralStart), // keep as fraction, shader multiplies by R
-    bulgeRadius: uniform(m.bulgeRadius * params.galaxyRadius),
-    fieldStarFraction: uniform(m.fieldStarFraction),
-    irregularity: uniform(m.irregularity),
-    barLength: uniform(m.barLength * params.galaxyRadius),
-    barWidth: uniform(m.barWidth * params.galaxyRadius),
-    axisRatio: uniform(m.axisRatio),
-    ellipticity: uniform(m.ellipticity),
-    bulgeFraction: uniform(m.bulgeFraction),
-    diskThickness: uniform(m.diskThickness),
-    clumpCount: uniform(m.clumpCount),
-    galaxyRadius: uniform(params.galaxyRadius),
-    galaxySeed: uniform(params.starCount * 0.61803398875), // golden ratio based seed
+  const uniforms: GalaxyUniforms = {
+    numArms: uniform(0),
+    armWidth: uniform(0),
+    spiralTightness: uniform(0),
+    spiralStart: uniform(0),
+    bulgeRadius: uniform(0),
+    fieldStarFraction: uniform(0),
+    irregularity: uniform(0),
+    barLength: uniform(0),
+    barWidth: uniform(0),
+    axisRatio: uniform(1),
+    ellipticity: uniform(0),
+    bulgeFraction: uniform(0),
+    diskThickness: uniform(0),
+    clumpCount: uniform(0),
+    galaxyRadius: uniform(0),
+    galaxySeed: uniform(0),
+    bandArmScatterScale: uniform(1),
+    bandBulgeBoost: uniform(0),
+    bandClumpBoost: uniform(0),
+    bandHotMix: uniform(0.5),
+    bandDustMix: uniform(0.5),
+    bandDiskThicknessScale: uniform(1),
+    bandDustLaneStrength: uniform(0),
     time: uniform(0),
     deltaTime: uniform(0.016),
     rotationSpeed: uniform(0.033),
@@ -124,6 +137,44 @@ export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms
     mouseForce: uniform(7.0),
     mouseRadius: uniform(params.galaxyRadius * 0.3),
   }
+  syncGalaxyUniforms(uniforms, params)
+  return uniforms
+}
+
+/**
+ * Synchronizes the mutable WebGPU uniform set with the latest render params.
+ */
+export function syncGalaxyUniforms(
+  uniforms: GalaxyUniforms,
+  params: GalaxyRenderParams,
+): void {
+  const m = params.morphology
+  const influence = deriveBandInfluenceConfig(params.bandProfile)
+
+  uniforms.numArms.value = m.numArms
+  uniforms.armWidth.value = m.armWidth * params.galaxyRadius
+  uniforms.spiralTightness.value = m.spiralTightness
+  uniforms.spiralStart.value = m.spiralStart
+  uniforms.bulgeRadius.value = m.bulgeRadius * params.galaxyRadius
+  uniforms.fieldStarFraction.value = m.fieldStarFraction
+  uniforms.irregularity.value = m.irregularity
+  uniforms.barLength.value = m.barLength * params.galaxyRadius
+  uniforms.barWidth.value = m.barWidth * params.galaxyRadius
+  uniforms.axisRatio.value = m.axisRatio
+  uniforms.ellipticity.value = m.ellipticity
+  uniforms.bulgeFraction.value = m.bulgeFraction
+  uniforms.diskThickness.value = m.diskThickness
+  uniforms.clumpCount.value = m.clumpCount
+  uniforms.galaxyRadius.value = params.galaxyRadius
+  uniforms.galaxySeed.value = params.starCount * 0.61803398875
+  uniforms.bandArmScatterScale.value = influence.armScatterScale
+  uniforms.bandBulgeBoost.value = influence.bulgeBoost
+  uniforms.bandClumpBoost.value = influence.clumpBoost
+  uniforms.bandHotMix.value = influence.hotMix
+  uniforms.bandDustMix.value = influence.dustMix
+  uniforms.bandDiskThicknessScale.value = influence.diskThicknessScale
+  uniforms.bandDustLaneStrength.value = influence.dustLaneStrength
+  uniforms.mouseRadius.value = params.galaxyRadius * 0.3
 }
 
 // ─── Compute init shader ───────────────────────────────────────────────────
@@ -141,14 +192,24 @@ export function createComputeInit(
 
     const R = uniforms.galaxyRadius
     const clearRadius = R.mul(0.06) // central exclusion zone
+    const dustFraction = mix(
+      float(0.55),
+      float(0.76),
+      clamp(uniforms.bandDustMix.add(uniforms.bandDustLaneStrength.mul(0.35)), float(0), float(1)),
+    )
+    const brightFraction = mix(
+      float(0.02),
+      float(0.08),
+      clamp(uniforms.bandHotMix.mul(0.7).add(uniforms.bandClumpBoost.mul(0.3)), float(0), float(1)),
+    )
 
     // ─── Layer assignment: dust 65%, star 32%, bright 3% ───────────────
     const layerRoll = hash(seed.add(100))
     // 0=dust, 1=star, 2=bright
     const layerVal = float(0).toVar()
-    If(layerRoll.greaterThan(0.97), () => {
+    If(layerRoll.greaterThan(float(1).sub(brightFraction)), () => {
       layerVal.assign(2) // bright
-    }).ElseIf(layerRoll.greaterThan(0.65), () => {
+    }).ElseIf(layerRoll.greaterThan(dustFraction), () => {
       layerVal.assign(1) // star
     })
     buffers.layerBuffer.element(idx).assign(layerVal)
@@ -157,11 +218,11 @@ export function createComputeInit(
     const sizeRand = hash(seed.add(200))
     const starSize = float(0).toVar()
     If(layerVal.equal(0), () => {
-      starSize.assign(sizeRand.mul(1.5).add(0.8)) // dust: 0.8-2.3
+      starSize.assign(sizeRand.mul(1.5).add(0.8).mul(mix(float(0.95), float(1.35), uniforms.bandDustMix)))
     }).ElseIf(layerVal.equal(1), () => {
       starSize.assign(sizeRand.mul(3.0).add(1.5)) // star: 1.5-4.5
     }).Else(() => {
-      starSize.assign(sizeRand.mul(6.0).add(4.0)) // bright: 4-10
+      starSize.assign(sizeRand.mul(6.0).add(4.0).mul(mix(float(0.9), float(1.4), uniforms.bandHotMix))) // bright: 4-10
     })
     buffers.sizeBuffer.element(idx).assign(starSize)
 
@@ -171,14 +232,14 @@ export function createComputeInit(
     const brightness = float(0).toVar()
     const alpha = float(0).toVar()
     If(layerVal.equal(0), () => {
-      brightness.assign(brightRand.mul(0.16).add(0.08)) // dust
-      alpha.assign(alphaRand.mul(0.2).add(0.12))
+      brightness.assign(brightRand.mul(0.16).add(0.08).mul(mix(float(0.9), float(1.35), uniforms.bandDustMix))) // dust
+      alpha.assign(alphaRand.mul(0.2).add(0.12).mul(mix(float(0.9), float(1.2), uniforms.bandDustLaneStrength)))
     }).ElseIf(layerVal.equal(1), () => {
-      brightness.assign(brightRand.mul(0.4).add(0.32)) // star
+      brightness.assign(brightRand.mul(0.4).add(0.32).mul(mix(float(0.95), float(1.15), uniforms.bandHotMix))) // star
       alpha.assign(alphaRand.mul(0.4).add(0.4))
     }).Else(() => {
-      brightness.assign(brightRand.mul(0.16).add(0.64)) // bright
-      alpha.assign(alphaRand.mul(0.24).add(0.56))
+      brightness.assign(brightRand.mul(0.16).add(0.64).mul(mix(float(0.95), float(1.25), uniforms.bandHotMix))) // bright
+      alpha.assign(alphaRand.mul(0.24).add(0.56).mul(mix(float(0.95), float(1.2), uniforms.bandClumpBoost)))
     })
 
     // ─── Position generation (morphology-dependent) ────────────────────
@@ -249,7 +310,7 @@ export function createComputeInit(
         // Scatter perpendicular to arm — widens with radius for realism
         const scatterScale = armR.div(R).mul(0.5).add(0.5)
         const scatter = hash(seed.add(32)).sub(0.5).add(hash(seed.add(33)).sub(0.5))
-          .mul(uniforms.armWidth).mul(scatterScale)
+          .mul(uniforms.armWidth).mul(scatterScale).mul(uniforms.bandArmScatterScale)
         const irr = uniforms.irregularity.mul(hash(seed.add(35)).sub(0.5)).mul(30)
 
         // Angular scatter along arm direction — breaks up the dense radial
@@ -263,7 +324,7 @@ export function createComputeInit(
         const z = sin(baseAngle).mul(armR.add(irr))
           .add(sin(scatterAngle).mul(scatter))
         const t = armR.div(R)
-        const thickness = R.mul(0.06).mul(float(1).sub(t.mul(0.7)))
+        const thickness = R.mul(0.06).mul(float(1).sub(t.mul(0.7))).mul(uniforms.bandDiskThicknessScale)
         const y = hash(seed.add(36)).sub(0.5).mul(thickness)
 
         posX.assign(x)
@@ -307,7 +368,7 @@ export function createComputeInit(
       const df = r.div(R)
 
       // Lens-shaped vertical profile: thick at center, thin at edge
-      const thickness = R.mul(0.06).mul(pow(max(float(1).sub(df), float(0)), float(2)))
+      const thickness = R.mul(0.06).mul(pow(max(float(1).sub(df), float(0)), float(2))).mul(uniforms.bandDiskThicknessScale)
       const y = hash(seed.add(12)).sub(0.5).mul(thickness)
 
       posX.assign(cos(theta).mul(r))
@@ -316,7 +377,7 @@ export function createComputeInit(
 
       // Bulge region: brightness and size boost for prominent center
       const bulgeBlend = clamp(float(1).sub(r.div(max(bulgeR, float(1)))), float(0), float(1))
-      const boost = float(1).add(bulgeBlend.mul(0.4))
+      const boost = float(1).add(bulgeBlend.mul(0.4)).add(uniforms.bandBulgeBoost.mul(0.25))
       brightness.assign(min(brightness.mul(boost), float(0.95)))
       alpha.assign(min(alpha.mul(boost), float(0.95)))
       starSize.assign(starSize.mul(float(1).add(bulgeBlend.mul(0.3))))
@@ -355,6 +416,7 @@ export function createComputeInit(
         const cx = cos(clumpAngle).mul(clumpR)
         const cz = sin(clumpAngle).mul(clumpR)
         const sigma = hash(clumpIdx.add(3000)).mul(80).add(30)
+          .mul(mix(float(1.05), float(0.7), uniforms.bandClumpBoost))
         // Gaussian-ish scatter
         const gx = hash(seed.add(51)).sub(0.5).add(hash(seed.add(52)).sub(0.5)).mul(2)
         const gz = hash(seed.add(53)).sub(0.5).add(hash(seed.add(54)).sub(0.5)).mul(2)
@@ -418,15 +480,16 @@ export function createComputeInit(
       // Cumulative thresholds shift with distance from center.
       // Inner (d=0): dominated by old M/K. Outer (d=1): more young hot stars.
       const d = pow(clamp(distFactor, float(0), float(1)), float(0.6))
+      const hotBias = uniforms.bandHotMix.sub(uniforms.bandDustMix).mul(0.16)
 
       // Cumulative weights per spectral class [M, K, G, F, A/B, O]
       // Inner: [0.58, 0.78, 0.88, 0.93, 0.98, 1.00]
       // Outer: [0.30, 0.45, 0.55, 0.65, 0.87, 1.00]
-      const wM  = mix(float(0.58), float(0.30), d)
-      const wK  = mix(float(0.78), float(0.45), d)
-      const wG  = mix(float(0.88), float(0.55), d)
-      const wF  = mix(float(0.93), float(0.65), d)
-      const wAB = mix(float(0.98), float(0.87), d)
+      const wM  = clamp(mix(float(0.58), float(0.30), d).sub(hotBias), float(0.12), float(0.8))
+      const wK  = clamp(mix(float(0.78), float(0.45), d).sub(hotBias.mul(0.75)), float(0.22), float(0.9))
+      const wG  = clamp(mix(float(0.88), float(0.55), d).sub(hotBias.mul(0.45)), float(0.35), float(0.96))
+      const wF  = clamp(mix(float(0.93), float(0.65), d).sub(hotBias.mul(0.25)), float(0.45), float(0.98))
+      const wAB = clamp(mix(float(0.98), float(0.87), d).sub(hotBias.mul(0.1)), float(0.7), float(0.995))
       // O class gets remainder to 1.0
 
       // Select spectral class by threshold — hue AND saturation per class.

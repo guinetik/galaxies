@@ -10,10 +10,12 @@ import * as THREE from 'three/webgpu'
 import type { Galaxy } from '@/types/galaxy'
 import { mapGalaxyToRenderParams } from '../morphology'
 import type { GalaxyRenderParams } from '../morphology'
+import { loadGalaxyBandAnalysis } from '../bandAssetLoader'
 import {
   createGalaxyBuffers,
   createGalaxyUniforms,
   createComputeInit,
+  syncGalaxyUniforms,
   type GalaxyBuffers,
   type GalaxyUniforms,
 } from './GalaxyComputeInit'
@@ -50,6 +52,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private fgScene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private canvas: HTMLCanvasElement
+  private galaxy: Galaxy
   private params: GalaxyRenderParams
 
   // GPU compute
@@ -60,6 +63,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private computeUpdate: any
   private computeForeground: any
   private initialized = false
+  private disposed = false
 
   // Visual layers
   private backdrop: GalaxyBackdropWebGPU
@@ -118,6 +122,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
   constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
     this.canvas = canvas
+    this.galaxy = galaxy
 
     // ─── Quality detection ─────────────────────────────────────────────
     this.quality = detectQuality()
@@ -299,6 +304,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   // ─── Start (async — WebGPU renderer requires init) ─────────────────────
 
   async start(): Promise<void> {
+    const bandAnalysisPromise = loadGalaxyBandAnalysis(this.galaxy.pgc).catch(() => null)
+
     // Create and initialize WebGPU renderer
     this.renderer = new THREE.WebGPURenderer({
       canvas: this.canvas,
@@ -324,6 +331,33 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     // ─── Start animation loop ───────────────────────────────────────
     this.lastFrameTime = performance.now()
     this.animate()
+
+    // Apply band-guided reinitialization opportunistically without blocking the
+    // initial procedural render path.
+    void bandAnalysisPromise.then(async (bandAnalysis) => {
+      if (!bandAnalysis || this.disposed || !this.initialized) {
+        return
+      }
+
+      try {
+        this.params = mapGalaxyToRenderParams(this.galaxy, bandAnalysis.profile)
+        syncGalaxyUniforms(this.uniforms, this.params)
+
+        if (this.disposed) {
+          return
+        }
+        await this.renderer.computeAsync(this.computeInit)
+
+        if (this.disposed) {
+          return
+        }
+        await this.renderer.computeAsync(this.clouds.computeInit)
+      } catch (error) {
+        if (!this.disposed) {
+          console.warn('Band-guided WebGPU upgrade failed; keeping procedural render:', error)
+        }
+      }
+    })
   }
 
   // ─── Animation loop ───────────────────────────────────────────────────
@@ -454,6 +488,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   // ─── Cleanup ──────────────────────────────────────────────────────────
 
   dispose(): void {
+    this.disposed = true
     cancelAnimationFrame(this.animationId)
 
     const canvas = this.canvas
