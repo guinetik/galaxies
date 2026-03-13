@@ -122,6 +122,32 @@ describe('extractBandFeatureProfile', () => {
     expect(stripeProfile.filamentarity).toBeGreaterThan(blobProfile.filamentarity)
     expect(stripeProfile.armContrast).toBeGreaterThan(blobProfile.armContrast)
   })
+
+  it('extracts an elongated projected silhouette and its major-axis angle from the light distribution', () => {
+    const elongated = makeInput(17, 17, (x, y) => {
+      const dx = x - 8
+      const dy = y - 8
+      const along = (dx + dy) / Math.sqrt(2)
+      const across = (dx - dy) / Math.sqrt(2)
+      const v = Math.exp(-((along * along) / 28 + (across * across) / 3.5))
+      return { u: v * 0.18, g: v * 0.42, r: v * 0.5, i: v, z: v * 0.76, nuv: v * 0.12 }
+    })
+
+    const round = makeInput(17, 17, (x, y) => {
+      const dx = x - 8
+      const dy = y - 8
+      const v = Math.exp(-((dx * dx + dy * dy) / 10))
+      return { u: v * 0.18, g: v * 0.42, r: v * 0.5, i: v, z: v * 0.76, nuv: v * 0.12 }
+    })
+
+    const elongatedProfile = extractBandFeatureProfile(elongated)
+    const roundProfile = extractBandFeatureProfile(round)
+
+    expect(elongatedProfile.projectedAxisRatio).toBeLessThan(0.65)
+    expect(roundProfile.projectedAxisRatio).toBeGreaterThan(elongatedProfile.projectedAxisRatio)
+    expect(elongatedProfile.projectedAngle).toBeCloseTo(Math.PI / 4, 1)
+    expect(elongatedProfile.projectedStrength).toBeGreaterThan(0.35)
+  })
 })
 
 describe('mapGalaxyToRenderParams with band guidance', () => {
@@ -139,6 +165,9 @@ describe('mapGalaxyToRenderParams with band guidance', () => {
       filamentarity: 0.79,
       diskThicknessBias: 0.18,
       dustLaneStrength: 0.67,
+      projectedAxisRatio: 0.56,
+      projectedAngle: Math.PI / 6,
+      projectedStrength: 0.74,
       radialProfile: Array.from({ length: 8 }, (_, index) => ({
         radius: (index + 0.5) / 8,
         intensity: 1 - index / 10,

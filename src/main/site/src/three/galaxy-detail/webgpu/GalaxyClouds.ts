@@ -45,6 +45,45 @@ function cloudCount(quality: Quality): number {
   return quality === 'mobile' ? 10_000 : CLOUD_COUNT
 }
 
+/**
+ * Samples the coarse radial density guidance extracted from the band profile.
+ */
+function sampleRadialGuidance(radiusNorm: any, uniforms: GalaxyUniforms): any {
+  const coreToMid = smoothstep(float(0.18), float(0.38), radiusNorm)
+  const midToOuter = smoothstep(float(0.58), float(0.82), radiusNorm)
+  const innerBlend = mix(uniforms.coreWeight, uniforms.midDiskWeight, coreToMid)
+  return mix(innerBlend, uniforms.outerDiskWeight, midToOuter)
+}
+
+/**
+ * Measures how strongly an angle aligns with the dominant observed azimuthal
+ * sectors extracted from the band profile.
+ */
+function sampleAzimuthGuidance(angle: any, uniforms: GalaxyUniforms): any {
+  const affinityA = cos(angle.sub(uniforms.peakAzimuthAngleA)).mul(0.5).add(0.5)
+  const affinityB = cos(angle.sub(uniforms.peakAzimuthAngleB)).mul(0.5).add(0.5)
+  return max(affinityA, affinityB)
+}
+
+/**
+ * Applies the observed projected ellipse to the generated XZ footprint while
+ * keeping the local texture guidance already baked into the cloud layout.
+ */
+function applyProjectedSilhouette(position: any, uniforms: GalaxyUniforms): any {
+  const c = cos(uniforms.projectedAngle)
+  const s = sin(uniforms.projectedAngle)
+  const major = position.x.mul(c).add(position.z.mul(s))
+  const minor = position.z.mul(c).sub(position.x.mul(s))
+  const minorScale = mix(float(1), uniforms.projectedAxisRatio, uniforms.projectedStrength)
+  const shapedMinor = minor.mul(minorScale)
+
+  return vec3(
+    major.mul(c).sub(shapedMinor.mul(s)),
+    position.y,
+    major.mul(s).add(shapedMinor.mul(c)),
+  )
+}
+
 export class GalaxyClouds {
   readonly sprite: THREE.Sprite
   private material: THREE.SpriteNodeMaterial
@@ -83,6 +122,8 @@ export class GalaxyClouds {
       const posY = float(0).toVar()
       const posZ = float(0).toVar()
       const normalizedRadius = float(0).toVar()
+      const radialGuidance = float(1).toVar()
+      const azimuthGuidance = float(0).toVar()
 
       // ─── SPIRAL / BARRED (numArms > 0): tight dust on inner arm edges ──────
       If(uniforms.numArms.greaterThan(0), () => {
@@ -97,6 +138,7 @@ export class GalaxyClouds {
           rHash.mul(R.mul(R).sub(minArmR.mul(minArmR))).add(minArmR.mul(minArmR)),
         )
         normalizedRadius.assign(armR.div(R))
+        radialGuidance.assign(sampleRadialGuidance(normalizedRadius, uniforms))
 
         const armIndex = floor(hash(seed.add(2)).mul(uniforms.numArms))
         const armAngle = armIndex.mul(TAU).div(uniforms.numArms)
@@ -104,14 +146,39 @@ export class GalaxyClouds {
         const spiralAngle = max(armR.div(spiralStartR), float(1.0)).log()
           .div(max(uniforms.spiralTightness, float(0.001)))
           .mul(windingFactor)
+        const baseAngle = armAngle.add(spiralAngle)
+        const baseAffinity = sampleAzimuthGuidance(baseAngle, uniforms)
+        azimuthGuidance.assign(baseAffinity)
+        const peakPull = sin(uniforms.peakAzimuthAngleA.sub(baseAngle))
+          .mul(cos(baseAngle.sub(uniforms.peakAzimuthAngleA)).mul(0.5).add(0.5))
+          .add(
+            sin(uniforms.peakAzimuthAngleB.sub(baseAngle))
+              .mul(cos(baseAngle.sub(uniforms.peakAzimuthAngleB)).mul(0.5).add(0.5)),
+          )
+          .mul(uniforms.peakAzimuthStrength)
+          .mul(0.26)
+        const guidedAngle = baseAngle.add(peakPull)
 
         // Tight scatter — dust centered on the arm spine
         const angleOffset = hash(seed.add(3)).sub(0.5)
-          .mul(mix(float(0.18), float(0.08), uniforms.bandDustLaneStrength))
+          .mul(
+            mix(
+              float(0.2),
+              float(0.035),
+              azimuthGuidance.mul(uniforms.peakAzimuthStrength).add(uniforms.bandDustLaneStrength).mul(0.5),
+            ),
+          )
         const radiusOffset = hash(seed.add(4)).sub(0.5)
           .mul(uniforms.armWidth)
-          .mul(mix(float(0.45), float(0.2), uniforms.bandDustLaneStrength))
-        const angle = armAngle.add(spiralAngle).add(angleOffset)
+          .mul(
+            mix(
+              float(0.55),
+              float(0.12),
+              azimuthGuidance.mul(uniforms.peakAzimuthStrength).add(uniforms.bandDustLaneStrength).mul(0.5),
+            ),
+          )
+          .mul(mix(float(0.85), float(1.18), min(radialGuidance, float(1.25)).sub(0.25)))
+        const angle = guidedAngle.add(angleOffset)
 
         posX.assign(cos(angle).mul(armR.add(radiusOffset)))
         posZ.assign(sin(angle).mul(armR.add(radiusOffset)))
@@ -129,6 +196,7 @@ export class GalaxyClouds {
         const r = pow(hash(seed.add(1)), float(0.5)).mul(R)
         const theta = hash(seed.add(2)).mul(TAU)
         normalizedRadius.assign(r.div(R))
+        radialGuidance.assign(sampleRadialGuidance(normalizedRadius, uniforms))
         posX.assign(cos(theta).mul(r))
         posZ.assign(sin(theta).mul(r))
         const thick = R.mul(0.03).mul(float(1.0).sub(normalizedRadius.mul(0.5)))
@@ -144,6 +212,7 @@ export class GalaxyClouds {
         const x = r.mul(cos(theta))
         const z = r.mul(sin(theta)).mul(ar)
         normalizedRadius.assign(sqrt(x.mul(x).add(z.mul(z))).div(R))
+        radialGuidance.assign(sampleRadialGuidance(normalizedRadius, uniforms))
         posX.assign(x)
         posZ.assign(z)
         posY.assign(hash(seed.add(5)).sub(0.5).mul(R).mul(0.08).mul(float(1.0).sub(normalizedRadius.mul(0.5))))
@@ -163,8 +232,20 @@ export class GalaxyClouds {
         posX.assign(cx.add(gx.mul(sigma)))
         posZ.assign(cz.add(gz.mul(sigma)))
         normalizedRadius.assign(sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R))
+        radialGuidance.assign(sampleRadialGuidance(normalizedRadius, uniforms))
         posY.assign(hash(seed.add(5)).sub(0.5).mul(R).mul(0.1))
       })
+
+      const shapedPosition = applyProjectedSilhouette(vec3(posX, posY, posZ), uniforms)
+      posX.assign(shapedPosition.x)
+      posY.assign(shapedPosition.y)
+      posZ.assign(shapedPosition.z)
+      normalizedRadius.assign(
+        min(
+          sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R),
+          float(1),
+        ),
+      )
 
       const position = vec3(posX, posY, posZ)
       posBuffer.element(idx).assign(position)
@@ -175,13 +256,28 @@ export class GalaxyClouds {
       const warmTint = vec3(0.92, 0.76, 0.62)
       const dustTint = mix(coolTint, warmTint, uniforms.bandDustMix)
       const laneBoost = mix(float(0.7), float(1.0), uniforms.bandDustLaneStrength)
-      const cloudColor = dustTint.mul(float(0.72).sub(normalizedRadius.mul(0.28))).mul(laneBoost)
+      const structuralBoost = mix(
+        float(0.58),
+        float(1.3),
+        azimuthGuidance.mul(uniforms.peakAzimuthStrength),
+      )
+      const radialBoost = mix(
+        float(0.72),
+        float(1.22),
+        min(radialGuidance, float(1.3)).sub(0.3),
+      )
+      const cloudColor = dustTint
+        .mul(float(0.72).sub(normalizedRadius.mul(0.28)))
+        .mul(laneBoost)
+        .mul(structuralBoost)
+        .mul(radialBoost)
       colBuffer.element(idx).assign(cloudColor)
 
       // Size variation: larger in denser regions
       const densityFactor = float(1.0).sub(normalizedRadius.mul(0.5))
         .mul(mix(float(0.9), float(1.15), uniforms.bandDustLaneStrength))
       const size = hash(seed.add(6)).mul(0.5).add(0.7).mul(densityFactor)
+        .mul(mix(float(0.8), float(1.35), azimuthGuidance.mul(uniforms.peakAzimuthStrength)))
       szBuffer.element(idx).assign(size)
     })().compute(count)
 

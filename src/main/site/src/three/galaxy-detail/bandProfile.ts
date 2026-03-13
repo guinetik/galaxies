@@ -64,6 +64,9 @@ export interface BandFeatureProfile {
   filamentarity: number
   diskThicknessBias: number
   dustLaneStrength: number
+  projectedAxisRatio: number
+  projectedAngle: number
+  projectedStrength: number
   radialProfile: BandRadialProfileBin[]
   azimuthalProfile: BandAzimuthalProfileBin[]
 }
@@ -174,6 +177,7 @@ export function extractBandFeatureProfile(
   const filamentarity = computeWeightedFilamentarity(input)
   const armContrast = computeContrast(azimuthalProfile.map((bin) => bin.intensity))
   const clumpiness = computeClumpiness(input)
+  const projectedEllipse = computeProjectedEllipse(input, availability)
   const diskThicknessBias = clamp01((1 - filamentarity) * 0.7 + concentration * 0.3)
   const dustLaneStrength = clamp01(
     colorBalance.dust * (0.55 + filamentarity * 0.35 + armContrast * 0.25),
@@ -188,6 +192,9 @@ export function extractBandFeatureProfile(
     filamentarity,
     diskThicknessBias,
     dustLaneStrength,
+    projectedAxisRatio: projectedEllipse.axisRatio,
+    projectedAngle: projectedEllipse.angle,
+    projectedStrength: projectedEllipse.strength,
     radialProfile,
     azimuthalProfile,
   }
@@ -480,9 +487,105 @@ function computeGlobalShapeAnisotropy(
   return clamp01((lambda1 - lambda2) / (lambda1 + lambda2 + 1e-6))
 }
 
+interface ProjectedEllipse {
+  axisRatio: number
+  angle: number
+  strength: number
+}
+
+/**
+ * Computes a best-fit projected ellipse from the brightness-weighted second
+ * moments of the compressed band intensity field.
+ */
+function computeProjectedEllipse(
+  input: NsaPointCloudInput,
+  availability: BandFeatureAvailability,
+): ProjectedEllipse {
+  let sumWeight = 0
+  let meanX = 0
+  let meanY = 0
+
+  for (let y = 0; y < input.height; y += 1) {
+    for (let x = 0; x < input.width; x += 1) {
+      const idx = y * input.width + x
+      const weight = sampleSpectralMix(input, idx, availability).intensity
+      if (weight <= FEATURE_INTENSITY_FLOOR) {
+        continue
+      }
+      sumWeight += weight
+      meanX += x * weight
+      meanY += y * weight
+    }
+  }
+
+  if (sumWeight <= 0) {
+    return {
+      axisRatio: 1,
+      angle: 0,
+      strength: 0,
+    }
+  }
+
+  meanX /= sumWeight
+  meanY /= sumWeight
+
+  let covXX = 0
+  let covXY = 0
+  let covYY = 0
+  for (let y = 0; y < input.height; y += 1) {
+    for (let x = 0; x < input.width; x += 1) {
+      const idx = y * input.width + x
+      const weight = sampleSpectralMix(input, idx, availability).intensity
+      if (weight <= FEATURE_INTENSITY_FLOOR) {
+        continue
+      }
+      const dx = x - meanX
+      const dy = y - meanY
+      covXX += dx * dx * weight
+      covXY += dx * dy * weight
+      covYY += dy * dy * weight
+    }
+  }
+
+  covXX /= sumWeight
+  covXY /= sumWeight
+  covYY /= sumWeight
+
+  const trace = covXX + covYY
+  if (trace <= 1e-6) {
+    return {
+      axisRatio: 1,
+      angle: 0,
+      strength: 0,
+    }
+  }
+
+  const det = covXX * covYY - covXY * covXY
+  const disc = Math.sqrt(Math.max(0, trace * trace - 4 * det))
+  const lambda1 = Math.max((trace + disc) * 0.5, 1e-6)
+  const lambda2 = Math.max((trace - disc) * 0.5, 1e-6)
+  const axisRatio = clamp01(Math.sqrt(lambda2 / lambda1))
+  const rawAngle = 0.5 * Math.atan2(2 * covXY, covXX - covYY)
+
+  return {
+    axisRatio: Math.max(axisRatio, 0.15),
+    angle: normalizeHalfTurn(rawAngle),
+    strength: clamp01((1 - axisRatio) * 1.35),
+  }
+}
+
 /**
  * Clamps a scalar into the inclusive 0..1 range.
  */
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
+}
+
+/**
+ * Wraps an angle into the inclusive 0..PI range.
+ */
+function normalizeHalfTurn(angle: number): number {
+  const halfTurn = Math.PI
+  const wrapped = angle % halfTurn
+  return wrapped < 0 ? wrapped + halfTurn : wrapped
 }

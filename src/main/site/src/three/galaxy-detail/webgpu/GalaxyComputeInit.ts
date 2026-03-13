@@ -29,6 +29,7 @@ import {
   sqrt,
   uniform,
   mix,
+  smoothstep,
 } from 'three/tsl'
 import * as THREE from 'three'
 import type { GalaxyRenderParams } from '../morphology'
@@ -77,6 +78,15 @@ export interface GalaxyUniforms {
   bandDustMix: any
   bandDiskThicknessScale: any
   bandDustLaneStrength: any
+  coreWeight: any
+  midDiskWeight: any
+  outerDiskWeight: any
+  peakAzimuthAngleA: any
+  peakAzimuthAngleB: any
+  peakAzimuthStrength: any
+  projectedAxisRatio: any
+  projectedAngle: any
+  projectedStrength: any
   // Compute state
   time: any
   deltaTime: any
@@ -129,6 +139,15 @@ export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms
     bandDustMix: uniform(0.5),
     bandDiskThicknessScale: uniform(1),
     bandDustLaneStrength: uniform(0),
+    coreWeight: uniform(1),
+    midDiskWeight: uniform(1),
+    outerDiskWeight: uniform(1),
+    peakAzimuthAngleA: uniform(0),
+    peakAzimuthAngleB: uniform(Math.PI),
+    peakAzimuthStrength: uniform(0),
+    projectedAxisRatio: uniform(1),
+    projectedAngle: uniform(0),
+    projectedStrength: uniform(0),
     time: uniform(0),
     deltaTime: uniform(0.016),
     rotationSpeed: uniform(0.033),
@@ -174,12 +193,60 @@ export function syncGalaxyUniforms(
   uniforms.bandDustMix.value = influence.dustMix
   uniforms.bandDiskThicknessScale.value = influence.diskThicknessScale
   uniforms.bandDustLaneStrength.value = influence.dustLaneStrength
+  uniforms.coreWeight.value = influence.coreWeight
+  uniforms.midDiskWeight.value = influence.midDiskWeight
+  uniforms.outerDiskWeight.value = influence.outerDiskWeight
+  uniforms.peakAzimuthAngleA.value = influence.peakAzimuthAngleA
+  uniforms.peakAzimuthAngleB.value = influence.peakAzimuthAngleB
+  uniforms.peakAzimuthStrength.value = influence.peakAzimuthStrength
+  uniforms.projectedAxisRatio.value = influence.projectedAxisRatio
+  uniforms.projectedAngle.value = influence.projectedAngle
+  uniforms.projectedStrength.value = influence.projectedStrength
   uniforms.mouseRadius.value = params.galaxyRadius * 0.3
 }
 
 // ─── Compute init shader ───────────────────────────────────────────────────
 
 const TAU = 6.28318530718
+
+/**
+ * Samples the coarse radial density guidance extracted from the band profile.
+ */
+function sampleRadialGuidance(radiusNorm: any, uniforms: GalaxyUniforms): any {
+  const coreToMid = smoothstep(float(0.18), float(0.38), radiusNorm)
+  const midToOuter = smoothstep(float(0.58), float(0.82), radiusNorm)
+  const innerBlend = mix(uniforms.coreWeight, uniforms.midDiskWeight, coreToMid)
+  return mix(innerBlend, uniforms.outerDiskWeight, midToOuter)
+}
+
+/**
+ * Measures how strongly an angle aligns with the dominant observed azimuthal
+ * sectors extracted from the band profile.
+ */
+function sampleAzimuthGuidance(angle: any, uniforms: GalaxyUniforms): any {
+  const affinityA = cos(angle.sub(uniforms.peakAzimuthAngleA)).mul(0.5).add(0.5)
+  const affinityB = cos(angle.sub(uniforms.peakAzimuthAngleB)).mul(0.5).add(0.5)
+  return max(affinityA, affinityB)
+}
+
+/**
+ * Applies the observed projected ellipse to the generated XZ footprint while
+ * keeping the local texture guidance already baked into the particle layout.
+ */
+function applyProjectedSilhouette(position: any, uniforms: GalaxyUniforms): any {
+  const c = cos(uniforms.projectedAngle)
+  const s = sin(uniforms.projectedAngle)
+  const major = position.x.mul(c).add(position.z.mul(s))
+  const minor = position.z.mul(c).sub(position.x.mul(s))
+  const minorScale = mix(float(1), uniforms.projectedAxisRatio, uniforms.projectedStrength)
+  const shapedMinor = minor.mul(minorScale)
+
+  return vec3(
+    major.mul(c).sub(shapedMinor.mul(s)),
+    position.y,
+    major.mul(s).add(shapedMinor.mul(c)),
+  )
+}
 
 export function createComputeInit(
   count: number,
@@ -247,6 +314,9 @@ export function createComputeInit(
     const posY = float(0).toVar()
     const posZ = float(0).toVar()
     const distFactor = float(0).toVar()
+    const spiralRole = float(-1).toVar()
+    const radialGuidance = float(1).toVar()
+    const azimuthGuidance = float(0).toVar()
 
     // ─── SPIRAL / BARRED (numArms > 0) ────────────────────────────────
     // Each star is either an arm star, bulge star, or field star
@@ -260,6 +330,7 @@ export function createComputeInit(
       const fieldFrac = uniforms.fieldStarFraction
 
       If(roleRoll.lessThan(bulgeFrac), () => {
+        spiralRole.assign(0)
         // ─── Bulge star ───────────────────────────────────────────
         const r = pow(hash(seed.add(10)), float(0.6)).mul(bulgeR)
         const theta = hash(seed.add(11)).mul(TAU)
@@ -268,7 +339,9 @@ export function createComputeInit(
         posY.assign(y)
         posZ.assign(sin(theta).mul(r))
         distFactor.assign(r.div(bulgeR).mul(0.3)) // bulge always inner colors
+        radialGuidance.assign(uniforms.coreWeight)
       }).ElseIf(roleRoll.lessThan(bulgeFrac.add(fieldFrac)), () => {
+        spiralRole.assign(1)
         // ─── Field star ───────────────────────────────────────────
         const r = sqrt(hash(seed.add(20))).mul(R)
         const theta = hash(seed.add(21)).mul(TAU)
@@ -277,7 +350,9 @@ export function createComputeInit(
         posY.assign(y)
         posZ.assign(sin(theta).mul(r))
         distFactor.assign(r.div(R))
+        radialGuidance.assign(sampleRadialGuidance(distFactor, uniforms))
       }).Else(() => {
+        spiralRole.assign(2)
         // ─── Arm star (spiral pattern) ────────────────────────────
         // Parameterize by RADIUS (not theta) for even density distribution,
         // but start the annulus where the spiral actually begins. Otherwise,
@@ -299,6 +374,9 @@ export function createComputeInit(
         const armR = sqrt(
           rHash.mul(R.mul(R).sub(minArmR.mul(minArmR))).add(minArmR.mul(minArmR)),
         )
+        const normalizedArmR = armR.div(R)
+        const radiusWeight = sampleRadialGuidance(normalizedArmR, uniforms)
+        radialGuidance.assign(radiusWeight)
 
         // Derive spiral angle from logarithmic spiral: r = a * exp(b * theta)
         // Solved: theta = ln(r/a) / b. Winding factor scales up wraps within R.
@@ -317,13 +395,35 @@ export function createComputeInit(
         // concentration at spiral starts that creates visible straight lines
         const angleScatter = hash(seed.add(34)).sub(0.5).mul(0.3)
         const baseAngle = theta.add(armOffset).add(angleScatter)
-        const scatterAngle = baseAngle.add(float(Math.PI / 2))
+        const peakA = cos(baseAngle.sub(uniforms.peakAzimuthAngleA)).mul(0.5).add(0.5)
+        const peakB = cos(baseAngle.sub(uniforms.peakAzimuthAngleB)).mul(0.5).add(0.5)
+        const peakAffinity = max(peakA, peakB)
+        azimuthGuidance.assign(peakAffinity)
+        const peakPull = sin(uniforms.peakAzimuthAngleA.sub(baseAngle)).mul(peakA)
+          .add(sin(uniforms.peakAzimuthAngleB.sub(baseAngle)).mul(peakB))
+          .mul(uniforms.peakAzimuthStrength)
+          .mul(0.22)
+        const guidedAngle = baseAngle.add(peakPull)
+        const scatterAngle = guidedAngle.add(float(Math.PI / 2))
+        const radialScale = mix(
+          float(0.86),
+          float(1.18),
+          clamp(radiusWeight.sub(0.55).div(1.3), float(0), float(1)),
+        )
+        const guidedArmR = clamp(armR.mul(radialScale), minArmR, R)
+        const guidedScatter = scatter.mul(
+          mix(
+            float(1.3),
+            float(0.42),
+            peakAffinity.mul(uniforms.peakAzimuthStrength),
+          ),
+        )
 
-        const x = cos(baseAngle).mul(armR.add(irr))
-          .add(cos(scatterAngle).mul(scatter))
-        const z = sin(baseAngle).mul(armR.add(irr))
-          .add(sin(scatterAngle).mul(scatter))
-        const t = armR.div(R)
+        const x = cos(guidedAngle).mul(guidedArmR.add(irr))
+          .add(cos(scatterAngle).mul(guidedScatter))
+        const z = sin(guidedAngle).mul(guidedArmR.add(irr))
+          .add(sin(scatterAngle).mul(guidedScatter))
+        const t = guidedArmR.div(R)
         const thickness = R.mul(0.06).mul(float(1).sub(t.mul(0.7))).mul(uniforms.bandDiskThicknessScale)
         const y = hash(seed.add(36)).sub(0.5).mul(thickness)
 
@@ -383,6 +483,7 @@ export function createComputeInit(
       starSize.assign(starSize.mul(float(1).add(bulgeBlend.mul(0.3))))
 
       distFactor.assign(df.mul(0.2))
+      radialGuidance.assign(sampleRadialGuidance(df, uniforms))
     })
 
     // ─── ELLIPTICAL (ellipticity > 0) ──────────────────────────────────
@@ -398,6 +499,7 @@ export function createComputeInit(
       posY.assign(y)
       posZ.assign(z)
       distFactor.assign(dRatio)
+      radialGuidance.assign(sampleRadialGuidance(dRatio, uniforms))
     })
 
     // ─── IRREGULAR (clumpCount > 0) ────────────────────────────────────
@@ -431,7 +533,47 @@ export function createComputeInit(
       })
       posY.assign(hash(seed.add(70)).sub(0.5).mul(R).mul(0.12))
       distFactor.assign(sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R))
+      radialGuidance.assign(sampleRadialGuidance(distFactor, uniforms))
     })
+
+    If(spiralRole.equal(0), () => {
+      const bulgeBoost = mix(
+        float(1.0),
+        uniforms.coreWeight.mul(0.55).add(0.45),
+        uniforms.bandBulgeBoost,
+      )
+      brightness.assign(min(brightness.mul(bulgeBoost), float(0.98)))
+      alpha.assign(min(alpha.mul(bulgeBoost), float(0.98)))
+      starSize.assign(starSize.mul(mix(float(1.0), float(1.35), uniforms.bandBulgeBoost)))
+    }).ElseIf(spiralRole.equal(1), () => {
+      const fieldSuppression = mix(float(1.0), float(0.62), uniforms.peakAzimuthStrength)
+      brightness.assign(brightness.mul(fieldSuppression))
+      alpha.assign(alpha.mul(mix(float(1.0), float(0.8), uniforms.peakAzimuthStrength)))
+    }).ElseIf(spiralRole.equal(2), () => {
+      const segmentBoost = mix(
+        float(0.72),
+        float(1.48),
+        azimuthGuidance.mul(uniforms.peakAzimuthStrength),
+      )
+      const radialBoost = mix(
+        float(0.78),
+        float(1.34),
+        clamp(radialGuidance.sub(0.55).div(1.3), float(0), float(1)),
+      )
+      brightness.assign(min(brightness.mul(segmentBoost).mul(radialBoost), float(0.98)))
+      alpha.assign(min(alpha.mul(segmentBoost), float(0.98)))
+      starSize.assign(
+        starSize.mul(
+          mix(float(0.92), float(1.4), azimuthGuidance.mul(uniforms.peakAzimuthStrength)),
+        ),
+      )
+    })
+
+    const shapedPosition = applyProjectedSilhouette(vec3(posX, posY, posZ), uniforms)
+    posX.assign(shapedPosition.x)
+    posY.assign(shapedPosition.y)
+    posZ.assign(shapedPosition.z)
+    distFactor.assign(min(sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R), float(1)))
 
     // ─── Central clear zone: push stars outside exclusion radius ───────
     const actualR = sqrt(posX.mul(posX).add(posZ.mul(posZ)))
