@@ -232,8 +232,17 @@ function generateFieldStar(galaxyRadius: number): Star {
 
 // ─── Arm star generator ─────────────────────────────────────────────────────
 
-function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
+function generateArmStars(
+  p: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null = null,
+): Star[] {
   const stars: Star[] = []
+
+  // Derive band-influenced geometry parameters
+  const armScatterScale = influence?.armScatterScale ?? 1
+  const diskThicknessScale = influence?.diskThicknessScale ?? 1
+
   const m = p.morphology
   const galaxyRadius = p.galaxyRadius
   const numArms = m.numArms
@@ -272,7 +281,10 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
       const angleScatter = (Math.random() - 0.5) * 0.3
       const baseAngle = theta + armOffset + angleScatter
       const scatterScale = (armRadius / galaxyRadius) * 0.5 + 0.5
-      const scatter = (Math.random() - 0.5 + Math.random() - 0.5) * armWidth * scatterScale
+      const scatter = (Math.random() - 0.5 + Math.random() - 0.5)
+        * armWidth
+        * scatterScale
+        * armScatterScale
       const scatterAngle = baseAngle + Math.PI / 2
       const irr = irregularity * (Math.random() - 0.5) * 30
 
@@ -280,11 +292,18 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
       const z = Math.sin(baseAngle) * (armRadius + irr) + Math.sin(scatterAngle) * scatter
 
       const radialT = armRadius / galaxyRadius
-      const thickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - radialT * 0.7)
-      const y = (Math.random() - 0.5) * thickness
+      const baseThickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - radialT * 0.7)
+      const thickness = baseThickness * diskThicknessScale
+      let y = (Math.random() - 0.5) * thickness
 
-      const actualRadius = Math.sqrt(x * x + z * z)
-      const actualAngle = Math.atan2(z, x)
+      // Apply projected silhouette
+      const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
+      let xSilhouetted = silhouetted.x
+      let ySilhouetted = silhouetted.y
+      let zSilhouetted = silhouetted.z
+
+      const actualRadius = Math.sqrt(xSilhouetted * xSilhouetted + zSilhouetted * zSilhouetted)
+      const actualAngle = Math.atan2(zSilhouetted, xSilhouetted)
       const distFactor = actualRadius / galaxyRadius
       const rotationSpeed = computeRotationSpeed(actualRadius)
 
@@ -296,7 +315,7 @@ function generateArmStars(p: GalaxyRenderParams, count: number): Star[] {
       stars.push({
         radius: actualRadius,
         angle: actualAngle,
-        y,
+        y: ySilhouetted,
         rotationSpeed,
         hue: spec.hue,
         sat: spec.sat,
