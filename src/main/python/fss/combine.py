@@ -406,9 +406,9 @@ def print_combined_stats(db_path):
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(__file__)
-    research_dir = os.path.join(base_dir, "..", "..", "..", "research")
-    fss_path = os.path.join(research_dir, "fss.dat")
-    xml_path = os.path.join(research_dir, "1973UGCC0000N.xml")
+    research_dir = os.path.join(base_dir, "..", "..", "..", "..", "research")
+    fss_path = os.path.join(research_dir, "fss", "fss.dat")
+    xml_path = os.path.join(research_dir, "ugc", "1973UGCC0000N.xml")
     db_path = os.path.join(base_dir, "galaxies_combined.db")
 
     # Parse FSS

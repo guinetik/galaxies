@@ -191,9 +191,9 @@ def print_stats(db_path: str):
 
 
 if __name__ == "__main__":
-    xml_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "research", "1973UGCC0000N.xml"
-    )
+    base_dir = os.path.dirname(__file__)
+    research_dir = os.path.join(base_dir, "..", "..", "..", "..", "research")
+    xml_path = os.path.join(research_dir, "ugc", "1973UGCC0000N.xml")
     db_path = os.path.join(os.path.dirname(__file__), "galaxies.db")
 
     # Extract

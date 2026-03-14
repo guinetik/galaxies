@@ -14,10 +14,21 @@ Paper: Durbala A. et al., AJ 160, 271 (2020)
 Author: @guinetik
 """
 
+import gzip
 import os
 import sqlite3
 
 INT64_MIN = -9223372036854775808  # VizieR sentinel for missing SDSS ObjID
+
+
+def _open_dat_or_gz(path):
+    """Open .dat or .dat.gz; prefer .dat if both exist."""
+    if os.path.exists(path):
+        return open(path, "r", encoding="utf-8")
+    gz_path = path + ".gz"
+    if os.path.exists(gz_path):
+        return gzip.open(gz_path, "rt", encoding="utf-8")
+    raise FileNotFoundError(f"Neither {path} nor {gz_path} found")
 
 
 # ─── Parsing helpers ──────────────────────────────────────────────────────────
@@ -79,7 +90,7 @@ TABLE1_FIELDS = [
 def parse_table1(path):
     """Parse table1.dat — basic optical properties of ALFALFA-SDSS galaxies."""
     rows = []
-    with open(path, "r", encoding="utf-8") as f:
+    with _open_dat_or_gz(path) as f:
         for line in f:
             line = line.rstrip("\n").ljust(103)  # Pad short lines (Flag=0/3)
             row = {}
@@ -120,7 +131,7 @@ TABLE2_FIELDS = [
 def parse_table2(path):
     """Parse table2.dat — derived properties of ALFALFA-SDSS galaxies."""
     rows = []
-    with open(path, "r", encoding="utf-8") as f:
+    with _open_dat_or_gz(path) as f:
         for line in f:
             line = line.rstrip("\n").ljust(122)
             row = {}

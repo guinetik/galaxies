@@ -60,6 +60,11 @@ for gal in galaxies:
     subprocess.run(cmd, check=True)
 ```
 
+### Utility Scripts
+
+- **`list_largest_images.py`** – List galaxies by image resolution (largest first). See `docs/galaxy-images-largest.md`.
+- **`analyze_images.py`** – Full analysis of `src/main/images` (dimensions, sizes, bands, distributions).
+
 ## How It Works
 
 ### Architecture Overview

@@ -1,0 +1,8 @@
+# Python ETL dependencies for galaxies.db pipeline
+# Install: pip install -r requirements.txt
+
+# FSS/UGC: VOTable parsing
+astropy>=6.0
+
+# UGC: numpy for astropy Table value conversion
+numpy>=1.20
