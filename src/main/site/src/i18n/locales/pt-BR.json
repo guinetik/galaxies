@@ -2,7 +2,8 @@
   "app": {
     "title": "Galáxias",
     "loading": "Carregando banco de dados de galáxias...",
-    "loaded": "{count} galáxias carregadas"
+    "loaded": "{count} galáxias carregadas",
+    "close": "Fechar"
   },
   "header": {
     "siteName": "Galáxias",
@@ -465,6 +466,15 @@
           "desc": "Identificações ópticas e magnitudes azuis para galáxias do hemisfério norte com diâmetros angulares acima de 1 minuto de arco."
         }
       },
+      "astrophotography": {
+        "title": "Astrofotografia & Bandas Espectrais",
+        "intro": "Telescópios não veem o universo como nossos olhos. Em vez de capturar uma única imagem colorida, eles fotografam o céu através de uma série de filtros, cada um transmitindo apenas uma faixa estreita do espectro eletromagnético. Essas exposições individuais são chamadas de bandas espectrais.",
+        "bandsExplain": "O NASA-Sloan Atlas fornece seis bandas para cada galáxia: ultravioleta (NUV), ultravioleta-azul (u), verde (g), vermelho (r), infravermelho próximo (i) e infravermelho profundo (z). Cada banda revela uma física diferente — estrelas jovens e quentes brilham no UV, enquanto populações estelares mais velhas dominam o infravermelho. Gás e poeira deixam assinaturas em múltiplas bandas.",
+        "compositeExplain": "Para produzir uma imagem colorida, astrônomos atribuem canais vermelho, verde e azul a diferentes bandas e as combinam. O resultado é um composto em 'cor falsa' que codifica muito mais informação do que qualquer fotografia única. Algoritmos de estiramento de brilho como o mapeamento asinh de Lupton garantem que tanto os braços externos tênues quanto o núcleo brilhante sejam visíveis em um único quadro.",
+        "imageAlt": "Banda espectral individual de uma galáxia — dados monocromáticos brutos",
+        "imageRevealAlt": "Composto multi-banda — dados espectrais combinados renderizados em cor falsa",
+        "cta": "Explore você mesmo na visualização Foto de qualquer galáxia com dados NSA."
+      },
       "links": {
         "cf4Paper": "Artigo Cosmicflows-4",
         "alfalfaPaper": "Artigo ALFALFA-SDSS",
@@ -503,10 +513,16 @@
     },
     "tour": {
       "title": "Tour de Galáxias",
-      "subtitle": "Explore galáxias icônicas por morfologia: espirais, elípticas, barradas e mais.",
+      "subtitle": "Explore galáxias icônicas — do Grupo Local a sistemas em colisão e gigantes do céu profundo.",
       "shuffle": "Embaralhar",
       "shuffleSubtitle": "Uma galáxia por tipo morfológico",
       "shuffleEmpty": "Nenhuma seleção ainda. Clique em Embaralhar.",
+      "sections": {
+        "local_group": "Grupo Local",
+        "nearby_classics": "Clássicos Próximos",
+        "collisions": "Colisões e Estranhas",
+        "deep_sky": "Céu Profundo"
+      },
       "categories": {
         "spiral": "Espiral",
         "barred": "Espiral Barrada",

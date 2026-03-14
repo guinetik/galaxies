@@ -2,7 +2,8 @@
   "app": {
     "title": "Galaxies",
     "loading": "Loading galaxy database...",
-    "loaded": "{count} galaxies loaded"
+    "loaded": "{count} galaxies loaded",
+    "close": "Close"
   },
   "header": {
     "siteName": "Galaxies",
@@ -423,6 +424,15 @@
           "desc": "Optical identifications and blue magnitudes for northern-sky galaxies with angular diameters over 1 arcminute."
         }
       },
+      "astrophotography": {
+        "title": "Astrophotography & Spectral Bands",
+        "intro": "Telescopes don't see the universe the way our eyes do. Instead of capturing a single color image, they photograph the sky through a series of filters, each transmitting only a narrow slice of the electromagnetic spectrum. These individual exposures are called spectral bands.",
+        "bandsExplain": "The NASA-Sloan Atlas provides six bands for each galaxy: ultraviolet (NUV), ultraviolet-blue (u), green (g), red (r), near-infrared (i), and deep infrared (z). Each band reveals different physics — young hot stars blaze in UV, while older stellar populations dominate the infrared. Gas and dust leave signatures across multiple bands.",
+        "compositeExplain": "To produce a color image, astronomers assign red, green, and blue channels to different bands and combine them. The result is a 'false color' composite that encodes far more information than any single photograph. Brightness stretching algorithms like Lupton's asinh mapping ensure that both faint outer arms and the brilliant core are visible in one frame.",
+        "imageAlt": "Single spectral band of a galaxy — raw monochrome data",
+        "imageRevealAlt": "Multi-band composite — combined spectral data rendered in false color",
+        "cta": "Explore this yourself in the Photo view for any galaxy with NSA data."
+      },
       "links": {
         "cf4Paper": "Cosmicflows-4 Paper",
         "alfalfaPaper": "ALFALFA-SDSS Paper",
@@ -461,10 +471,16 @@
     },
     "tour": {
       "title": "Galaxy Tour",
-      "subtitle": "Explore iconic galaxies by morphology: spirals, ellipticals, bars, and more.",
+      "subtitle": "Explore iconic galaxies — from our Local Group to colliding systems and deep-sky giants.",
       "shuffle": "Shuffle",
       "shuffleSubtitle": "One galaxy per morphology type",
       "shuffleEmpty": "No picks yet. Click Shuffle.",
+      "sections": {
+        "local_group": "Local Group",
+        "nearby_classics": "Nearby Classics",
+        "collisions": "Collisions & Oddballs",
+        "deep_sky": "Deep Sky"
+      },
       "categories": {
         "spiral": "Spiral",
         "barred": "Barred Spiral",
