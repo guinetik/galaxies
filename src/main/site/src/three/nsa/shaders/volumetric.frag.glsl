@@ -146,6 +146,15 @@ void main() {
   float sGas   = stretch(gasRaw,   m, uQ, uAlpha);
   float sTotalSmooth = stretch(totalSmooth, m, uQ, uAlpha);
 
+  // Normalize so that contrast slider changes curve shape, not overall brightness
+  float stretchRef = stretch(avgRange * 0.3, m, uQ, uAlpha);
+  float normF = 1.0 / max(stretchRef, 0.01);
+  sTotal *= normF;
+  sDust  *= normF;
+  sStar  *= normF;
+  sGas   *= normF;
+  sTotalSmooth *= normF;
+
   // Per-pixel spectral fractions
   float totalS = sDust + sStar + sGas + 0.001;
   float dustFrac = sDust / totalS;
@@ -166,17 +175,17 @@ void main() {
   // Warm core (dust-dominated) → cool arms (gas/star-dominated)
   vec3 dustCol = mix(
     vec3(0.85, 0.45, 0.12),   // infra: warm amber
-    vec3(0.55, 0.40, 0.70),   // astral: muted purple
+    vec3(0.35, 0.40, 0.70),   // astral: cool slate blue
     uTheme
   );
   vec3 starCol_base = mix(
     vec3(0.95, 0.88, 0.65),   // infra: golden white
-    vec3(0.65, 0.72, 0.95),   // astral: blue-white
+    vec3(0.75, 0.80, 1.0),    // astral: blue-white
     uTheme
   );
   vec3 gasCol = mix(
     vec3(0.30, 0.15, 0.60),   // infra: deep violet
-    vec3(0.20, 0.50, 0.90),   // astral: vivid blue
+    vec3(0.35, 0.50, 0.90),   // astral: vivid blue
     uTheme
   );
 
@@ -190,31 +199,32 @@ void main() {
     fbm(uv4 * 2.0 + vec2(0.0, uTime * 0.002) + 5.2)
   );
   float n4 = fbm(uv4 * 2.5 + warp4 * 0.8);
-  // Data drives shape, noise adds wispy edges
-  float mask4 = smoothstep(0.0, 0.12, sTotalSmooth) * smoothstep(1.2, 0.3, dist);
-  float smoke4 = n4 * 0.4 + 0.6;
+  // Data drives shape, noise adds wispy edges — hard gate on data presence
+  float dataPresence4 = smoothstep(0.02, 0.20, sTotalSmooth);
+  float mask4 = dataPresence4 * smoothstep(1.2, 0.3, dist);
+  float smoke4 = n4 * 0.3 + 0.7;
   vec3 tint4 = mix(
     vec3(0.10, 0.05, 0.18),   // infra: deep wine
-    vec3(0.04, 0.08, 0.20),   // astral: deep navy
+    vec3(0.04, 0.06, 0.16),   // astral: deep navy-indigo
     uTheme
   );
-  col += tint4 * mask4 * smoke4 * 0.4;
+  col += tint4 * mask4 * smoke4 * 0.5;
 
   // ── Layer 3: mid nebula — spectral color clouds following data ──
   vec2 uv3 = rot2(pc, uTime * 0.03) + center;
   float n3 = fbm(uv3 * 4.0 + vec2(-uTime * 0.005, uTime * 0.004));
-  // Noise only warps edges, data is primary shape
+  // Noise only warps edges, data is primary shape — gate on actual data
   float d3 = sTotal * (0.85 + n3 * 0.15);
-  float mask3 = smoothstep(0.03, 0.25, d3);
+  float mask3 = smoothstep(0.05, 0.30, d3);
   float smoke3 = n3 * 0.3 + 0.7;
-  col += dataColor * mask3 * smoke3 * 0.5;
+  col += dataColor * mask3 * smoke3 * 0.7;
 
   // ── Dark absorption lanes — stronger, data-aware ──
   vec2 uvDark = rot2(pc, uTime * 0.025) + center;
   float darkNoise = fbm(uvDark * 5.0 + vec2(uTime * 0.003, -uTime * 0.002));
   // Lanes are stronger where there IS data (mid-brightness regions)
   float darkMask = smoothstep(0.08, 0.35, sTotal) * (1.0 - smoothstep(0.5, 0.8, sTotal));
-  float darkAmount = smoothstep(0.35, 0.65, darkNoise) * darkMask * 0.6;
+  float darkAmount = smoothstep(0.35, 0.65, darkNoise) * darkMask * 0.35;
   col *= 1.0 - darkAmount;
 
   // ── Layer 2: inner body — brighter, more saturated ──
@@ -223,38 +233,38 @@ void main() {
   float d2 = sTotal * (0.9 + n2 * 0.1);
   float mask2 = smoothstep(0.10, 0.45, d2);
   float smoke2 = n2 * 0.15 + 0.85;
-  // Shift toward warmer tones for inner regions
+  // Shift toward brighter tones for inner regions
   vec3 innerColor = mix(dataColor, mix(
     vec3(0.95, 0.80, 0.50),   // infra: warm gold
-    vec3(0.70, 0.78, 1.0),    // astral: bright blue-white
+    vec3(0.80, 0.85, 1.0),    // astral: bright blue-white
     uTheme
   ), 0.4);
-  col += innerColor * mask2 * smoke2 * 0.5;
+  col += innerColor * mask2 * smoke2 * 0.6;
 
   // ── Layer 1: core — blazing bright (replaces, not adds) ──
   float n1 = fbm(rot2(pc, uTime * 0.07) * 3.0 + center + vec2(uTime * 0.004));
   // Core driven purely by data brightness
-  float coreMask = smoothstep(0.20, 0.65, sTotal) * smoothstep(0.8, 0.15, dist);
+  float coreMask = smoothstep(0.15, 0.50, sTotal) * smoothstep(0.9, 0.10, dist);
   vec3 coreColor = mix(
     vec3(1.0, 0.92, 0.75),    // infra: warm white
-    vec3(0.85, 0.88, 1.0),    // astral: cool white
+    vec3(0.88, 0.92, 1.0),    // astral: cool bright white
     uTheme
   );
   // Slight spectral tint
   coreColor = mix(coreColor, dataColor * 1.5, 0.15);
   float pulse = sin(uTime * 0.4) * 0.04 + 1.0;
-  col = mix(col, coreColor * pulse, coreMask * (n1 * 0.1 + 0.9));
+  col = mix(col, coreColor * pulse * 1.1, coreMask * (n1 * 0.1 + 0.9));
 
   // ── HII regions: red/pink emission in gas-rich areas ──
   float hiiNoise = fbm(vUV * 8.0 + vec2(uTime * 0.002, uTime * 0.003) + 2.7);
-  float hiiMask = gasFrac * smoothstep(0.05, 0.30, sGas) * smoothstep(0.6, 0.2, sTotal);
-  hiiMask *= smoothstep(0.4, 0.7, hiiNoise);
+  float hiiMask = gasFrac * smoothstep(0.03, 0.20, sGas) * smoothstep(0.7, 0.15, sTotal);
+  hiiMask *= smoothstep(0.35, 0.65, hiiNoise);
   vec3 hiiColor = mix(
-    vec3(0.90, 0.20, 0.25),   // infra: red emission
-    vec3(0.70, 0.30, 0.50),   // astral: pink-magenta
+    vec3(0.95, 0.25, 0.20),   // infra: bright red emission
+    vec3(0.95, 0.30, 0.35),   // astral: vivid red-pink
     uTheme
   );
-  col += hiiColor * hiiMask * 0.5;
+  col += hiiColor * hiiMask * 0.8;
 
   // ═══════════════════════════════════════
   // PHASE 3: Data-driven star detection & twinkle
@@ -282,39 +292,39 @@ void main() {
   twinkle = twinkle * twinkle * twinkle2;
   col *= mix(1.0, 0.3 + twinkle * 2.0, starness);
 
-  // Star glow from actual band data
-  float r_star = stretch(r_sharp, m, uQ, uAlpha) * 1.5;
-  float g_star = stretch(g_sharp, m, uQ, uAlpha) * 1.5;
-  float u_star = stretch(max(denorm(texture2D(uBand_u, vUV).r + dither, uRange_u), 0.0), m, uQ, uAlpha) * 1.5;
+  // Star glow from actual band data — rainbow colors
+  float r_star = stretch(r_sharp, m, uQ, uAlpha) * 2.0;
+  float g_star = stretch(g_sharp, m, uQ, uAlpha) * 2.0;
+  float u_star = stretch(max(denorm(texture2D(uBand_u, vUV).r + dither, uRange_u), 0.0), m, uQ, uAlpha) * 2.0;
   vec3 starCol = vec3(r_star, g_star, u_star);
   starCol = mix(mix(vec3(1.0, 0.95, 0.88), vec3(0.88, 0.92, 1.0), uTheme), starCol, 0.85);
-  col += starCol * starness * (twinkle * 0.5 + 0.2);
+  col += starCol * starness * (twinkle * 0.6 + 0.3);
 
   // ═══════════════════════════════════════
   // PHASE 4: Cinematic color grading
   // ═══════════════════════════════════════
 
-  // Lifted blacks — very subtle
+  // Lifted blacks — very subtle dark navy
   vec3 blackFloor = mix(
-    vec3(0.008, 0.005, 0.015),
-    vec3(0.004, 0.006, 0.018),
+    vec3(0.006, 0.004, 0.012),
+    vec3(0.003, 0.003, 0.010),
     uTheme
   );
   col = max(col, blackFloor);
 
-  // Stronger S-curve for punch
-  col = mix(col, col * col * (3.0 - 2.0 * col), 0.55);
+  // Gentle S-curve — preserve brightness, add contrast
+  col = mix(col, col * col * (3.0 - 2.0 * col), 0.3);
 
   // Warm-cool split toning
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  float warmW = mix(1.0, 0.25, uTheme);
-  float coolW = mix(0.3, 1.0, uTheme);
-  col += vec3(0.015, 0.008, -0.015) * smoothstep(0.0, 0.5, lum) * warmW;
-  col += vec3(-0.008, 0.0, 0.025) * (1.0 - smoothstep(0.0, 0.3, lum)) * coolW;
+  float warmW = mix(1.0, 0.2, uTheme);
+  float coolW = mix(0.3, 0.8, uTheme);
+  col += vec3(0.015, 0.008, -0.01) * smoothstep(0.0, 0.5, lum) * warmW;
+  col += vec3(-0.008, 0.0, 0.02) * (1.0 - smoothstep(0.0, 0.3, lum)) * coolW;
 
-  // Vignette
-  float vig = 1.0 - smoothstep(0.45, 1.3, dist * 0.65);
-  col *= mix(0.7, 1.0, vig);
+  // Subtle vignette
+  float vig = 1.0 - smoothstep(0.5, 1.4, dist * 0.6);
+  col *= mix(0.8, 1.0, vig);
 
   col = clamp(col, 0.0, 1.0);
 
