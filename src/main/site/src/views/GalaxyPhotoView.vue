@@ -309,10 +309,25 @@
     </Transition>
 
     <!-- Info Sidebar -->
+    <Transition name="fade">
+      <div
+        v-if="showInfo"
+        class="info-sidebar-backdrop"
+        aria-hidden="true"
+        @click="showInfo = false"
+      />
+    </Transition>
     <Transition name="sidebar">
-      <div v-if="showInfo" class="info-sidebar">
+      <div v-if="showInfo" class="info-sidebar" role="dialog" aria-modal="true" :aria-label="t('pages.galaxyPhoto.info.title')">
         <div class="sidebar-content">
-          <button class="sidebar-close" @click="showInfo = false">×</button>
+          <button
+            class="sidebar-close"
+            type="button"
+            :aria-label="t('app.close') || 'Close'"
+            @click="showInfo = false"
+          >
+            ×
+          </button>
           <h2 class="sidebar-title">{{ t('pages.galaxyPhoto.info.title') }}</h2>
 
           <div class="sidebar-section">
@@ -933,7 +948,17 @@ watch(
   }
 )
 
+/** Close info sidebar on Escape key */
+const onInfoEscape = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') showInfo.value = false
+}
+watch(showInfo, (open) => {
+  if (open) document.addEventListener('keydown', onInfoEscape)
+  else document.removeEventListener('keydown', onInfoEscape)
+}, { immediate: true })
+
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onInfoEscape)
   resizeObserver.value?.disconnect()
   if (scene.value) {
     scene.value.dispose()
@@ -1061,6 +1086,8 @@ onBeforeUnmount(() => {
 }
 
 .card-header {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1113,6 +1140,8 @@ onBeforeUnmount(() => {
 }
 
 .canvas-wrapper {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -1120,7 +1149,6 @@ onBeforeUnmount(() => {
   background: #000;
   border-radius: 0.5rem;
   overflow: hidden;
-  position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
 }
@@ -1769,12 +1797,20 @@ onBeforeUnmount(() => {
 }
 
 /* ── Sidebar ── */
+.info-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
 .info-sidebar {
   position: fixed;
-  top: 0;
+  top: var(--header-height, 52px);
   right: 0;
   width: 320px;
-  height: 100%;
+  height: calc(100% - var(--header-height, 52px));
   background: rgba(10, 10, 10, 0.95);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 100;
@@ -1792,15 +1828,24 @@ onBeforeUnmount(() => {
 
 .sidebar-close {
   align-self: flex-end;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 24px;
-  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 20px;
   line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
 }
 
