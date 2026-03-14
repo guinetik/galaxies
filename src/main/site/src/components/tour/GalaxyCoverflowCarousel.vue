@@ -31,13 +31,18 @@
           </div>
           <div v-if="item.type" class="galaxy-card-type">{{ item.type }}</div>
         </div>
-        <img
-          :src="imageSrc(item.pgc)"
-          :alt="displayName(item)"
-          class="galaxy-card-image"
-          loading="lazy"
-          @error="onImageError"
-        />
+        <div class="galaxy-card-image-wrap">
+          <img
+            :src="imageSrc(item.pgc)"
+            :alt="displayName(item)"
+            class="galaxy-card-image"
+            loading="lazy"
+            @error="onImageError"
+          />
+          <div v-if="item.description" class="galaxy-card-description">
+            {{ item.description }}
+          </div>
+        </div>
       </RouterLink>
     </div>
 
@@ -67,6 +72,7 @@ import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
+import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 
 export interface TourGalaxyItem {
   pgc: number
@@ -112,15 +118,15 @@ function displayName(item: TourGalaxyItem): string {
   return item.names?.[0] ?? `PGC ${item.pgc}`
 }
 
-/** Image path: /{pgc}.webp in public folder. */
+/** Image path: R2 bucket nuv band (same as GalaxyPhotoView). */
 function imageSrc(pgc: number): string {
-  return `/${pgc}.webp`
+  return `${GALAXY_IMG_BASE_URL}/${pgc}/nuv.png`
 }
 
 function onImageError(e: Event) {
   const img = e.target as HTMLImageElement
   img.style.display = 'none'
-  img.parentElement?.classList.add('no-image')
+  img.closest('.galaxy-card')?.classList.add('no-image')
 }
 
 function cardClass(index: number): string {
@@ -331,12 +337,35 @@ function onMouseLeave() {
   margin-top: 0.25rem;
 }
 
-.galaxy-card-image {
-  width: 100%;
+.galaxy-card-image-wrap {
+  position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.galaxy-card-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   pointer-events: none;
+}
+
+.galaxy-card-description {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%);
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .galaxy-card.active {

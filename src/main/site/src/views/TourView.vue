@@ -11,20 +11,20 @@
         <p class="tour-hero-subtitle">{{ t('pages.tour.subtitle') }}</p>
       </section>
 
-      <!-- Category carousels from tour.json -->
+      <!-- Story-based carousels from tour.json -->
       <section
-        v-for="(cat, idx) in categoryOrder"
-        :key="cat"
-        v-show="categories[cat]?.length"
+        v-for="(sec, idx) in sectionOrder"
+        :key="sec"
+        v-show="sections[sec]?.length"
         class="tour-section tour-carousel-section"
         :data-section="1 + idx"
       >
-        <h2 class="tour-section-title">{{ t(`pages.tour.categories.${cat}`) }}</h2>
-        <GalaxyCoverflowCarousel :items="categories[cat]" />
+        <h2 class="tour-section-title">{{ t(`pages.tour.sections.${sec}`) }}</h2>
+        <GalaxyCoverflowCarousel :items="sections[sec]" />
       </section>
 
-      <!-- Original shuffle section -->
-      <section class="tour-section tour-shuffle-section" :data-section="categoryOrder.length + 1">
+      <!-- Shuffle section -->
+      <section class="tour-section tour-shuffle-section" :data-section="sectionOrder.length + 1">
         <h2 class="tour-section-title">{{ t('pages.tour.shuffleSubtitle') }}</h2>
         <button
           class="tour-shuffle"
@@ -66,6 +66,7 @@ interface TourEntry {
   names: string[]
   type: string
   category?: string
+  section?: string
   constellation?: string
   description?: string
 }
@@ -80,7 +81,7 @@ const picks = ref<PickItem[]>([])
 const { isLoading, ready, getRandomGalaxies, getGalaxiesByPgcList } = useGalaxyData()
 
 const tourData = ref<Record<string, TourEntry>>({})
-const categories = ref<Record<string, Array<{
+const sections = ref<Record<string, Array<{
   pgc: number
   names: string[]
   type: string
@@ -90,7 +91,8 @@ const categories = ref<Record<string, Array<{
   galaxy?: Galaxy | null
 }>>>({})
 
-const categoryOrder = computed(() => CATEGORY_ORDER)
+const SECTION_ORDER = ['local_group', 'nearby_classics', 'collisions', 'deep_sky'] as const
+const sectionOrder = computed(() => SECTION_ORDER)
 
 /** Map Tour section to AboutBackground section: 0 = hero galaxy, 1+ = morphology showcase */
 const aboutSection = computed(() => (currentSection.value === 0 ? 0 : 3))
@@ -128,13 +130,14 @@ async function loadTourData() {
     const galaxies = getGalaxiesByPgcList(pgcList)
     const galaxyMap = new Map(galaxies.map((g) => [g.pgc, g]))
 
-    const byCategory: Record<string, typeof categories.value[string]> = {}
+    const bySection: Record<string, typeof sections.value[string]> = {}
 
     for (const [pgcStr, entry] of Object.entries(data)) {
       const pgc = Number(pgcStr)
+      const sec = entry.section ?? 'nearby_classics'
       const cat = entry.category ?? 'unknown'
-      if (!byCategory[cat]) byCategory[cat] = []
-      byCategory[cat].push({
+      if (!bySection[sec]) bySection[sec] = []
+      bySection[sec].push({
         pgc,
         names: entry.names ?? [],
         type: entry.type ?? '',
@@ -145,7 +148,7 @@ async function loadTourData() {
       })
     }
 
-    categories.value = byCategory
+    sections.value = bySection
   } catch (err) {
     console.error('Failed to load tour.json:', err)
   }
