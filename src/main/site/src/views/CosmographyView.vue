@@ -97,6 +97,27 @@
         </div>
       </section>
 
+      <!-- Astrophotography & Spectral Bands -->
+      <section class="cosmo-section" data-section="4">
+        <h2 class="cosmo-section-title">{{ t('pages.cosmography.astrophotography.title') }}</h2>
+        <div class="astro-layout">
+          <div class="astro-visual">
+            <TelescopeLens
+              telescope-src="/band_single.webp"
+              :telescope-alt="t('pages.cosmography.astrophotography.imageAlt')"
+              observation-src="/band_composite.webp"
+              :observation-alt="t('pages.cosmography.astrophotography.imageRevealAlt')"
+            />
+          </div>
+          <div class="astro-content">
+            <p class="cosmo-body">{{ t('pages.cosmography.astrophotography.intro') }}</p>
+            <p class="cosmo-body">{{ t('pages.cosmography.astrophotography.bandsExplain') }}</p>
+            <p class="cosmo-body">{{ t('pages.cosmography.astrophotography.compositeExplain') }}</p>
+            <p class="astro-cta">{{ t('pages.cosmography.astrophotography.cta') }}</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Footer -->
       <div class="cosmo-footer">
         <a href="https://doi.org/10.3847/1538-4357/ac94d8" target="_blank" rel="noopener">{{ t('pages.cosmography.links.cf4Paper') }} &nearr;</a>
@@ -508,6 +529,24 @@ onMounted(() => {
   color: #22d3ee;
 }
 
+/* ── Astrophotography ── */
+.astro-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.astro-visual {
+  flex-shrink: 0;
+}
+
+.astro-cta {
+  font-size: 0.875rem;
+  color: rgba(34, 211, 238, 0.7);
+  font-style: italic;
+  margin: 0;
+}
+
 /* ── Responsive ── */
 @media (min-width: 768px) {
   .cosmo-hero-title {
@@ -532,6 +571,14 @@ onMounted(() => {
 
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .astro-layout {
+    flex-direction: row;
+  }
+
+  .astro-visual {
+    width: 320px;
   }
 }
 
