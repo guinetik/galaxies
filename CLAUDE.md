@@ -21,10 +21,13 @@ npm run lint:shaders # glslx shader linting
 npm run deploy       # build + gh-pages deploy
 ```
 
-Python ETL (from `src/main/python/combined/`):
+Python ETL (from `src/main/python/`):
 ```bash
-python main.py       # Merges catalogs → galaxies.db (copy output to site/public/data/)
+pip install -r requirements.txt
+python build.py           # Full rebuild: cosmicflows → alfalfa → fss → combined → galaxies.db
+python build.py --deploy  # Rebuild and copy galaxies.db to site/public/data/
 ```
+See `docs/python-etl-rebuild-guide.md` for data sources, file layout, and troubleshooting.
 
 ## Architecture
 
@@ -33,10 +36,13 @@ python main.py       # Merges catalogs → galaxies.db (copy output to site/publ
 ```
 src/main/
 ├── python/              # ETL pipelines (CF4 + ALFALFA + FSS/UGC → SQLite)
+│   ├── build.py         # Orchestrates full rebuild (run this to regenerate galaxies.db)
+│   ├── requirements.txt # astropy, numpy
 │   ├── combined/main.py # 8-stage merge pipeline → galaxies.db
-│   ├── alfalfa/         # ALFALFA HI catalog ETL
-│   ├── cosmicflows/     # Cosmicflows-4 ETL
-│   └── fss/             # FSS/UGC catalog ETL
+│   ├── alfalfa/         # ALFALFA HI catalog ETL (reads research/alfalfa/)
+│   ├── cosmicflows/     # Cosmicflows-4 ETL (reads research/cosmicflows-4/)
+│   ├── fss/             # FSS/UGC catalog ETL (reads research/fss/, research/ugc/)
+│   └── nsa/             # NSA image enrichment (optional, reads research/nsa_v0_1_2.fits)
 └── site/                # Vue 3 + Vite application (package.json lives here)
     ├── public/data/     # galaxies.db served to browser
     ├── scripts/         # lint-shaders.mjs
