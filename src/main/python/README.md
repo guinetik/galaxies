@@ -25,7 +25,7 @@ python build.py --deploy
 | `combined/`    | Merge all → unified schema       | `galaxies.db`             |
 | `nsa/`         | NSA image enrichment (optional)  | Updates `galaxies.db`     |
 
-**Scripts:** `convert_tour_images.py` — converts tour galaxy images (PNG/JPG) to WebP in `site/public/`. See [docs/tour-images-webp-conversion.md](../../../docs/tour-images-webp-conversion.md).
+**Scripts:** `optimize_images.py` — converts images in `site/public/` to WebP (runs before build). See [docs/optimize-images.md](../../../docs/optimize-images.md).
 
 ## Data Sources
 

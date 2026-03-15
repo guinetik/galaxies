@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "npm run optimize:images && vue-tsc -b && vite build",
     "preview": "vite preview",
     "deploy": "npm run build && gh-pages -d dist --nojekyll --dotfiles",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:shaders": "vitest run shaders",
     "lint:shaders": "node scripts/lint-shaders.mjs",
-    "convert:tour-images": "python ../python/convert_tour_images.py",
-    "convert:tour-images:resize": "python ../python/convert_tour_images.py --resize-existing"
+    "optimize:images": "python ../python/optimize_images.py",
+    "optimize:images:existing": "python ../python/optimize_images.py --optimize-existing"
   },
   "dependencies": {
     "@vueuse/head": "^2.0.0",

@@ -18,7 +18,7 @@ npm run test         # vitest run (all tests)
 npm run test:watch   # vitest watch mode
 npm run test:shaders # shader compilation tests only
 npm run lint:shaders # glslx shader linting
-npm run deploy       # build + gh-pages deploy
+npm run deploy       # optimize images + build + gh-pages deploy
 ```
 
 Python ETL (from `src/main/python/`):

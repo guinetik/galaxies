@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
 """
-Convert tour galaxy images (PNG, JPG, JPEG) in site/public/ to WebP and remove originals.
+Optimize images in site/public/ by converting PNG, JPG, JPEG to WebP.
 
-Resizes images to fit within --max-size on the longest edge (optimized for 320px carousel
-thumbnails at 2x retina). Only processes files whose base name is purely numeric (PGC numbers).
+Scans the public folder recursively, converts raster images to WebP (with optional resize),
+and removes originals. Excludes app assets and directories that require specific formats
+(e.g. galaxy-img band data).
 
 Usage:
   cd src/main/python
-  pip install Pillow
-  python convert_tour_images.py [--dry-run]
-  python convert_tour_images.py --resize-existing   # Resize existing .webp
+  pip install -r requirements.txt
+  python optimize_images.py [--dry-run]
+  python optimize_images.py --optimize-existing   # Resize existing .webp
 
-Options:
-  --dry-run         List conversions without writing or deleting files.
-  --max-size N      Max pixels on longest edge (default: 640, good for thumbnails).
-  --resize-existing Resize existing .webp files in place (no conversion).
+Runs as part of the site build (prebuild step).
 """
 
 from pathlib import Path
 import argparse
-import re
 import sys
 
 try:
@@ -32,43 +29,61 @@ except ImportError:
 SOURCE_EXTS = {".png", ".jpg", ".jpeg"}
 TARGET_EXT = ".webp"
 
-# Files to never touch (app assets, not tour galaxies)
+# Basenames to never convert (referenced by path in code)
 EXCLUDE_BASENAMES = frozenset(
     {"og_image", "rendering-morphology", "mapping-celestial-sphere"}
 )
 
-# WebP quality (0-100). 80 balances size and visual quality for thumbnails.
+# Directories to skip (e.g. galaxy-img has 16-bit band PNGs for NSA scene)
+EXCLUDE_DIRS = frozenset({"galaxy-img"})
+
+# WebP quality (0-100). 80 balances size and visual quality.
 WEBP_QUALITY = 80
 
-# Default max dimension (longest edge). 640px suits 320px cards at 2x retina.
+# Default max dimension (longest edge). 640px suits thumbnails at 2x retina.
 DEFAULT_MAX_SIZE = 640
 
 
-def is_pgc_filename(path: Path) -> bool:
-    """True if the file is a PGC-numbered galaxy image (e.g. 2557.jpg)."""
-    stem = path.stem
-    if stem in EXCLUDE_BASENAMES:
-        return False
-    return bool(re.fullmatch(r"\d+", stem))
+def should_skip(path: Path, public_dir: Path) -> bool:
+    """True if this path should be skipped."""
+    if path.stem in EXCLUDE_BASENAMES:
+        return True
+    # Skip files inside excluded directories
+    try:
+        rel = path.relative_to(public_dir)
+        for part in rel.parts[:-1]:  # dirs only
+            if part in EXCLUDE_DIRS:
+                return True
+    except ValueError:
+        pass
+    return False
 
 
 def collect_conversions(public_dir: Path) -> list[tuple[Path, Path]]:
-    """Collect (source, target) pairs for conversion."""
+    """Collect (source, target) pairs for conversion, recursively."""
     pairs: list[tuple[Path, Path]] = []
-    for path in public_dir.iterdir():
+    for path in public_dir.rglob("*"):
         if not path.is_file():
             continue
         if path.suffix.lower() not in SOURCE_EXTS:
             continue
-        if not is_pgc_filename(path):
+        if should_skip(path, public_dir):
             continue
         target = path.with_suffix(TARGET_EXT)
-        if target.exists() and target != path:
-            # Already have webp; we'll replace originals only
-            pairs.append((path, target))
-        else:
-            pairs.append((path, target))
+        pairs.append((path, target))
     return pairs
+
+
+def collect_existing_webp(public_dir: Path) -> list[Path]:
+    """Collect existing .webp files for resize (excluding excluded dirs)."""
+    paths: list[Path] = []
+    for path in public_dir.rglob("*.webp"):
+        if not path.is_file():
+            continue
+        if should_skip(path, public_dir):
+            continue
+        paths.append(path)
+    return paths
 
 
 def resize_to_fit(img: Image.Image, max_size: int) -> Image.Image:
@@ -94,35 +109,23 @@ def convert_to_webp(
     """Convert image to WebP, optionally resizing. Returns True on success."""
     try:
         with Image.open(src) as img:
-            # Convert to RGB if necessary (e.g. RGBA, P)
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
             elif img.mode not in ("RGB", "L"):
                 img = img.convert("RGB")
             if max_size:
                 img = resize_to_fit(img, max_size)
+            dst.parent.mkdir(parents=True, exist_ok=True)
             img.save(dst, format="WEBP", quality=quality)
         return True
     except Exception as e:
-        print(f"  Error converting {src.name}: {e}")
+        print(f"  Error converting {src}: {e}")
         return False
-
-
-def collect_existing_webp(public_dir: Path) -> list[Path]:
-    """Collect existing PGC-numbered .webp files for resize."""
-    paths: list[Path] = []
-    for path in public_dir.iterdir():
-        if not path.is_file() or path.suffix.lower() != ".webp":
-            continue
-        if not is_pgc_filename(path):
-            continue
-        paths.append(path)
-    return paths
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Convert tour galaxy images to WebP and remove originals."
+        description="Optimize images in site/public/ by converting to WebP."
     )
     parser.add_argument(
         "--dry-run",
@@ -144,9 +147,9 @@ def main() -> None:
         help=f"Resize longest edge to N px (default: {DEFAULT_MAX_SIZE}, 0=no resize)",
     )
     parser.add_argument(
-        "--resize-existing",
+        "--optimize-existing",
         action="store_true",
-        help="Resize existing .webp files in place (no conversion from png/jpg).",
+        help="Resize existing .webp files in place.",
     )
     args = parser.parse_args()
 
@@ -158,16 +161,15 @@ def main() -> None:
 
     max_size = args.max_size if args.max_size > 0 else None
 
-    if args.resize_existing:
-        # Resize existing webp files
+    if args.optimize_existing:
         webps = collect_existing_webp(public_dir)
         if not webps:
-            print("No PGC-numbered .webp files found in public/.")
+            print("No .webp files found in public/.")
             return
         size_limit = args.max_size if args.max_size > 0 else DEFAULT_MAX_SIZE
         print(f"Found {len(webps)} .webp file(s) to resize (max {size_limit}px):")
         for p in webps:
-            print(f"  {p.name}")
+            print(f"  {p.relative_to(public_dir)}")
         if args.dry_run:
             print("\nDry run. No files changed.")
             return
@@ -180,21 +182,21 @@ def main() -> None:
                         img = img.convert("RGB")
                     resized = resize_to_fit(img, size_limit)
                     resized.save(path, format="WEBP", quality=args.quality)
-                print(f"  Resized: {path.name}")
+                print(f"  Resized: {path.relative_to(public_dir)}")
             except Exception as e:
-                print(f"  Error resizing {path.name}: {e}")
+                print(f"  Error resizing {path}: {e}")
         print(f"\nDone. {len(webps)} file(s) processed.")
         return
 
     pairs = collect_conversions(public_dir)
     if not pairs:
-        print("No PGC-numbered images (png/jpg/jpeg) found in public/.")
+        print("No images (png/jpg/jpeg) found in public/.")
         return
 
     print(f"Found {len(pairs)} image(s) to convert (max size: {args.max_size}px):")
     for src, dst in pairs:
         status = "exists" if dst.exists() else "new"
-        print(f"  {src.name} -> {dst.name} ({status})")
+        print(f"  {src.relative_to(public_dir)} -> {dst.name} ({status})")
 
     if args.dry_run:
         print("\nDry run. No files changed.")
@@ -203,14 +205,13 @@ def main() -> None:
     converted = 0
     for src, dst in pairs:
         if dst.exists() and dst != src:
-            # WebP already exists; just remove original
             src.unlink()
-            print(f"  Removed original: {src.name}")
+            print(f"  Removed original: {src.relative_to(public_dir)}")
             converted += 1
         else:
             if convert_to_webp(src, dst, quality=args.quality, max_size=max_size):
                 src.unlink()
-                print(f"  Converted & removed: {src.name} -> {dst.name}")
+                print(f"  Converted & removed: {src.relative_to(public_dir)}")
                 converted += 1
 
     print(f"\nDone. {converted} file(s) processed.")
