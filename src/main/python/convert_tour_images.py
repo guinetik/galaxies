@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Convert tour galaxy images (PNG, JPG, JPEG) in public/ to WebP and remove originals.
+Convert tour galaxy images (PNG, JPG, JPEG) in site/public/ to WebP and remove originals.
 
 Resizes images to fit within --max-size on the longest edge (optimized for 320px carousel
 thumbnails at 2x retina). Only processes files whose base name is purely numeric (PGC numbers).
 
 Usage:
-  cd src/main/site
+  cd src/main/python
   pip install Pillow
-  python scripts/convert-tour-images-to-webp.py [--dry-run]
-  python scripts/convert-tour-images-to-webp.py --resize-existing   # Resize existing .webp
+  python convert_tour_images.py [--dry-run]
+  python convert_tour_images.py --resize-existing   # Resize existing .webp
 
 Options:
   --dry-run         List conversions without writing or deleting files.
@@ -151,7 +151,7 @@ def main() -> None:
     args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
-    public_dir = script_dir.parent / "public"
+    public_dir = script_dir.parent / "site" / "public"
     if not public_dir.is_dir():
         print(f"Error: public directory not found: {public_dir}")
         sys.exit(1)

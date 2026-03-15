@@ -6,3 +6,6 @@ astropy>=6.0
 
 # UGC: numpy for astropy Table value conversion
 numpy>=1.20
+
+# Tour images + NSA: image conversion (WebP, PNG)
+Pillow>=9.0
