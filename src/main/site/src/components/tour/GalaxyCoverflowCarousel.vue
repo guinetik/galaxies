@@ -72,7 +72,6 @@ import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { Galaxy } from '@/types/galaxy'
-import { GALAXY_IMG_BASE_URL } from '@/three/constants'
 
 export interface TourGalaxyItem {
   pgc: number
@@ -118,9 +117,9 @@ function displayName(item: TourGalaxyItem): string {
   return item.names?.[0] ?? `PGC ${item.pgc}`
 }
 
-/** Image path: R2 bucket nuv band (same as GalaxyPhotoView). */
+/** Image path: public folder WebP per galaxy by PGC. */
 function imageSrc(pgc: number): string {
-  return `${GALAXY_IMG_BASE_URL}/${pgc}/nuv.png`
+  return `/${pgc}.webp`
 }
 
 function onImageError(e: Event) {

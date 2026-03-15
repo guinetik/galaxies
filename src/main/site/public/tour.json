@@ -125,15 +125,15 @@
     "category": "elliptical",
     "section": "nearby_classics",
     "constellation": "Leo",
-    "description": ""
+    "description": "Messier 105 is the largest elliptical galaxy in the Messier catalog. It was added in 1947 after astronomer Helen S. Hogg found a letter written by Méchain describing the galaxy."
   },
   "33550": {
     "names": ["M96", "NGC 3368", "PGC 33550"],
-    "type": "",
-    "category": "unknown",
+    "type": "SAB(s)b",
+    "category": "spiral",
     "section": "nearby_classics",
-    "constellation": "",
-    "description": ""
+    "constellation": "Leo",
+    "description": "This spiral galaxy is asymmetrical because of the gravitational pull of its neighboring galaxies."
   },
   "43495": {
     "names": ["M94", "NGC 4736", "Cat's Eye Galaxy", "PGC 43495"],
@@ -141,7 +141,7 @@
     "category": "spiral",
     "section": "nearby_classics",
     "constellation": "Canes Venatici",
-    "description": ""
+    "description": "This colorful spiral has two recently discovered faint arms outside of its core region that extend far out into space."
   },
   "39600": {
     "names": ["NGC 4216", "PGC 39600"],
@@ -149,7 +149,7 @@
     "category": "barred",
     "section": "nearby_classics",
     "constellation": "Virgo",
-    "description": ""
+    "description": "One of the largest and brightest edge-on spirals in the Virgo Cluster. Its halo hosts ~700 globular clusters and stellar streams from disrupted satellites — a 'bombarded' spiral shaped by ongoing accretion."
   },
   "42831": {
     "names": ["M89", "NGC 4552", "PGC 42831"],
@@ -157,7 +157,7 @@
     "category": "elliptical",
     "section": "nearby_classics",
     "constellation": "Virgo",
-    "description": ""
+    "description": "This elliptical galaxy holds approximately 100 billion stars and well over 2,000 globular clusters. "
   },
   "27077": {
     "names": ["NGC 2841", "PGC 27077"],
@@ -165,7 +165,7 @@
     "category": "spiral",
     "section": "nearby_classics",
     "constellation": "Ursa Major",
-    "description": ""
+    "description": "The prototype flocculent spiral — a type whose arms are patchy and discontinuous rather than well-defined. One of the largest spirals in Ursa Major."
   },
   "43276": {
     "names": ["M90", "NGC 4569", "PGC 43276"],
@@ -173,7 +173,7 @@
     "category": "barred",
     "section": "nearby_classics",
     "constellation": "Virgo",
-    "description": ""
+    "description": "This beautiful spiral is expected to evolve into a lenticular galaxy."
   },
   "40455": {
     "names": ["M84", "NGC 4374"],
@@ -197,7 +197,7 @@
     "category": "lenticular",
     "section": "nearby_classics",
     "constellation": "Leo",
-    "description": ""
+    "description": "A lenticular galaxy in the M96 Group with a central bar. More than 80% of its central stars are over a billion years old. Hosts a supermassive black hole of ~16 million solar masses."
   },
   "43733": {
     "names": ["NGC 4550", "PGC 43733"],
@@ -205,7 +205,7 @@
     "category": "lenticular",
     "section": "nearby_classics",
     "constellation": "Virgo",
-    "description": ""
+    "description": "A lenticular galaxy where half the stars orbit clockwise and half counterclockwise — one of the few with large counter-rotating stellar disks. Vera Rubin discovered this at age 63; it likely formed from a merger of two disk galaxies."
   },
   "41772": {
     "names": ["NGC 4526", "PGC 41772"],
@@ -213,7 +213,7 @@
     "category": "lenticular",
     "section": "nearby_classics",
     "constellation": "Virgo",
-    "description": ""
+    "description": "A bright edge-on lenticular in Virgo. Host to SN 1994D, a famous Type Ia supernova observed by Hubble. Its black hole (~450 million solar masses) was the first measured via molecular gas rotation with an interferometer."
   },
   "41441": {
     "names": ["M88", "NGC 4501", "PGC 41441"],
@@ -221,23 +221,23 @@
     "category": "spiral",
     "section": "nearby_classics",
     "constellation": "Coma Berenices",
-    "description": ""
+    "description": "This galaxy's core holds supermassive black hole roughly 100 million times more massive than our Sun."
   },
   "29146": {
-    "names": ["NGC 3198", "PGC 29146"],
+    "names": ["NGC 3198", "PGC 29146", "Herschel 146"],
     "type": "SB(rs)c",
     "category": "barred",
     "section": "nearby_classics",
     "constellation": "Ursa Major",
-    "description": ""
+    "description": "A barred spiral in Ursa Major that has hosted two supernovae discovered between 1966 and 1999."
   },
   "48130": {
-    "names": ["PGC 48130 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 5248", "Caldwell 45", "PGC 48130"],
+    "type": "SAB(rs)bc",
+    "category": "spiral",
     "section": "nearby_classics",
-    "constellation": "",
-    "description": ""
+    "constellation": "Boötes",
+    "description": "A grand-design spiral with prominent arms and a faint bar. Notable for two ring-shaped starburst regions around its nucleus — hot spots of intense star formation fed by gas flowing inward."
   },
   "37229": {
     "names": ["Antennae Galaxy A", "NGC 4038", "Caldwell 60", "Arp 244", "Ringtail Galaxy"],
@@ -280,83 +280,83 @@
     "description": "A supergiant elliptical and the dominant galaxy of the Virgo Cluster. Host to the first black hole ever imaged — 6.5 billion solar masses at the center of a galaxy."
   },
   "43451": {
-    "names": ["PGC 43451 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 4725", "PGC 43451"],
+    "type": "SBab",
+    "category": "barred",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Coma Berenices",
+    "description": "This galaxy is a member of the Virgo Cluster and is known for its unusual shape."
   },
   "40914": {
-    "names": ["PGC 40914 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 4438"],
+    "type": "S0-a",
+    "category": "spiral",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Virgo",
+    "description": "This galaxy is a member of the Virgo Cluster and is known for its unusual shape."
   },
   "40515": {
-    "names": ["PGC 40515 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["M85", "NGC 4382", "PGC 40515"],
+    "type": "SA(s)0",
+    "category": "elliptical",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Coma Berenices",
+    "description": "A lenticular galaxy on the outskirts of the Virgo Cluster. Shells and ripples in its outer structure suggest a merger 4–7 billion years ago. Hosted the first luminous red nova ever identified (M85 OT2006-1)."
   },
   "31968": {
-    "names": ["PGC 31968 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 3344", "PGC 31968"],
+    "type": "SAB(r)b",
+    "category": "barred",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Leo Minor",
+    "description": "This is a relatively isolated galaxy half the size of the Milky Way."
   },
   "39422": {
-    "names": ["PGC 39422 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 4244", "Caldwell 26", "Silver Needle Galaxy", "PGC 39422"],
+    "type": "Sc",
+    "category": "spiral",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Canes Venatici",
+    "description": "An edge-on spiral in the M94 Group, ~14 million light-years away. Its thin, needle-like profile (16′ × 2.2′) earned it the nickname Silver Needle. Contains a nuclear star cluster and active H-alpha regions."
   },
   "46153": {
-    "names": ["PGC 46153 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["PGC 46153", "Sunflower Galaxy", "M63"],
+    "type": "SA(rs)bc",
+    "category": "spiral",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Canes Venatici",
+    "description": "This flocculent galaxy is a type of spiral without well defined spiral arms."
   },
   "43671": {
-    "names": ["PGC 43671 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 4753", "PGC 43671"],
+    "type": "S0",
+    "category": "elliptical",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Virgo",
+    "description": "It is notable for having distinct dust lanes that surround its nucleus."
   },
   "42168": {
-    "names": ["PGC 42168 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["M58", "NGC 4579", "PGC 42168"],
+    "type": "SAB(rs)b",
+    "category": "barred",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Virgo",
+    "description": "One of the brightest barred spirals in the Virgo Cluster. Hosts an ultra-compact nuclear ring of star-forming regions — the 'ring bearer galaxy.' Contains a low-luminosity active nucleus and has hosted two supernovae."
   },
   "32192": {
-    "names": ["PGC 32192 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["PGC 32192"],
+    "type": "SAB(rs)ab",
+    "category": "spiral",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Leo",
+    "description": "A barred spiral galaxy in the Leo region, member of the M96 Group."
   },
   "29050": {
-    "names": ["PGC 29050 (placeholder)"],
-    "type": "",
-    "category": "unknown",
+    "names": ["NGC 3079", "PGC 29050"],
+    "type": "SBc",
+    "category": "barred",
     "section": "deep_sky",
-    "constellation": "",
-    "description": ""
+    "constellation": "Ursa Major",
+    "description": "An edge-on barred spiral with a Seyfert nucleus. Its center hosts a spectacular 3,000-light-year-wide bubble of hot gas, driven by a burst of star formation and outflows — a superbubble visible to Hubble."
   }
 }

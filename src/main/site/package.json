@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:shaders": "vitest run shaders",
-    "lint:shaders": "node scripts/lint-shaders.mjs"
+    "lint:shaders": "node scripts/lint-shaders.mjs",
+    "convert:tour-images": "python scripts/convert-tour-images-to-webp.py",
+    "convert:tour-images:resize": "python scripts/convert-tour-images-to-webp.py --resize-existing"
   },
   "dependencies": {
     "@vueuse/head": "^2.0.0",
