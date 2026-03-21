@@ -498,17 +498,55 @@
     },
     "localGroup": {
       "title": "Grupo Local",
-      "subtitle": "Grupos de galáxias dentro de 100 megaparsecs plotados em um cilindro alinhado ao plano supergaláctico: um atlas 3D do universo local.",
+      "subtitle": "Um atlas oblíquo do universo próximo: alcances circulares inclinados, grupos de galáxias projetados e marcos inspirados no mapa do Grupo Local da NASA.",
+      "caption": "Universo Local Interativo",
+      "credit": "Reconstrução espacial inspirada na NASA",
       "backToSky": "Voltar ao Céu",
-      "loading": "Carregando universo local...",
+      "loading": "Projetando galáxias próximas...",
       "velocityLabel": "V_CMB (km/s)",
-      "infoTitle": "O Universo Local em 3D",
-      "infoBody": "Grupos de galáxias são plotados em coordenadas cartesianas supergalácticas dentro de um cilindro de raio 100 Mpc. O eixo vertical é SGZ, altura acima e abaixo do plano supergaláctico onde a maioria das estruturas em larga escala se concentra. As cores codificam a velocidade de recessão CMB. Arraste para girar, role para ampliar.",
-      "structures": "Estruturas",
+      "waypointsTitle": "Marcos",
+      "layers": {
+        "title": "Camadas da Cena",
+        "velocityLegend": "Faixas de Velocidade",
+        "shells": "Conchas atmosféricas",
+        "rings": "Alcances circulares",
+        "stems": "Hastes de projeção",
+        "labels": "Rótulos dos marcos"
+      },
+      "context": {
+        "focusKicker": "Marco em foco",
+        "hoverKicker": "Grupo de galáxias projetado",
+        "idleTitle": "Explore o mapa de alcance projetado",
+        "idleBody": "Arraste para orbitar o quadro inclinado, use a trilha de marcos para saltar entre destinos ou clique em um grupo projetado para abrir sua visualização detalhada.",
+        "velocity": "Velocidade",
+        "distance": "Distância"
+      },
       "stats": {
-        "radius": "Raio do cilindro",
-        "coords": "Eixos de coordenadas",
-        "groups": "Grupos de galáxias"
+        "radius": "Alcance",
+        "coords": "Quadro de projeção",
+        "groups": "grupos projetados"
+      },
+      "landmarks": {
+        "milky-way": {
+          "title": "Via Láctea",
+          "body": "Nosso referencial doméstico ancora o centro do mapa projetado do Grupo Local."
+        },
+        "andromeda": {
+          "title": "Andrômeda (M31)",
+          "body": "A espiral gigante mais próxima e parceira gravitacional da Via Láctea."
+        },
+        "antlia-sextans": {
+          "title": "Antlia-Sextans",
+          "body": "Um subgrupo próximo que ecoa a narrativa agrupada da imagem de referência da NASA."
+        },
+        "virgo-cluster": {
+          "title": "Aglomerado de Virgem",
+          "body": "O aglomerado principal mais próximo, dando ao quadro inclinado um marco mais amplo do universo local."
+        },
+        "great-attractor": {
+          "title": "Grande Atrator",
+          "body": "Uma âncora de fluxo distante usada aqui como alvo externo na composição de alcance projetado."
+        }
       }
     },
     "tour": {

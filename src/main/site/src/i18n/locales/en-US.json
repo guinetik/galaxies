@@ -456,17 +456,55 @@
     },
     "localGroup": {
       "title": "Local Group",
-      "subtitle": "Galaxy groups within 100 megaparsecs plotted inside a cylinder aligned with the supergalactic plane: a 3D atlas of the local universe.",
+      "subtitle": "An oblique atlas of the nearby universe: tilted circular ranges, projected galaxy groups, and waypoint landmarks inspired by NASA's Local Group map.",
+      "caption": "Interactive Local Universe",
+      "credit": "NASA-inspired spatial reconstruction",
       "backToSky": "Back to Sky",
-      "loading": "Loading local universe...",
+      "loading": "Projecting nearby galaxies...",
       "velocityLabel": "V_CMB (km/s)",
-      "infoTitle": "The Local Universe in 3D",
-      "infoBody": "Galaxy groups are plotted in supergalactic Cartesian coordinates inside a cylinder of radius 100 Mpc. The vertical axis is SGZ, height above and below the supergalactic plane where most large-scale structures concentrate. Colors encode CMB recession velocity. Drag to rotate, scroll to zoom.",
-      "structures": "Structures",
+      "waypointsTitle": "Waypoints",
+      "layers": {
+        "title": "Scene Layers",
+        "velocityLegend": "Velocity Bands",
+        "shells": "Atmospheric shells",
+        "rings": "Circular ranges",
+        "stems": "Projection stems",
+        "labels": "Landmark labels"
+      },
+      "context": {
+        "focusKicker": "Focused waypoint",
+        "hoverKicker": "Projected galaxy group",
+        "idleTitle": "Explore the projected range map",
+        "idleBody": "Drag to orbit the tilted range frame, use the waypoint rail to jump between landmarks, or click a projected group to open its detail view.",
+        "velocity": "Velocity",
+        "distance": "Distance"
+      },
       "stats": {
-        "radius": "Cylinder radius",
-        "coords": "Coordinate axes",
-        "groups": "Galaxy groups"
+        "radius": "Range",
+        "coords": "Projection frame",
+        "groups": "projected groups"
+      },
+      "landmarks": {
+        "milky-way": {
+          "title": "Milky Way",
+          "body": "Our home frame anchors the center of the projected Local Group map."
+        },
+        "andromeda": {
+          "title": "Andromeda (M31)",
+          "body": "The nearest giant spiral and gravitational partner of the Milky Way."
+        },
+        "antlia-sextans": {
+          "title": "Antlia-Sextans",
+          "body": "A nearby subgroup that echoes the clustered storytelling of the NASA reference image."
+        },
+        "virgo-cluster": {
+          "title": "Virgo Cluster",
+          "body": "The nearest major cluster, giving the tilted range frame a broader local-universe waypoint."
+        },
+        "great-attractor": {
+          "title": "Great Attractor",
+          "body": "A distant flow anchor used here as an outer target in the projected range composition."
+        }
       }
     },
     "tour": {
