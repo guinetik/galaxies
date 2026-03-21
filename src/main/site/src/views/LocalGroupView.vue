@@ -1,91 +1,234 @@
 <template>
-  <div class="spacetime-page">
-    <!-- Title -->
-    <div v-if="!loading" class="spacetime-title">
-      <h1 class="spacetime-title-text">{{ t('pages.localGroup.title') }}</h1>
-      <p class="spacetime-subtitle">{{ t('pages.localGroup.subtitle') }}</p>
-    </div>
+  <div class="local-group-page">
+    <canvas ref="canvasRef" class="local-group-canvas" />
 
-    <div v-if="loading" class="loading-overlay">
+    <div v-if="loading" class="local-group-loading">
       <p>{{ t('pages.localGroup.loading') }}</p>
     </div>
 
-    <canvas ref="canvasRef" class="spacetime-canvas" />
+    <div v-else class="local-group-overlay">
+      <div class="local-group-top-right">
+        <LocalGroupLayersPanel
+          :title="t('pages.localGroup.layers.title')"
+          :legend-title="t('pages.localGroup.layers.velocityLegend')"
+          :open="layersOpen"
+          :controls="layerControls"
+          :visibility="layerVisibility"
+          :velocity-bins="velocityBins"
+          @toggle-layer="toggleLayer"
+          @toggle-open="layersOpen = !layersOpen"
+        />
+      </div>
 
-    <!-- Velocity legend -->
-    <div v-if="!loading" class="map-legend">
-      <div class="map-legend-title">{{ t('pages.localGroup.velocityLabel') }}</div>
-      <div class="map-legend-items">
-        <div v-for="bin in velocityBins" :key="bin.label" class="map-legend-item">
-          <span class="map-legend-swatch" :style="{ background: binToCSS(bin.color) }" />
-          <span class="map-legend-label">{{ bin.label }}</span>
+      <div class="local-group-bottom-left">
+        <LocalGroupPlaque
+          :caption="t('pages.localGroup.caption')"
+          :title="t('pages.localGroup.title')"
+          :subtitle="t('pages.localGroup.subtitle')"
+          :credit="t('pages.localGroup.credit')"
+        />
+
+        <LocalGroupWaypointRail
+          :title="t('pages.localGroup.waypointsTitle')"
+          :landmarks="localizedLandmarks"
+          :active-id="activeLandmarkId"
+          @select="selectLandmark"
+        />
+      </div>
+
+      <div class="local-group-bottom-right">
+        <div class="local-group-stats-chip">
+          <span>{{ groupCount.toLocaleString() }} {{ t('pages.localGroup.stats.groups') }}</span>
+          <span>{{ t('pages.localGroup.stats.radius') }} 100 Mpc</span>
         </div>
+
+        <LocalGroupContextCard
+          :landmark="activeLandmark"
+          :point-hit="hoveredPoint"
+          :kicker="activeLandmark ? t('pages.localGroup.context.focusKicker') : t('pages.localGroup.context.hoverKicker')"
+          :velocity-label="t('pages.localGroup.context.velocity')"
+          :distance-label="t('pages.localGroup.context.distance')"
+          :idle-title="t('pages.localGroup.context.idleTitle')"
+          :idle-body="t('pages.localGroup.context.idleBody')"
+          @clear="clearLandmarkSelection"
+        />
       </div>
-    </div>
-
-    <!-- Info toggle -->
-    <button v-if="!loading" class="info-toggle" @click="showInfo = !showInfo">
-      {{ showInfo ? '×' : 'i' }}
-    </button>
-
-    <!-- Info panel -->
-    <div v-if="showInfo" class="info-panel">
-      <h3 class="info-title">{{ t('pages.localGroup.infoTitle') }}</h3>
-      <p class="info-body">{{ t('pages.localGroup.infoBody') }}</p>
-      <div class="info-stats">
-        <div><span class="info-stat-value">100 Mpc</span> {{ t('pages.localGroup.stats.radius') }}</div>
-        <div><span class="info-stat-value">SGX / SGY / SGZ</span> {{ t('pages.localGroup.stats.coords') }}</div>
-        <div><span class="info-stat-value">~4,000</span> {{ t('pages.localGroup.stats.groups') }}</div>
-      </div>
-    </div>
-
-    <!-- Structures nav -->
-    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '420px' : 'calc(var(--header-height) + 130px)' }">
-      <div class="structures-nav-title">{{ t('pages.localGroup.structures') }}</div>
-      <button
-        v-for="name in structureNames"
-        :key="name"
-        class="structure-btn"
-        :class="{ active: activeStructure === name }"
-        @click="focusStructure(name)"
-      >
-        {{ name }}
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import LocalGroupContextCard from '@/components/local-group/LocalGroupContextCard.vue'
+import LocalGroupLayersPanel from '@/components/local-group/LocalGroupLayersPanel.vue'
+import LocalGroupPlaque from '@/components/local-group/LocalGroupPlaque.vue'
+import LocalGroupWaypointRail from '@/components/local-group/LocalGroupWaypointRail.vue'
 import { useGalaxyData } from '@/composables/useGalaxyData'
-import { CylinderScene, STRUCTURES } from '@/three/cosmography/CylinderScene'
 import { VELOCITY_COLOR_BINS } from '@/three/constants'
+import { LOCAL_GROUP_LANDMARKS } from '@/three/local-group/localGroupLandmarks'
+import { LocalGroupScene } from '@/three/local-group/LocalGroupScene'
+import type {
+  LocalGroupLandmark,
+  LocalGroupLayerVisibility,
+  LocalGroupPointHit,
+} from '@/three/local-group/localGroupTypes'
 
-const { t } = useI18n()
+const router = useRouter()
+const { t, te } = useI18n()
 const { ready, getAllGroups } = useGalaxyData()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
-const showInfo = ref(false)
-const activeStructure = ref<string | null>(null)
+const layersOpen = ref(true)
+const groupCount = ref(0)
+const activeLandmarkId = ref<string | null>(null)
+const hoveredPoint = ref<LocalGroupPointHit | null>(null)
 const velocityBins = VELOCITY_COLOR_BINS
-const structureNames = STRUCTURES.map((s) => s.name)
+const layerVisibility = ref<LocalGroupLayerVisibility>({
+  shells: true,
+  rings: true,
+  stems: true,
+  labels: true,
+})
 
-let scene: CylinderScene | null = null
+const localizedLandmarks = computed<LocalGroupLandmark[]>(() =>
+  LOCAL_GROUP_LANDMARKS.map((landmark) => ({
+    ...landmark,
+    label: te(`pages.localGroup.landmarks.${landmark.id}.title`)
+      ? t(`pages.localGroup.landmarks.${landmark.id}.title`)
+      : landmark.label,
+    description: te(`pages.localGroup.landmarks.${landmark.id}.body`)
+      ? t(`pages.localGroup.landmarks.${landmark.id}.body`)
+      : landmark.description,
+  })),
+)
 
-function binToCSS(c: [number, number, number]): string {
-  return `rgb(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)})`
+const activeLandmark = computed<LocalGroupLandmark | null>(() =>
+  localizedLandmarks.value.find((landmark) => landmark.id === activeLandmarkId.value) ?? null,
+)
+
+const layerControls = computed(() => [
+  { key: 'shells', label: t('pages.localGroup.layers.shells') },
+  { key: 'rings', label: t('pages.localGroup.layers.rings') },
+  { key: 'stems', label: t('pages.localGroup.layers.stems') },
+  { key: 'labels', label: t('pages.localGroup.layers.labels') },
+] as Array<{ key: keyof LocalGroupLayerVisibility; label: string }>)
+
+let scene: LocalGroupScene | null = null
+let pointerDownX = 0
+let pointerDownY = 0
+let wasDragging = false
+let hoverThrottleId = 0
+let allGroupsCache: ReturnType<typeof getAllGroups> = []
+
+const DRAG_THRESHOLD = 5
+
+/**
+ * Focuses a landmark or resets the view when it is already active.
+ */
+function selectLandmark(id: string): void {
+  if (!scene) return
+
+  hoveredPoint.value = null
+  if (activeLandmarkId.value === id) {
+    clearLandmarkSelection()
+    return
+  }
+
+  const focusedLandmark = scene.focusOn(id)
+  if (focusedLandmark) {
+    activeLandmarkId.value = focusedLandmark.id
+  }
 }
 
-function focusStructure(name: string) {
-  if (!scene) return
-  if (activeStructure.value === name) {
-    scene.resetView()
-    activeStructure.value = null
-  } else {
-    scene.focusOn(name)
-    activeStructure.value = name
+/**
+ * Clears the active landmark focus and restores the default orbit.
+ */
+function clearLandmarkSelection(): void {
+  scene?.resetView()
+  activeLandmarkId.value = null
+}
+
+/**
+ * Toggles visibility for one scene layer.
+ */
+function toggleLayer(key: keyof LocalGroupLayerVisibility): void {
+  layerVisibility.value = {
+    ...layerVisibility.value,
+    [key]: !layerVisibility.value[key],
+  }
+  scene?.setLayerVisibility(layerVisibility.value)
+}
+
+/**
+ * Tracks drag state so click navigation does not fire after orbiting.
+ */
+function onPointerDown(event: PointerEvent): void {
+  pointerDownX = event.clientX
+  pointerDownY = event.clientY
+  wasDragging = false
+}
+
+/**
+ * Updates point hover state without interrupting active landmark focus.
+ */
+function onPointerMove(event: PointerEvent): void {
+  const canvas = canvasRef.value
+  if (!scene || !canvas) return
+
+  const dx = event.clientX - pointerDownX
+  const dy = event.clientY - pointerDownY
+  if (event.buttons > 0 && (dx * dx + dy * dy) > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+    wasDragging = true
+    hoveredPoint.value = null
+    canvas.style.cursor = 'grabbing'
+    return
+  }
+
+  if (event.buttons > 0 || activeLandmarkId.value) return
+  if (hoverThrottleId) return
+
+  hoverThrottleId = window.setTimeout(() => {
+    hoverThrottleId = 0
+    hoveredPoint.value = scene?.pickAtScreen(
+      event.clientX,
+      event.clientY,
+      canvas.clientWidth,
+      canvas.clientHeight,
+    ) ?? null
+    canvas.style.cursor = hoveredPoint.value ? 'pointer' : 'grab'
+  }, 40)
+}
+
+/**
+ * Opens the galaxy detail route when a projected point is clicked.
+ */
+function onClick(event: MouseEvent): void {
+  if (wasDragging || !scene || !canvasRef.value) {
+    wasDragging = false
+    return
+  }
+
+  const hit = scene.pickAtScreen(
+    event.clientX,
+    event.clientY,
+    canvasRef.value.clientWidth,
+    canvasRef.value.clientHeight,
+  )
+
+  if (hit) {
+    router.push(`/g/${hit.pgc}`)
+  }
+}
+
+/**
+ * Restores the resting cursor after pointer release.
+ */
+function onPointerUp(): void {
+  if (canvasRef.value) {
+    canvasRef.value.style.cursor = hoveredPoint.value ? 'pointer' : 'grab'
   }
 }
 
@@ -93,233 +236,145 @@ onMounted(async () => {
   await ready
   if (!canvasRef.value) return
 
-  scene = new CylinderScene(canvasRef.value)
-  scene.loadGroups(getAllGroups())
+  allGroupsCache = getAllGroups()
+  groupCount.value = allGroupsCache.filter((group) => group.dist_mpc <= 100).length
+
+  scene = new LocalGroupScene(canvasRef.value)
+  scene.loadGroups(allGroupsCache, localizedLandmarks.value)
+  scene.setLayerVisibility(layerVisibility.value)
   scene.start()
+
+  canvasRef.value.style.cursor = 'grab'
+  canvasRef.value.addEventListener('pointerdown', onPointerDown)
+  canvasRef.value.addEventListener('pointermove', onPointerMove)
+  canvasRef.value.addEventListener('pointerup', onPointerUp)
+  canvasRef.value.addEventListener('click', onClick)
   loading.value = false
 })
 
 onUnmounted(() => {
+  if (canvasRef.value) {
+    canvasRef.value.removeEventListener('pointerdown', onPointerDown)
+    canvasRef.value.removeEventListener('pointermove', onPointerMove)
+    canvasRef.value.removeEventListener('pointerup', onPointerUp)
+    canvasRef.value.removeEventListener('click', onClick)
+  }
+
+  if (hoverThrottleId) {
+    clearTimeout(hoverThrottleId)
+  }
+
   scene?.dispose()
   scene = null
 })
 </script>
 
 <style scoped>
-.spacetime-page {
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Orbitron:wght@500;700&display=swap');
+
+.local-group-page {
   position: fixed;
   inset: 0;
-  background: #000;
+  background:
+    radial-gradient(circle at 55% 45%, rgba(20, 64, 96, 0.2), transparent 30%),
+    radial-gradient(circle at 40% 55%, rgba(0, 173, 239, 0.08), transparent 38%),
+    #010406;
 }
 
-.spacetime-canvas {
+.local-group-canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-/* Title */
-.spacetime-title {
+.local-group-loading {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  text-align: center;
-  pointer-events: none;
-  padding: calc(var(--header-height) + 12px) 16px 56px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
-}
-
-.spacetime-title-text {
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-  margin-bottom: 6px;
-}
-
-.spacetime-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 300;
-  max-width: 36rem;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.5;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 1), 0 2px 10px rgba(0, 0, 0, 0.9);
-}
-
-.loading-overlay {
-  position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 14px;
-  z-index: 15;
-}
-
-/* Velocity legend */
-.map-legend {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 20;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 12px;
-  backdrop-filter: blur(8px);
-}
-
-.map-legend-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  color: rgba(201, 238, 255, 0.54);
 }
 
-.map-legend-items {
+.local-group-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.local-group-top-right,
+.local-group-bottom-left,
+.local-group-bottom-right {
+  position: fixed;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.local-group-top-right {
+  top: calc(var(--header-height) + 18px);
+  right: 20px;
+}
+
+.local-group-bottom-left {
+  left: 20px;
+  bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 14px;
 }
 
-.map-legend-item {
+.local-group-bottom-right {
+  right: 20px;
+  bottom: 20px;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
 }
 
-.map-legend-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.map-legend-label {
+.local-group-stats-chip {
+  display: flex;
+  gap: 18px;
+  padding: 10px 14px;
+  border: 1px solid rgba(110, 195, 236, 0.16);
+  background: rgba(3, 10, 17, 0.74);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: ui-monospace, monospace;
-}
-
-/* Info toggle */
-.info-toggle {
-  position: fixed;
-  top: var(--header-height);
-  left: 24px;
-  z-index: 20;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.5);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 16px;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition: color 0.2s, background 0.2s;
-}
-
-.info-toggle:hover {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-/* Info panel */
-.info-panel {
-  position: fixed;
-  top: 68px;
-  left: 24px;
-  z-index: 20;
-  max-width: 360px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 20px;
-  backdrop-filter: blur(12px);
-}
-
-.info-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  margin-bottom: 8px;
-}
-
-.info-body {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-
-.info-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.info-stat-value {
-  color: #22d3ee;
-  font-family: ui-monospace, monospace;
-  font-weight: 600;
-}
-
-/* Structures nav */
-.structures-nav {
-  position: fixed;
-  left: 24px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 10px;
-  backdrop-filter: blur(8px);
-  transition: top 0.3s ease;
-}
-
-.structures-nav-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
+  color: rgba(200, 229, 240, 0.7);
+  backdrop-filter: blur(16px);
 }
 
-.structure-btn {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-  padding: 4px 8px;
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s, border-color 0.2s;
-}
+@media (max-width: 900px) {
+  .local-group-top-right {
+    top: calc(var(--header-height) + 12px);
+    right: 12px;
+  }
 
-.structure-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-}
+  .local-group-bottom-left,
+  .local-group-bottom-right {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
 
-.structure-btn.active {
-  color: #22d3ee;
-  border-color: rgba(34, 211, 238, 0.4);
-  background: rgba(34, 211, 238, 0.1);
+  .local-group-bottom-right {
+    position: static;
+    align-items: stretch;
+    margin: 12px;
+  }
+
+  .local-group-bottom-left {
+    gap: 10px;
+  }
+
+  .local-group-stats-chip {
+    justify-content: space-between;
+  }
 }
 </style>
