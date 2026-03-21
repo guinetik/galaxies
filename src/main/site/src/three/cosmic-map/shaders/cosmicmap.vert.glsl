@@ -1,3 +1,5 @@
+precision highp float;
+
 attribute vec3 aColor;
 attribute float aSize;
 

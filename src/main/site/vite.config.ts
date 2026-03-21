@@ -31,6 +31,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
+    port: 9965
   },
   test: {
     include: ['src/**/*.test.ts'],

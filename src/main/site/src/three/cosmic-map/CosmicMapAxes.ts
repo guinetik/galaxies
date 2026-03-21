@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 
 const AXIS_LENGTH = 500
+export const COSMIC_MAP_EXTENT = 16000
 
 /**
- * Reference frame for the cosmic map: RGB axis arrows, bounding box wireframe,
- * and distance tick labels along each axis.
+ * Reference frame for the cosmic map: RGB axis arrows and distance tick labels
+ * along each axis.
  */
 export class CosmicMapAxes {
   readonly group: THREE.Group
@@ -12,10 +13,9 @@ export class CosmicMapAxes {
   private arrowX: THREE.ArrowHelper
   private arrowY: THREE.ArrowHelper
   private arrowZ: THREE.ArrowHelper
-  private box: THREE.LineSegments
   private tickLabels: THREE.Sprite[] = []
 
-  constructor(dataExtent: number = 16000) {
+  constructor(dataExtent: number = COSMIC_MAP_EXTENT) {
     this.group = new THREE.Group()
 
     // --- Axis arrows (SGX=red, SGY=green, SGZ=blue) ---
@@ -30,16 +30,6 @@ export class CosmicMapAxes {
       new THREE.Vector3(0, 0, 1), origin, AXIS_LENGTH, 0x0088ff, AXIS_LENGTH * 0.06, AXIS_LENGTH * 0.03,
     )
     this.group.add(this.arrowX, this.arrowY, this.arrowZ)
-
-    // --- Bounding box wireframe ---
-    const boxGeo = new THREE.BoxGeometry(dataExtent * 2, dataExtent * 2, dataExtent * 2)
-    const edges = new THREE.EdgesGeometry(boxGeo)
-    this.box = new THREE.LineSegments(
-      edges,
-      new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.08, transparent: true }),
-    )
-    this.group.add(this.box)
-    boxGeo.dispose()
 
     // --- Distance tick labels along each axis ---
     const tickInterval = 5000  // Mpc
@@ -104,8 +94,6 @@ export class CosmicMapAxes {
     this.arrowX.dispose()
     this.arrowY.dispose()
     this.arrowZ.dispose()
-    this.box.geometry.dispose()
-    ;(this.box.material as THREE.Material).dispose()
     for (const sprite of this.tickLabels) {
       ;(sprite.material as THREE.SpriteMaterial).map?.dispose()
       sprite.material.dispose()

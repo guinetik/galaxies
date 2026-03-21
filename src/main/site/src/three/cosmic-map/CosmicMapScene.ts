@@ -1,7 +1,17 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { CosmicMapField } from './CosmicMapField'
-import { CosmicMapAxes } from './CosmicMapAxes'
+import { COSMIC_MAP_EXTENT, CosmicMapAxes } from './CosmicMapAxes'
+import {
+  getCosmicMapCameraMotionProfile,
+  getIntroCameraBlend,
+  rotateOffsetAroundYAxis,
+  shouldApplyIdleCameraMotion,
+} from './CosmicMapCameraMotion'
+import {
+  CosmicMapCylinderFrame,
+  getDefaultCosmicMapCylinderExtents,
+} from './CosmicMapCylinderFrame'
 import { STRUCTURES } from '@/three/cosmography/CylinderScene'
 import type { Galaxy, GalaxyGroup } from '@/types/galaxy'
 import type { MapDataMode } from './CosmicMapField'
@@ -21,10 +31,31 @@ export class CosmicMapScene {
   private focusTarget: THREE.Vector3 | null = null
   private focusCamPos: THREE.Vector3 | null = null
   private readonly defaultTarget = new THREE.Vector3(0, 0, 0)
-  private readonly defaultCamPos = new THREE.Vector3(2000, 4000, 12000)
+  private readonly baseCamPos = new THREE.Vector3(2000, 4000, 12000)
+  private readonly defaultCamPos: THREE.Vector3
+  private readonly introStartCamPos: THREE.Vector3
+  private readonly introDurationSeconds: number
+  private readonly idleDelaySeconds: number
+  private readonly idleRotationSpeed: number
+  private introElapsed = 0
+  private introProgress = 0
+  private isUserInteracting = false
+  private lastInteractionElapsed = 0
+
+  private readonly onControlsStart = (): void => {
+    this.isUserInteracting = true
+    this.introProgress = 1
+    this.lastInteractionElapsed = this.clock.elapsedTime
+  }
+
+  private readonly onControlsEnd = (): void => {
+    this.isUserInteracting = false
+    this.lastInteractionElapsed = this.clock.elapsedTime
+  }
 
   readonly field: CosmicMapField
   readonly axes: CosmicMapAxes
+  readonly frame: CosmicMapCylinderFrame
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
@@ -36,7 +67,6 @@ export class CosmicMapScene {
 
     const aspect = canvas.clientWidth / canvas.clientHeight
     this.camera = new THREE.PerspectiveCamera(60, aspect, 1, 200000)
-    this.camera.position.copy(this.defaultCamPos)
 
     this.controls = new OrbitControls(this.camera, canvas)
     this.controls.enableDamping = true
@@ -44,12 +74,25 @@ export class CosmicMapScene {
     this.controls.minDistance = 100
     this.controls.maxDistance = 80000
     this.controls.target.copy(this.defaultTarget)
+    this.controls.addEventListener('start', this.onControlsStart)
+    this.controls.addEventListener('end', this.onControlsEnd)
+
+    const cameraMotion = getCosmicMapCameraMotionProfile(this.baseCamPos, this.controls.maxDistance)
+    this.defaultCamPos = cameraMotion.defaultPosition
+    this.introStartCamPos = cameraMotion.introStart
+    this.introDurationSeconds = cameraMotion.introDurationSeconds
+    this.idleDelaySeconds = cameraMotion.idleDelaySeconds
+    this.idleRotationSpeed = cameraMotion.idleRotationSpeed
+    this.camera.position.copy(this.introStartCamPos)
 
     this.field = new CosmicMapField()
     this.scene.add(this.field.points)
 
     this.axes = new CosmicMapAxes()
     this.scene.add(this.axes.group)
+
+    this.frame = new CosmicMapCylinderFrame(getDefaultCosmicMapCylinderExtents(COSMIC_MAP_EXTENT))
+    this.scene.add(this.frame.group)
 
     this.resizeObserver = new ResizeObserver(() => {
       const w = canvas.clientWidth
@@ -72,7 +115,15 @@ export class CosmicMapScene {
 
     const animate = () => {
       this.animationId = requestAnimationFrame(animate)
-      const elapsed = this.clock.getElapsedTime()
+      const delta = this.clock.getDelta()
+      const elapsed = this.clock.elapsedTime
+
+      if (this.introProgress < 1) {
+        this.introElapsed = Math.min(this.introElapsed + delta, this.introDurationSeconds)
+        this.introProgress = Math.min(this.introElapsed / this.introDurationSeconds, 1)
+        const easedProgress = getIntroCameraBlend(this.introProgress)
+        this.camera.position.lerpVectors(this.introStartCamPos, this.defaultCamPos, easedProgress)
+      }
 
       if (this.focusTarget && this.focusCamPos) {
         this.controls.target.lerp(this.focusTarget, 0.05)
@@ -81,6 +132,18 @@ export class CosmicMapScene {
           this.focusTarget = null
           this.focusCamPos = null
         }
+      }
+
+      if (shouldApplyIdleCameraMotion({
+        introProgress: this.introProgress,
+        isUserInteracting: this.isUserInteracting,
+        secondsSinceInteraction: elapsed - this.lastInteractionElapsed,
+        hasFocusTransition: this.focusTarget != null || this.focusCamPos != null,
+        idleDelaySeconds: this.idleDelaySeconds,
+      })) {
+        const offset = this.camera.position.clone().sub(this.controls.target)
+        const rotatedOffset = rotateOffsetAroundYAxis(offset, delta * this.idleRotationSpeed)
+        this.camera.position.copy(this.controls.target).add(rotatedOffset)
       }
 
       this.controls.update()
@@ -105,12 +168,14 @@ export class CosmicMapScene {
   /** Toggle axes visibility */
   setAxesVisible(visible: boolean): void {
     this.axes.setVisible(visible)
+    this.frame.setVisible(visible)
   }
 
   /** Zoom camera to a named cosmic structure */
   focusOn(name: string): void {
     const pos = this.structurePositions.get(name)
     if (!pos) return
+    this.introProgress = 1
     this.focusTarget = pos.clone()
     const dir = this.camera.position.clone().sub(pos).normalize()
     this.focusCamPos = pos.clone().add(dir.multiplyScalar(FOCUS_DISTANCE))
@@ -118,6 +183,7 @@ export class CosmicMapScene {
 
   /** Reset camera to default view */
   resetView(): void {
+    this.introProgress = 1
     this.focusTarget = this.defaultTarget.clone()
     this.focusCamPos = this.defaultCamPos.clone()
   }
@@ -201,9 +267,12 @@ export class CosmicMapScene {
   dispose(): void {
     cancelAnimationFrame(this.animationId)
     this.resizeObserver.disconnect()
+    this.controls.removeEventListener('start', this.onControlsStart)
+    this.controls.removeEventListener('end', this.onControlsEnd)
     this.controls.dispose()
     this.field.dispose()
     this.axes.dispose()
+    this.frame.dispose()
     this.scene.traverse((obj) => {
       if (obj instanceof THREE.Sprite) {
         ;(obj.material as THREE.SpriteMaterial).map?.dispose()
