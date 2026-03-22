@@ -28,7 +28,7 @@ const FOCUS_OFFSET = 1600 // Camera position offset when focusing (for compatibi
 export class LocalGroupScene {
   private readonly renderer: THREE.WebGLRenderer
   private readonly scene: THREE.Scene
-  private readonly camera: THREE.OrthographicCamera | THREE.PerspectiveCamera
+  private readonly camera: THREE.OrthographicCamera
   private readonly controls: OrbitControls
   private readonly resizeObserver: ResizeObserver
   private readonly clock = new THREE.Clock()
@@ -139,10 +139,10 @@ export class LocalGroupScene {
       const aspect = width / height
       const frustumHeight = MAX_RANGE_SCENE_UNITS * 1.1
       const frustumWidth = frustumHeight * aspect
-      ;(this.camera as THREE.OrthographicCamera).left = -frustumWidth / 2
-      ;(this.camera as THREE.OrthographicCamera).right = frustumWidth / 2
-      ;(this.camera as THREE.OrthographicCamera).top = frustumHeight / 2
-      ;(this.camera as THREE.OrthographicCamera).bottom = -frustumHeight / 2
+      this.camera.left = -frustumWidth / 2
+      this.camera.right = frustumWidth / 2
+      this.camera.top = frustumHeight / 2
+      this.camera.bottom = -frustumHeight / 2
       this.camera.updateProjectionMatrix()
     })
     this.resizeObserver.observe(canvas)
@@ -151,7 +151,7 @@ export class LocalGroupScene {
   /**
    * Returns the active camera for pointer picking.
    */
-  getCamera(): THREE.OrthographicCamera | THREE.PerspectiveCamera {
+  getCamera(): THREE.OrthographicCamera {
     return this.camera
   }
 

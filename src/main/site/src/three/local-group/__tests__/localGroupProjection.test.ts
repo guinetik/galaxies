@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   LOCAL_GROUP_SCENE_UNITS_PER_MPC,
-  createLocalGroupProjection,
   getLocalGroupRangeRingsMpc,
-  projectLocalGroupCoordinates,
-  rotateLocalGroupVectorByProjection,
-  toLocalGroupDisplayCoordinates,
+  toFlatLocalGroupDisplayCoordinates,
 } from '../localGroupProjection'
 
 describe('getLocalGroupRangeRingsMpc', () => {
@@ -14,53 +11,35 @@ describe('getLocalGroupRangeRingsMpc', () => {
   })
 })
 
-describe('projectLocalGroupCoordinates', () => {
-  it('keeps points on the tilted range plane when sgz is zero', () => {
-    const projection = createLocalGroupProjection()
-    const projected = projectLocalGroupCoordinates(
-      { sgx: 140, sgy: 0, sgz: 0 },
-      projection,
-    )
+describe('toFlatLocalGroupDisplayCoordinates', () => {
+  it('maps supergalactic coordinates to flat 2D display coordinates', () => {
+    const result = toFlatLocalGroupDisplayCoordinates(140, 0, 0, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
 
-    expect(projected.stemStart.x).toBeCloseTo(projected.displayPosition.x)
-    expect(projected.stemStart.y).toBeCloseTo(projected.displayPosition.y)
-    expect(projected.stemStart.z).toBeCloseTo(projected.displayPosition.z)
-    expect(projected.rangeMpc).toBeCloseTo(2)
+    expect(result.x).toBeCloseTo(140 * LOCAL_GROUP_SCENE_UNITS_PER_MPC)
+    expect(result.y).toBeCloseTo(0)
+    expect(result.z).toBeCloseTo(0)
   })
 
-  it('lifts points away from the plane along the projection normal', () => {
-    const projection = createLocalGroupProjection({ heightScale: 1.25 })
-    const projected = projectLocalGroupCoordinates(
-      { sgx: 0, sgy: 70, sgz: 140 },
-      projection,
-    )
+  it('ignores sgz coordinate for flat projection', () => {
+    const result1 = toFlatLocalGroupDisplayCoordinates(210, 280, 0, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
+    const result2 = toFlatLocalGroupDisplayCoordinates(210, 280, 500, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
 
-    expect(projected.rangeMpc).toBeCloseTo(1)
-    expect(projected.stemLength).toBeCloseTo(140 * 1.25)
-    expect(projected.displayPosition.y).not.toBeCloseTo(projected.stemStart.y)
+    expect(result1.x).toBeCloseTo(result2.x)
+    expect(result1.y).toBeCloseTo(result2.y)
+    expect(result1.z).toBeCloseTo(result2.z)
   })
 
-  it('reports range radius in scene units using the shared conversion factor', () => {
-    const projection = createLocalGroupProjection()
-    const projected = projectLocalGroupCoordinates(
-      { sgx: 210, sgy: 280, sgz: 0 },
-      projection,
-    )
+  it('scales coordinates by scene units per Mpc', () => {
+    const result = toFlatLocalGroupDisplayCoordinates(100, 50, 0, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
 
-    expect(projected.rangeMpc).toBeCloseTo(5)
-    expect(projected.rangeSceneUnits).toBeCloseTo(5 * LOCAL_GROUP_SCENE_UNITS_PER_MPC)
+    expect(result.x).toBeCloseTo(100 * LOCAL_GROUP_SCENE_UNITS_PER_MPC)
+    expect(result.y).toBeCloseTo(50 * LOCAL_GROUP_SCENE_UNITS_PER_MPC)
+    expect(result.z).toBeCloseTo(0)
   })
 
-  it('matches the runtime local-scene transform used by the Three.js scene', () => {
-    const projection = createLocalGroupProjection({ heightScale: 1.1 })
-    const source = { sgx: 210, sgy: -140, sgz: 70 }
+  it('produces z=0 for all inputs (flat projection)', () => {
+    const result = toFlatLocalGroupDisplayCoordinates(210, -140, 70, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
 
-    const projected = projectLocalGroupCoordinates(source, projection)
-    const localDisplay = toLocalGroupDisplayCoordinates(source, projection.heightScale)
-    const rotated = rotateLocalGroupVectorByProjection(localDisplay, projection)
-
-    expect(rotated.x).toBeCloseTo(projected.displayPosition.x)
-    expect(rotated.y).toBeCloseTo(projected.displayPosition.y)
-    expect(rotated.z).toBeCloseTo(projected.displayPosition.z)
+    expect(result.z).toBeCloseTo(0)
   })
 })
