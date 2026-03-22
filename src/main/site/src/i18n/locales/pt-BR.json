@@ -72,6 +72,13 @@
       "data": {
         "title": "Os Dados",
         "intro": "Esta visualização é construída sobre o Cosmicflows-4, a maior compilação de distâncias de galáxias já montada. Publicada por R. Brent Tully, Hélène Courtois, Ehsan Kourkchi e colaboradores em 2023, contém dezenas de milhares de galáxias com distâncias medidas por métodos observacionais diretos, não estimativas derivadas da expansão do universo.",
+        "etl": "Combinamos e enriquecemos esses catálogos localmente com um pipeline ETL em Python e entregamos um único banco SQLite ao seu navegador, para que a visão do céu permaneça rápida e funcione offline depois de carregada.",
+        "simbadIntro": "O SIMBAD (Set of Identifications, Measurements and Bibliography for Astronomical Data) é o banco de referência do CDS, Observatório de Estrasburgo: nomes, coordenadas, tipos de objeto e ligações bibliográficas para fontes conhecidas no céu. Este site consulta o SIMBAD pela rede para objetos catalogados próximos a uma galáxia e—na visualização Foto—para uma busca em cone em torno de um ponto que você clica na imagem. Visite ",
+        "simbadSiteLink": "SIMBAD no CDS",
+        "aladinIntro": "O Aladin Lite é um atlas de céu interativo do mesmo ecossistema CDS: navegue e amplie imagens de levantamentos e catálogos no navegador. Incorporamos onde você precisa de contexto de céu mais amplo em torno de uma galáxia. Veja ",
+        "aladinSiteLink": "Aladin / Aladin Lite",
+        "simbadFooterLink": "SIMBAD",
+        "aladinFooterLink": "Aladin",
         "methodsTitle": "Oito Maneiras de Medir Distâncias",
         "methodsIntro": "Cada galáxia no catálogo tem sua distância determinada por um ou mais destes métodos, formando uma escada de distâncias cósmicas:",
         "methods": {
@@ -498,29 +505,18 @@
     },
     "localGroup": {
       "title": "Grupo Local",
-      "subtitle": "Um atlas oblíquo do universo próximo: alcances circulares inclinados, grupos de galáxias projetados e marcos inspirados no mapa do Grupo Local da NASA.",
-      "caption": "Universo Local Interativo",
-      "credit": "Reconstrução espacial inspirada na NASA",
+      "subtitle": "Faixas circulares de distância inclinadas com Via Láctea, M31, subgrupos Antlia-Sextans e grupos próximos projetados sobre o quadro do Grupo Local.",
       "backToSky": "Voltar ao Céu",
       "loading": "Projetando galáxias próximas...",
       "velocityLabel": "V_CMB (km/s)",
       "waypointsTitle": "Marcos",
-      "layers": {
-        "title": "Camadas da Cena",
-        "velocityLegend": "Faixas de Velocidade",
-        "shells": "Conchas atmosféricas",
-        "rings": "Alcances circulares",
-        "stems": "Hastes de projeção",
-        "labels": "Rótulos dos marcos"
+      "controls": {
+        "frame": "Quadro",
+        "stems": "Hastes",
+        "info": "Info"
       },
-      "context": {
-        "focusKicker": "Marco em foco",
-        "hoverKicker": "Grupo de galáxias projetado",
-        "idleTitle": "Explore o mapa de alcance projetado",
-        "idleBody": "Arraste para orbitar o quadro inclinado, use a trilha de marcos para saltar entre destinos ou clique em um grupo projetado para abrir sua visualização detalhada.",
-        "velocity": "Velocidade",
-        "distance": "Distância"
-      },
+      "infoTitle": "O Quadro do Grupo Local",
+      "infoBody": "Os círculos são faixas de distância projetadas sobre um plano de referência inclinado. Os grupos de galáxias ficam acima desse plano conforme sua altura SGZ, e as hastes opcionais os conectam de volta à superfície projetada. Arraste para girar, role para ampliar e clique em um grupo para abrir o detalhe da galáxia.",
       "stats": {
         "radius": "Alcance",
         "coords": "Quadro de projeção",

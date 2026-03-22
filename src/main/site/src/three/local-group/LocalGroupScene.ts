@@ -3,7 +3,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { velocityToColor } from '@/types/galaxy'
 import type { GalaxyGroup } from '@/types/galaxy'
 import {
-  createFlatLocalGroupProjection,
   getLocalGroupRangeRingsMpc,
   toFlatLocalGroupDisplayCoordinates,
   LOCAL_GROUP_SCENE_UNITS_PER_MPC,
@@ -570,9 +569,3 @@ function createCircleGeometry(radius: number, segments: number): THREE.BufferGeo
   return geometry
 }
 
-/**
- * Converts degrees to radians for scene rotation.
- */
-function toRadians(valueDeg: number): number {
-  return (valueDeg * Math.PI) / 180
-}

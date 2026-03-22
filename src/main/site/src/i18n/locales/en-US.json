@@ -72,6 +72,13 @@
       "data": {
         "title": "The Data",
         "intro": "This visualization is built on Cosmicflows-4, the largest compilation of galaxy distances ever assembled. Published by R. Brent Tully, Hélène Courtois, Ehsan Kourkchi and collaborators in 2023, it contains tens of thousands of galaxies with distances measured through direct observational methods, not estimates derived from the expansion of the universe.",
+        "etl": "We merge and enrich those catalogs locally with a Python ETL pipeline, then ship a single SQLite database to your browser so the sky view stays fast and works offline once loaded.",
+        "simbadIntro": "SIMBAD (Set of Identifications, Measurements and Bibliography for Astronomical Data) is the reference database at CDS, Strasbourg Observatory: curated names, coordinates, object types, and bibliographic links for known sources across the sky. This site queries SIMBAD over the network for catalogued objects near a galaxy and—when you use Photo view—for a cone search around a point you click on the image. Visit ",
+        "simbadSiteLink": "SIMBAD at CDS",
+        "aladinIntro": "Aladin Lite is an interactive sky atlas from the same CDS ecosystem: pan and zoom through survey imagery and catalogs in the browser. We embed it where you need wider sky context around a galaxy. See ",
+        "aladinSiteLink": "Aladin / Aladin Lite",
+        "simbadFooterLink": "SIMBAD",
+        "aladinFooterLink": "Aladin",
         "paperLink": "Read the paper",
         "dataLink": "Explore the data",
         "downloadDb": "Download DB (18 MB)"
@@ -456,29 +463,18 @@
     },
     "localGroup": {
       "title": "Local Group",
-      "subtitle": "An oblique atlas of the nearby universe: tilted circular ranges, projected galaxy groups, and waypoint landmarks inspired by NASA's Local Group map.",
-      "caption": "Interactive Local Universe",
-      "credit": "NASA-inspired spatial reconstruction",
+      "subtitle": "Tilted circular distance ranges with Milky Way, M31, Antlia-Sextans subgroups, and nearby galaxy groups projected onto the Local Group frame.",
       "backToSky": "Back to Sky",
       "loading": "Projecting nearby galaxies...",
       "velocityLabel": "V_CMB (km/s)",
       "waypointsTitle": "Waypoints",
-      "layers": {
-        "title": "Scene Layers",
-        "velocityLegend": "Velocity Bands",
-        "shells": "Atmospheric shells",
-        "rings": "Circular ranges",
-        "stems": "Projection stems",
-        "labels": "Landmark labels"
+      "controls": {
+        "frame": "Frame",
+        "stems": "Stems",
+        "info": "Info"
       },
-      "context": {
-        "focusKicker": "Focused waypoint",
-        "hoverKicker": "Projected galaxy group",
-        "idleTitle": "Explore the projected range map",
-        "idleBody": "Drag to orbit the tilted range frame, use the waypoint rail to jump between landmarks, or click a projected group to open its detail view.",
-        "velocity": "Velocity",
-        "distance": "Distance"
-      },
+      "infoTitle": "The Local Group Frame",
+      "infoBody": "The circular ranges are distance bands projected onto a tilted reference plane. Galaxy groups sit above that plane at their SGZ height, and optional stems connect them back down to the projected surface. Drag to rotate, scroll to zoom, and click a group to open its galaxy detail.",
       "stats": {
         "radius": "Range",
         "coords": "Projection frame",

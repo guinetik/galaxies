@@ -13,6 +13,24 @@
       <section class="about-section" data-section="1">
         <h2 class="about-section-title">{{ t('pages.about.data.title') }}</h2>
         <p class="about-body">{{ t('pages.about.data.intro') }}</p>
+        <p class="about-body">{{ t('pages.about.data.etl') }}</p>
+        <p class="about-body">
+          {{ t('pages.about.data.simbadIntro') }}
+          <a
+            href="https://simbad.cds.unistra.fr/simbad/"
+            target="_blank"
+            rel="noopener"
+            class="about-link about-link-inline"
+          >
+            {{ t('pages.about.data.simbadSiteLink') }} &nearr;
+          </a>
+        </p>
+        <p class="about-body">
+          {{ t('pages.about.data.aladinIntro') }}
+          <a href="https://aladin.cds.unistra.fr/" target="_blank" rel="noopener" class="about-link about-link-inline">
+            {{ t('pages.about.data.aladinSiteLink') }} &nearr;
+          </a>
+        </p>
         <div class="about-links">
           <a href="https://doi.org/10.3847/1538-4357/ac94d8" target="_blank" rel="noopener" class="about-link">
             {{ t('pages.about.data.paperLink') }} &nearr;
@@ -22,6 +40,12 @@
           </a>
           <a href="/data/galaxies.db" download="galaxies.db" class="about-link about-link-download">
             {{ t('pages.about.data.downloadDb') }} &darr;
+          </a>
+          <a href="https://simbad.cds.unistra.fr/simbad/" target="_blank" rel="noopener" class="about-link">
+            {{ t('pages.about.data.simbadFooterLink') }} &nearr;
+          </a>
+          <a href="https://aladin.cds.unistra.fr/" target="_blank" rel="noopener" class="about-link">
+            {{ t('pages.about.data.aladinFooterLink') }} &nearr;
           </a>
         </div>
       </section>
@@ -231,6 +255,7 @@ onMounted(() => {
 /* Links */
 .about-links {
   display: flex;
+  flex-wrap: wrap;
   gap: 1.5rem;
   margin-top: 2rem;
 }
@@ -243,6 +268,12 @@ onMounted(() => {
 
 .about-link:hover {
   color: #22d3ee;
+}
+
+.about-link-inline {
+  display: inline;
+  font-size: inherit;
+  white-space: nowrap;
 }
 
 /* Measurement cards — full-width stack for intuition machines */
