@@ -3,9 +3,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { velocityToColor } from '@/types/galaxy'
 import type { GalaxyGroup } from '@/types/galaxy'
 import {
-  createLocalGroupProjection,
+  createFlatLocalGroupProjection,
   getLocalGroupRangeRingsMpc,
-  toLocalGroupDisplayCoordinates,
+  toFlatLocalGroupDisplayCoordinates,
+  LOCAL_GROUP_SCENE_UNITS_PER_MPC,
 } from './localGroupProjection'
 import { LOCAL_GROUP_LANDMARKS } from './localGroupLandmarks'
 import type {
@@ -13,12 +14,13 @@ import type {
   LocalGroupLandmark,
   LocalGroupLayerVisibility,
   LocalGroupPointHit,
-  LocalGroupProjection,
 } from './localGroupTypes'
 
 const MAX_RANGE_MPC = 100
 const RANGE_STEP_MPC = 10
-const FOCUS_DISTANCE = 1600
+const MAX_RANGE_SCENE_UNITS = MAX_RANGE_MPC * LOCAL_GROUP_SCENE_UNITS_PER_MPC
+const CAMERA_HEIGHT = 3000 // Z position for top-down orthographic view
+const FOCUS_OFFSET = 1600 // Camera position offset when focusing (for compatibility)
 
 /**
  * Three.js scene for the NASA-inspired Local Group visualization.
@@ -26,11 +28,10 @@ const FOCUS_DISTANCE = 1600
 export class LocalGroupScene {
   private readonly renderer: THREE.WebGLRenderer
   private readonly scene: THREE.Scene
-  private readonly camera: THREE.PerspectiveCamera
+  private readonly camera: THREE.OrthographicCamera | THREE.PerspectiveCamera
   private readonly controls: OrbitControls
   private readonly resizeObserver: ResizeObserver
   private readonly clock = new THREE.Clock()
-  private readonly projection: LocalGroupProjection
   private readonly projectionGroup = new THREE.Group()
   private readonly atmosphere: THREE.Mesh
   private readonly shellGroup = new THREE.Group()
@@ -62,8 +63,6 @@ export class LocalGroupScene {
    * Creates the Local Group scene on the provided canvas.
    */
   constructor(canvas: HTMLCanvasElement) {
-    this.projection = createLocalGroupProjection()
-
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
@@ -72,31 +71,47 @@ export class LocalGroupScene {
     this.scene = new THREE.Scene()
     this.scene.fog = new THREE.FogExp2(0x02060b, 0.00011)
 
+    // Orthographic camera looking down at origin
     const aspect = canvas.clientWidth / canvas.clientHeight
-    this.camera = new THREE.PerspectiveCamera(48, aspect, 1, 200000)
-    this.camera.position.copy(this.defaultCamPos)
+    const frustumHeight = MAX_RANGE_SCENE_UNITS * 1.1 // 10% margin
+    const frustumWidth = frustumHeight * aspect
+    this.camera = new THREE.OrthographicCamera(
+      -frustumWidth / 2,
+      frustumWidth / 2,
+      frustumHeight / 2,
+      -frustumHeight / 2,
+      1,
+      200000
+    )
+    this.camera.position.set(0, 0, CAMERA_HEIGHT)
+    this.camera.lookAt(0, 0, 0)
 
+    // Orbit controls for pan/zoom
     this.controls = new OrbitControls(this.camera, canvas)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
-    this.controls.minDistance = 350
-    this.controls.maxDistance = 18000
-    this.controls.target.copy(this.defaultTarget)
+    this.controls.minZoom = 0.5
+    this.controls.maxZoom = 3.0
+    this.controls.target.set(0, 0, 0)
     this.controls.autoRotate = true
     this.controls.autoRotateSpeed = 0.18
+    this.controls.enableRotate = true
+    this.controls.enablePan = true
+    this.controls.enableZoom = true
 
+    // Projection group has no rotation (flat plane at Z=0)
+    this.projectionGroup.position.set(0, 0, 0)
     this.projectionGroup.rotation.order = 'YXZ'
-    this.projectionGroup.rotation.y = toRadians(this.projection.planeAzimuthDeg)
-    this.projectionGroup.rotation.x = toRadians(this.projection.planeTiltDeg)
+    // NO rotation applied
     this.projectionGroup.add(
       this.shellGroup,
       this.ringGroup,
-      this.stemGroup,
       this.labelGroup,
       this.beaconGroup,
     )
     this.scene.add(this.projectionGroup)
 
+    // Point cloud for future galaxy overlay
     this.pointMaterial = new THREE.PointsMaterial({
       size: 52,
       sizeAttenuation: true,
@@ -110,6 +125,7 @@ export class LocalGroupScene {
     this.points.frustumCulled = false
     this.projectionGroup.add(this.points)
 
+    // Background atmosphere
     this.atmosphere = this.createAtmosphere()
     this.atmosphere.position.set(0, 0, -12000)
     this.scene.add(this.atmosphere)
@@ -119,7 +135,14 @@ export class LocalGroupScene {
       const height = canvas.clientHeight
       if (width === 0 || height === 0) return
       this.renderer.setSize(width, height, false)
-      this.camera.aspect = width / height
+      // Update orthographic camera
+      const aspect = width / height
+      const frustumHeight = MAX_RANGE_SCENE_UNITS * 1.1
+      const frustumWidth = frustumHeight * aspect
+      ;(this.camera as THREE.OrthographicCamera).left = -frustumWidth / 2
+      ;(this.camera as THREE.OrthographicCamera).right = frustumWidth / 2
+      ;(this.camera as THREE.OrthographicCamera).top = frustumHeight / 2
+      ;(this.camera as THREE.OrthographicCamera).bottom = -frustumHeight / 2
       this.camera.updateProjectionMatrix()
     })
     this.resizeObserver.observe(canvas)
@@ -128,7 +151,7 @@ export class LocalGroupScene {
   /**
    * Returns the active camera for pointer picking.
    */
-  getCamera(): THREE.PerspectiveCamera {
+  getCamera(): THREE.OrthographicCamera | THREE.PerspectiveCamera {
     return this.camera
   }
 
@@ -188,7 +211,7 @@ export class LocalGroupScene {
 
     this.focusTarget = target.clone()
     const direction = this.camera.position.clone().sub(this.controls.target).normalize()
-    this.focusCamPos = target.clone().add(direction.multiplyScalar(FOCUS_DISTANCE))
+    this.focusCamPos = target.clone().add(direction.multiplyScalar(FOCUS_OFFSET))
     this.controls.autoRotate = false
     return landmark
   }
@@ -292,11 +315,24 @@ export class LocalGroupScene {
     clearGroup(this.ringGroup)
 
     const rings = getLocalGroupRangeRingsMpc(MAX_RANGE_MPC, RANGE_STEP_MPC)
+    const baseDisk = new THREE.Mesh(
+      new THREE.CircleGeometry(MAX_RANGE_SCENE_UNITS, 180),
+      new THREE.MeshBasicMaterial({
+        color: 0x07131c,
+        transparent: true,
+        opacity: 0.34,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    )
+    baseDisk.rotation.x = -Math.PI / 2
+    this.shellGroup.add(baseDisk)
+
     for (const [index, rangeMpc] of rings.entries()) {
-      const radius = rangeMpc * this.projection.sceneUnitsPerMpc
+      const radius = rangeMpc * LOCAL_GROUP_SCENE_UNITS_PER_MPC
 
       const shellGeometry = new THREE.RingGeometry(
-        Math.max(0, radius - this.projection.sceneUnitsPerMpc * 4),
+        Math.max(0, radius - LOCAL_GROUP_SCENE_UNITS_PER_MPC * 4),
         radius,
         96,
       )
@@ -304,7 +340,7 @@ export class LocalGroupScene {
       const shellMaterial = new THREE.MeshBasicMaterial({
         color: new THREE.Color(0x4dc9ff),
         transparent: true,
-        opacity: 0.028 + index * 0.0025,
+        opacity: 0.07 + index * 0.008,
         side: THREE.DoubleSide,
         depthWrite: false,
       })
@@ -316,7 +352,7 @@ export class LocalGroupScene {
         new THREE.LineBasicMaterial({
           color: 0x86dfff,
           transparent: true,
-          opacity: 0.13 + index * 0.006,
+          opacity: 0.22 + index * 0.015,
           depthWrite: false,
         }),
       )
@@ -368,7 +404,7 @@ export class LocalGroupScene {
     const stemMaterial = new THREE.LineBasicMaterial({
       color: 0x7ad9ff,
       transparent: true,
-      opacity: 0.08,
+      opacity: 0.2,
       depthWrite: false,
     })
     this.stemGroup.add(new THREE.LineSegments(stemGeometry, stemMaterial))
@@ -434,10 +470,10 @@ export class LocalGroupScene {
   }
 
   /**
-   * Maps SGX, SGY, and SGZ into the rotated Local Group display coordinates.
+   * Maps SGX, SGY, and SGZ into the flat Local Group display coordinates.
    */
   private toLocalDisplayCoordinates(source: LocalGroupCoordinates): THREE.Vector3 {
-    const display = toLocalGroupDisplayCoordinates(source, this.projection.heightScale)
+    const display = toFlatLocalGroupDisplayCoordinates(source.sgx, source.sgy, source.sgz, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
     return new THREE.Vector3(display.x, display.y, display.z)
   }
 
