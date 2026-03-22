@@ -24,7 +24,6 @@ export interface LocalGroupLandmark {
 export interface LocalGroupLayerVisibility {
   shells: boolean
   rings: boolean
-  stems: boolean
   labels: boolean
 }
 

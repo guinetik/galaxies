@@ -18,10 +18,6 @@
           @click="toggleProjectionFrame"
         >{{ t('pages.localGroup.controls.frame') }}</button>
         <button
-          :class="['map-toggle-btn', { active: layerVisibility.stems }]"
-          @click="toggleLayer('stems')"
-        >{{ t('pages.localGroup.controls.stems') }}</button>
-        <button
           :class="['map-toggle-btn', { active: showInfo }]"
           @click="showInfo = !showInfo"
         >{{ t('pages.localGroup.controls.info') }}</button>
@@ -111,7 +107,6 @@ const velocityBins = VELOCITY_COLOR_BINS
 const layerVisibility = ref<LocalGroupLayerVisibility>({
   shells: true,
   rings: true,
-  stems: false,
   labels: true,
 })
 

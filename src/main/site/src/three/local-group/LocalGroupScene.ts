@@ -34,7 +34,6 @@ export class LocalGroupScene {
   private readonly shellGroup = new THREE.Group()
   private readonly ringGroup = new THREE.Group()
   private readonly guideGroup = new THREE.Group()
-  private readonly stemGroup = new THREE.Group()
   private readonly labelGroup = new THREE.Group()
   private readonly beaconGroup = new THREE.Group()
   private readonly pointGeometry = new THREE.BufferGeometry()
@@ -44,7 +43,6 @@ export class LocalGroupScene {
   private readonly layerVisibility: LocalGroupLayerVisibility = {
     shells: true,
     rings: true,
-    stems: true,
     labels: true,
   }
 
@@ -242,7 +240,6 @@ export class LocalGroupScene {
     Object.assign(this.layerVisibility, visibility)
     this.shellGroup.visible = this.layerVisibility.shells
     this.ringGroup.visible = this.layerVisibility.rings
-    this.stemGroup.visible = this.layerVisibility.stems
     this.labelGroup.visible = this.layerVisibility.labels
     this.beaconGroup.visible = this.layerVisibility.labels
   }
@@ -311,7 +308,6 @@ export class LocalGroupScene {
     this.disposeGroup(this.shellGroup)
     this.disposeGroup(this.ringGroup)
     this.disposeGroup(this.guideGroup)
-    this.disposeGroup(this.stemGroup)
     this.disposeGroup(this.labelGroup)
     this.disposeGroup(this.beaconGroup)
     disposeObjectResources(this.atmosphere)
@@ -454,20 +450,16 @@ export class LocalGroupScene {
   }
 
   /**
-   * Rebuilds the projected Local Group point cloud and guide stems.
+   * Rebuilds the projected Local Group point cloud.
    */
   private rebuildPoints(groups: GalaxyGroup[]): void {
-    clearGroup(this.stemGroup)
-
     const count = groups.length
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
-    const stemPositions = new Float32Array(count * 6)
 
     for (let index = 0; index < count; index++) {
       const group = groups[index]
       const offset = index * 3
-      const stemOffset = index * 6
       const local = this.toLocalDisplayCoordinates(group)
       const color = velocityToColor(group.vh ?? 0)
 
@@ -478,28 +470,11 @@ export class LocalGroupScene {
       colors[offset] = color[0]
       colors[offset + 1] = color[1]
       colors[offset + 2] = color[2]
-
-      stemPositions[stemOffset] = group.sgx
-      stemPositions[stemOffset + 1] = 0
-      stemPositions[stemOffset + 2] = group.sgy
-      stemPositions[stemOffset + 3] = local.x
-      stemPositions[stemOffset + 4] = local.y
-      stemPositions[stemOffset + 5] = local.z
     }
 
     this.pointPositions = positions
     this.pointGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.pointGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-
-    const stemGeometry = new THREE.BufferGeometry()
-    stemGeometry.setAttribute('position', new THREE.BufferAttribute(stemPositions, 3))
-    const stemMaterial = new THREE.LineBasicMaterial({
-      color: 0x7ad9ff,
-      transparent: true,
-      opacity: 0.2,
-      depthWrite: false,
-    })
-    this.stemGroup.add(new THREE.LineSegments(stemGeometry, stemMaterial))
   }
 
   /**
