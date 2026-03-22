@@ -28,6 +28,7 @@ export interface LocalGroupLayerVisibility {
 }
 
 export interface LocalGroupPointHit {
+  index: number
   pgc: number
   velocity: number
   distance: number

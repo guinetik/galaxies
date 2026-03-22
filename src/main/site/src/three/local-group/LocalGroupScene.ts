@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { LOCAL_GROUP_SCENE_UNITS_PER_MPC } from './localGroupProjection'
 import { easeInOutCubic } from '@/lib/math'
+import type { Galaxy, GalaxyGroup } from '@/types/galaxy'
 import type { LocalGroupLandmark, LocalGroupLayerVisibility, LocalGroupPointHit } from './localGroupTypes'
 
 /** Scene units per MLy — large scale so there's room between rings for content */
@@ -14,8 +15,14 @@ const SCENE_UNITS_PER_MLY = 200
 const MPC_TO_MLY = 3.2616
 const LANDMARK_COORD_TO_SCENE = (MPC_TO_MLY * SCENE_UNITS_PER_MLY) / LOCAL_GROUP_SCENE_UNITS_PER_MPC
 
+/** Direct Mpc → scene units conversion for dataset coordinates */
+const MPC_TO_SCENE = MPC_TO_MLY * SCENE_UNITS_PER_MLY
+
+/** Max distance in Mpc for galaxies to include */
+const MAX_DIST_MPC = 10
+
 /** All shell distances in MLy — each gets a dome + equatorial ring + vertical ruler */
-const SHELL_DISTANCES_MLY = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]
+const SHELL_DISTANCES_MLY = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 10, 20, 32.6]
 /** Ring visual properties */
 const RING_TUBE_RADIUS = 1.5
 const RING_SEGMENTS = 128
@@ -138,6 +145,11 @@ export class LocalGroupScene {
   private readonly ringsGroup = new THREE.Group()
   private readonly satellitesGroup = new THREE.Group()
   private readonly landmarksGroup = new THREE.Group()
+  private readonly dataGroup = new THREE.Group()
+
+  // Store filtered galaxies for hit-testing
+  private filteredGalaxies: Galaxy[] = []
+  private galaxyPositions: Float32Array = new Float32Array(0)
 
   private landmarkMarkers: LandmarkMarker[] = []
 
@@ -171,14 +183,14 @@ export class LocalGroupScene {
     )
 
     const aspect = canvas.clientWidth / canvas.clientHeight
-    this.camera = new THREE.PerspectiveCamera(50, aspect, 1, 20000)
+    this.camera = new THREE.PerspectiveCamera(50, aspect, 1, 50000)
     this.camera.position.copy(this.defaultCamPos)
 
     this.controls = new OrbitControls(this.camera, canvas)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
     this.controls.minDistance = 50
-    this.controls.maxDistance = 5000
+    this.controls.maxDistance = 10000
     this.controls.target.set(0, 0, 0)
 
     this.composer.addPass(new RenderPass(this.scene, this.camera))
@@ -199,9 +211,8 @@ export class LocalGroupScene {
     this.scene.add(this.ringsGroup)
     this.scene.add(this.satellitesGroup)
     this.scene.add(this.landmarksGroup)
+    this.scene.add(this.dataGroup)
 
-    // Subtle depth fog
-    this.scene.fog = new THREE.FogExp2(0x000000, 0.00020)
 
     this.resizeObserver = new ResizeObserver(() => {
       const width = canvas.clientWidth
@@ -308,7 +319,7 @@ export class LocalGroupScene {
     const dot = new THREE.Mesh(geo, mat)
     this.scene.add(dot)
 
-    this.addLabel('Milky Way', 0, 20, 0, { color: '#ffffff', fontSize: 32, scale: 60 })
+    this.addLabel('Milky Way', 0, 50, 0, { color: '#ffffff', fontSize: 32, scale: 60 })
   }
 
   private buildShells(): void {
@@ -503,7 +514,7 @@ export class LocalGroupScene {
   }
 
   private buildHorizontalLine(): void {
-    const maxRadius = 5 * SCENE_UNITS_PER_MLY
+    const maxRadius = 32.6 * SCENE_UNITS_PER_MLY
     const lineMat = new THREE.LineBasicMaterial({
       color: LINE_COLOR,
       transparent: true,
@@ -518,7 +529,7 @@ export class LocalGroupScene {
   }
 
   private buildVerticalAxis(): void {
-    const maxHeight = 5 * SCENE_UNITS_PER_MLY
+    const maxHeight = 32.6 * SCENE_UNITS_PER_MLY
     const pts = [new THREE.Vector3(0, -maxHeight * 0.3, 0), new THREE.Vector3(0, maxHeight * 1.1, 0)]
     const mat = new THREE.LineBasicMaterial({ color: LINE_COLOR, transparent: true, opacity: 0.4 })
     this.ringsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat))
@@ -603,9 +614,100 @@ export class LocalGroupScene {
     animate()
   }
 
-  loadGroups(_groups: any, landmarks?: LocalGroupLandmark[]): void {
+  loadGroups(_groups: GalaxyGroup[], landmarks?: LocalGroupLandmark[]): void {
     if (landmarks) {
       this.buildLandmarks(landmarks)
+    }
+  }
+
+  loadGalaxies(galaxies: Galaxy[]): void {
+    this.buildDataPoints(galaxies)
+  }
+
+  private buildDataPoints(galaxies: Galaxy[]): void {
+    this.dataGroup.clear()
+
+    this.filteredGalaxies = galaxies.filter(
+      (g) => g.distance_mpc <= MAX_DIST_MPC && g.sgl != null && g.sgb != null,
+    )
+    const count = this.filteredGalaxies.length
+    if (count === 0) return
+
+    this.galaxyPositions = new Float32Array(count * 3)
+    const DEG2RAD = Math.PI / 180
+    const dotGeo = new THREE.SphereGeometry(2.5, 12, 12)
+    const prominentGeo = new THREE.SphereGeometry(4, 16, 16)
+    const dotMat = new THREE.MeshBasicMaterial({ color: SATELLITE_COLOR })
+
+    for (let i = 0; i < count; i++) {
+      const g = this.filteredGalaxies[i]
+      const d = g.distance_mpc
+      const sglRad = g.sgl! * DEG2RAD
+      const sgbRad = g.sgb! * DEG2RAD
+
+      const sgx = d * Math.cos(sgbRad) * Math.cos(sglRad)
+      const sgy = d * Math.cos(sgbRad) * Math.sin(sglRad)
+      const sgz = d * Math.sin(sgbRad)
+
+      const x = sgx * MPC_TO_SCENE
+      const y = sgz * MPC_TO_SCENE
+      const z = sgy * MPC_TO_SCENE
+
+      this.galaxyPositions[i * 3] = x
+      this.galaxyPositions[i * 3 + 1] = y
+      this.galaxyPositions[i * 3 + 2] = z
+
+      const hasName = g.name != null && g.name.length > 0
+      const dot = new THREE.Mesh(hasName ? prominentGeo : dotGeo, dotMat)
+      dot.position.set(x, y, z)
+      this.dataGroup.add(dot)
+
+      // Label: use name if available, otherwise PGC number
+      const label = hasName ? g.name! : `PGC ${g.pgc}`
+      this.addLabel(label, x, y + 8, z, {
+        color: hasName ? '#ccddee' : SATELLITE_LABEL_COLOR,
+        fontSize: hasName ? 24 : 18,
+        scale: hasName ? 50 : 30,
+        opacity: hasName ? 0.9 : 0.5,
+      }, this.dataGroup)
+    }
+  }
+
+  getGalaxyByIndex(index: number): Galaxy | null {
+    return this.filteredGalaxies[index] ?? null
+  }
+
+  focusOnGalaxy(index: number): void {
+    if (index < 0 || index >= this.filteredGalaxies.length) return
+    const i3 = index * 3
+    const pos = new THREE.Vector3(
+      this.galaxyPositions[i3],
+      this.galaxyPositions[i3 + 1],
+      this.galaxyPositions[i3 + 2],
+    )
+    const viewDist = 80
+    const camPos = new THREE.Vector3(
+      pos.x + viewDist * 0.8,
+      pos.y + viewDist * 0.5,
+      pos.z + viewDist * 0.6,
+    )
+    this.animateCamera(camPos, pos)
+  }
+
+  /** Project a galaxy index to screen coordinates */
+  projectGalaxyToScreen(index: number, width: number, height: number): { x: number; y: number } | null {
+    if (index < 0 || index >= this.filteredGalaxies.length) return null
+    const i3 = index * 3
+    const pos = new THREE.Vector3(
+      this.galaxyPositions[i3],
+      this.galaxyPositions[i3 + 1],
+      this.galaxyPositions[i3 + 2],
+    )
+    pos.project(this.camera)
+    if (pos.z < -1 || pos.z > 1) return null
+    return {
+      x: (pos.x * 0.5 + 0.5) * width,
+      y: (-pos.y * 0.5 + 0.5) * height,
     }
   }
 
@@ -616,13 +718,12 @@ export class LocalGroupScene {
     const pos = marker.position
     const dist = pos.length()
 
-    // Camera offset: position the camera at a distance proportional to the landmark,
-    // slightly above and to the side
-    const viewDist = Math.max(dist * 0.6, 150)
+    // Camera close to the landmark — fixed offset so zoom feels consistent
+    const viewDist = Math.min(Math.max(dist * 0.15, 60), 200)
     const camPos = new THREE.Vector3(
-      pos.x + viewDist * 0.7,
+      pos.x + viewDist * 0.8,
       pos.y + viewDist * 0.5,
-      pos.z + viewDist * 0.7,
+      pos.z + viewDist * 0.6,
     )
 
     this.animateCamera(camPos, pos)
@@ -638,8 +739,42 @@ export class LocalGroupScene {
     this.ringsGroup.visible = visibility.rings
   }
 
-  pickAtScreen(_screenX: number, _screenY: number, _width: number, _height: number): LocalGroupPointHit | null {
-    return null
+  pickAtScreen(screenX: number, screenY: number, width: number, height: number): LocalGroupPointHit | null {
+    const count = this.filteredGalaxies.length
+    if (count === 0) return null
+
+    const tempProj = new THREE.Vector3()
+    const pixelRatio = Math.min(window.devicePixelRatio, 2)
+    const half = 10 * pixelRatio
+
+    let bestIndex = -1
+    let bestDistSq = Infinity
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3
+      tempProj.set(this.galaxyPositions[i3], this.galaxyPositions[i3 + 1], this.galaxyPositions[i3 + 2])
+      tempProj.project(this.camera)
+
+      if (tempProj.z < -1 || tempProj.z > 1) continue
+
+      const px = (tempProj.x * 0.5 + 0.5) * width
+      const py = (-tempProj.y * 0.5 + 0.5) * height
+
+      const dx = screenX - px
+      const dy = screenY - py
+      if (Math.abs(dx) > half || Math.abs(dy) > half) continue
+
+      const distSq = dx * dx + dy * dy
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq
+        bestIndex = i
+      }
+    }
+
+    if (bestIndex < 0) return null
+
+    const g = this.filteredGalaxies[bestIndex]
+    return { index: bestIndex, pgc: g.pgc, velocity: g.vcmb ?? 0, distance: g.distance_mpc }
   }
 
   dispose(): void {
