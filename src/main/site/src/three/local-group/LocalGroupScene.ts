@@ -318,6 +318,9 @@ export class LocalGroupScene {
     clearGroup(this.ringGroup)
 
     const rings = getLocalGroupRangeRingsMpc(MAX_RANGE_MPC, RANGE_STEP_MPC)
+    const sceneUnitsPerMpc = LOCAL_GROUP_SCENE_UNITS_PER_MPC
+
+    // Base disk (ground plane)
     const baseDisk = new THREE.Mesh(
       new THREE.CircleGeometry(MAX_RANGE_SCENE_UNITS, 180),
       new THREE.MeshBasicMaterial({
@@ -328,30 +331,40 @@ export class LocalGroupScene {
         depthWrite: false,
       }),
     )
-    baseDisk.rotation.x = -Math.PI / 2
+    baseDisk.position.z = 0
     this.shellGroup.add(baseDisk)
 
-    for (const [index, rangeMpc] of rings.entries()) {
-      const radius = rangeMpc * LOCAL_GROUP_SCENE_UNITS_PER_MPC
+    // Color palette for ring fills
+    const ringColors = [
+      0x4dc9ff, 0x3fb3e6, 0x2e9dd0, 0x2287bb,
+      0x1671a6, 0x0a5b91, 0x0a4a7f, 0x08396d,
+    ]
 
-      const shellGeometry = new THREE.RingGeometry(
-        Math.max(0, radius - LOCAL_GROUP_SCENE_UNITS_PER_MPC * 4),
-        radius,
-        96,
-      )
-      shellGeometry.rotateX(-Math.PI / 2)
+    for (let index = 0; index < rings.length; index++) {
+      const rangeMpc = rings[index]
+      const innerRadiusMpc = index === 0 ? 0 : rings[index - 1]
+
+      const outerRadius = rangeMpc * sceneUnitsPerMpc
+      const innerRadius = Math.max(0, innerRadiusMpc * sceneUnitsPerMpc)
+
+      // Ring fill (semi-transparent mesh)
+      const shellGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 96)
+      const opacityValue = 0.08 + index * 0.008
+      const colorIndex = Math.min(index, ringColors.length - 1)
       const shellMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0x4dc9ff),
+        color: new THREE.Color(ringColors[colorIndex]),
         transparent: true,
-        opacity: 0.07 + index * 0.008,
+        opacity: opacityValue,
         side: THREE.DoubleSide,
         depthWrite: false,
       })
       const shell = new THREE.Mesh(shellGeometry, shellMaterial)
+      shell.position.z = 0
       this.shellGroup.add(shell)
 
+      // Ring outline (line)
       const ring = new THREE.LineLoop(
-        createCircleGeometry(radius, 180),
+        createCircleGeometry(outerRadius, 180),
         new THREE.LineBasicMaterial({
           color: 0x86dfff,
           transparent: true,
@@ -359,7 +372,7 @@ export class LocalGroupScene {
           depthWrite: false,
         }),
       )
-      ring.rotation.x = -Math.PI / 2
+      ring.position.z = 0
       this.ringGroup.add(ring)
     }
   }
