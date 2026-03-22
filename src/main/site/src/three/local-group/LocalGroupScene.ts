@@ -30,7 +30,7 @@ export class LocalGroupScene {
   private readonly camera: THREE.OrthographicCamera
   private readonly controls: OrbitControls
   private readonly resizeObserver: ResizeObserver
-  private readonly clock = new THREE.Clock()
+  private readonly clock = new THREE.Clock(false)
   private readonly projectionGroup = new THREE.Group()
   private readonly atmosphere: THREE.Mesh
   private readonly shellGroup = new THREE.Group()
