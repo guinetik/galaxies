@@ -1,5 +1,8 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { LOCAL_GROUP_SCENE_UNITS_PER_MPC } from './localGroupProjection'
 import { easeInOutCubic } from '@/lib/math'
 import type { LocalGroupLandmark, LocalGroupLayerVisibility, LocalGroupPointHit } from './localGroupTypes'
@@ -31,6 +34,32 @@ const KPC_PER_MLY = 306.601
 
 /** Camera animation duration in seconds */
 const FOCUS_DURATION = 1.5
+
+/** Fresnel rim-glow shader for dome hemispheres */
+const FRESNEL_VERTEX = /* glsl */ `
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+  void main() {
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`
+
+const FRESNEL_FRAGMENT = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  uniform float uRimPower;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+  void main() {
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float rim = 1.0 - abs(dot(viewDir, vWorldNormal));
+    rim = pow(rim, uRimPower);
+    gl_FragColor = vec4(uColor, rim * uOpacity);
+  }
+`
 
 interface SatelliteData {
   name: string
@@ -96,6 +125,8 @@ interface LandmarkMarker {
 
 export class LocalGroupScene {
   private readonly renderer: THREE.WebGLRenderer
+  private readonly composer: EffectComposer
+  private readonly bloomPass: UnrealBloomPass
   private readonly scene: THREE.Scene
   private readonly camera: THREE.PerspectiveCamera
   private readonly controls: OrbitControls
@@ -124,9 +155,20 @@ export class LocalGroupScene {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
-    this.renderer.setClearColor(0x02060b, 1)
+    this.renderer.setClearColor(0x000000, 1)
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+    this.renderer.toneMappingExposure = 1.2
 
     this.scene = new THREE.Scene()
+
+    // Post-processing: bloom
+    this.composer = new EffectComposer(this.renderer)
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(canvas.clientWidth, canvas.clientHeight),
+      0.6,   // strength
+      0.8,   // radius
+      0.3,   // threshold
+    )
 
     const aspect = canvas.clientWidth / canvas.clientHeight
     this.camera = new THREE.PerspectiveCamera(50, aspect, 1, 20000)
@@ -138,6 +180,9 @@ export class LocalGroupScene {
     this.controls.minDistance = 50
     this.controls.maxDistance = 5000
     this.controls.target.set(0, 0, 0)
+
+    this.composer.addPass(new RenderPass(this.scene, this.camera))
+    this.composer.addPass(this.bloomPass)
 
     this.buildBackgroundStars()
     this.buildCentralGlow()
@@ -156,13 +201,15 @@ export class LocalGroupScene {
     this.scene.add(this.landmarksGroup)
 
     // Subtle depth fog
-    this.scene.fog = new THREE.FogExp2(0x020610, 0.00025)
+    this.scene.fog = new THREE.FogExp2(0x000000, 0.00020)
 
     this.resizeObserver = new ResizeObserver(() => {
       const width = canvas.clientWidth
       const height = canvas.clientHeight
       if (width === 0 || height === 0) return
       this.renderer.setSize(width, height, false)
+      this.composer.setSize(width, height)
+      this.bloomPass.resolution.set(width, height)
       this.camera.aspect = width / height
       this.camera.updateProjectionMatrix()
     })
@@ -276,10 +323,16 @@ export class LocalGroupScene {
       const ringOpacity = isInner ? 0.45 : 0.30 - i * 0.025
 
       const domeGeo = new THREE.SphereGeometry(radius, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2)
-      const domeMat = new THREE.MeshBasicMaterial({
-        color: isInner ? DOME_COLOR : RING_COLOR,
+      const domeColor = new THREE.Color(isInner ? DOME_COLOR : RING_COLOR)
+      const domeMat = new THREE.ShaderMaterial({
+        vertexShader: FRESNEL_VERTEX,
+        fragmentShader: FRESNEL_FRAGMENT,
+        uniforms: {
+          uColor: { value: domeColor },
+          uOpacity: { value: isInner ? 0.6 : Math.max(0.35 - i * 0.04, 0.08) },
+          uRimPower: { value: isInner ? 2.0 : 2.5 },
+        },
         transparent: true,
-        opacity: Math.max(shellOpacity, 0.015),
         side: THREE.DoubleSide,
         depthWrite: false,
       })
@@ -545,7 +598,7 @@ export class LocalGroupScene {
       }
 
       this.controls.update()
-      this.renderer.render(this.scene, this.camera)
+      this.composer.render()
     }
     animate()
   }
