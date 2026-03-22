@@ -35,6 +35,7 @@ export class LocalGroupScene {
   private readonly atmosphere: THREE.Mesh
   private readonly shellGroup = new THREE.Group()
   private readonly ringGroup = new THREE.Group()
+  private readonly guideGroup = new THREE.Group()
   private readonly stemGroup = new THREE.Group()
   private readonly labelGroup = new THREE.Group()
   private readonly beaconGroup = new THREE.Group()
@@ -105,6 +106,7 @@ export class LocalGroupScene {
     this.projectionGroup.add(
       this.shellGroup,
       this.ringGroup,
+      this.guideGroup,
       this.labelGroup,
       this.beaconGroup,
     )
@@ -196,6 +198,7 @@ export class LocalGroupScene {
     this.landmarks = landmarks
     this.landmarkPositions.clear()
     this.rebuildRanges()
+    this.rebuildMeasurementGuides()
     this.rebuildPoints(filtered)
     this.rebuildLandmarks(filtered, landmarks)
   }
@@ -299,6 +302,7 @@ export class LocalGroupScene {
     this.pointMaterial.dispose()
     this.disposeGroup(this.shellGroup)
     this.disposeGroup(this.ringGroup)
+    this.disposeGroup(this.guideGroup)
     this.disposeGroup(this.stemGroup)
     this.disposeGroup(this.labelGroup)
     this.disposeGroup(this.beaconGroup)
@@ -358,6 +362,74 @@ export class LocalGroupScene {
       ring.rotation.x = -Math.PI / 2
       this.ringGroup.add(ring)
     }
+  }
+
+  /**
+   * Builds vertical measurement guides with distance labels along the X-axis.
+   */
+  private rebuildMeasurementGuides(): void {
+    clearGroup(this.guideGroup)
+
+    const rings = getLocalGroupRangeRingsMpc(MAX_RANGE_MPC, RANGE_STEP_MPC)
+
+    for (const rangeMpc of rings) {
+      const distanceSceneUnits = rangeMpc * LOCAL_GROUP_SCENE_UNITS_PER_MPC
+
+      // Position guide along positive X-axis at this distance
+      const guideX = distanceSceneUnits
+      const guideY = 0
+      const guideZ = 0
+
+      // Create thin vertical line (cylinder)
+      const guideGeometry = new THREE.CylinderGeometry(1.5, 1.5, 400, 8)
+      const guideMaterial = new THREE.MeshBasicMaterial({
+        color: 0x86dfff,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+      })
+      const guide = new THREE.Mesh(guideGeometry, guideMaterial)
+      guide.position.set(guideX, guideY, guideZ + 200) // Centered on Z
+      this.guideGroup.add(guide)
+
+      // Create label sprite (e.g., "10 Mpc")
+      const label = this.makeGuideLabel(`${rangeMpc}`)
+      label.position.set(guideX, guideY, guideZ + 220) // Above the cylinder
+      this.guideGroup.add(label)
+    }
+  }
+
+  /**
+   * Creates a distance label sprite for measurement guides.
+   */
+  private makeGuideLabel(text: string): THREE.Sprite {
+    const canvas = document.createElement('canvas')
+    const scale = 2
+    canvas.width = 200 * scale
+    canvas.height = 60 * scale
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('2D canvas context unavailable for guide labels.')
+    }
+
+    context.scale(scale, scale)
+    context.font = '600 18px "IBM Plex Sans", "Segoe UI", sans-serif'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.shadowColor = 'rgba(94,205,255,0.75)'
+    context.shadowBlur = 10
+    context.fillStyle = 'rgba(211,245,255,0.86)'
+    context.fillText(text + ' Mpc', 100, 30)
+
+    const material = new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(canvas),
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    })
+    const sprite = new THREE.Sprite(material)
+    sprite.scale.set(400, 120, 1)
+    return sprite
   }
 
   /**
