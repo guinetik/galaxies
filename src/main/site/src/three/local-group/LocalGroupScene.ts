@@ -52,6 +52,7 @@ export class LocalGroupScene {
 
   private animationId = 0
   private focusTarget: THREE.Vector3 | null = null
+  private focusZoom: number | null = null
   private focusCamPos: THREE.Vector3 | null = null
   private pointPositions = new Float32Array(0)
   private pointData: GalaxyGroup[] = []
@@ -165,15 +166,21 @@ export class LocalGroupScene {
       this.animationId = requestAnimationFrame(animate)
       const elapsed = this.clock.getElapsedTime()
 
-      if (this.focusTarget && this.focusCamPos) {
+      // Animate camera target and zoom
+      if (this.focusTarget) {
         this.controls.target.lerp(this.focusTarget, 0.05)
-        this.camera.position.lerp(this.focusCamPos, 0.05)
-        if (this.controls.target.distanceTo(this.focusTarget) < 2) {
+        if (this.focusZoom) {
+          this.camera.zoom += (this.focusZoom - this.camera.zoom) * 0.05
+          this.camera.updateProjectionMatrix()
+        }
+        if (this.controls.target.distanceTo(this.focusTarget) < 2 &&
+            (!this.focusZoom || Math.abs(this.camera.zoom - this.focusZoom) < 0.02)) {
           this.focusTarget = null
-          this.focusCamPos = null
+          this.focusZoom = null
         }
       }
 
+      // Animate ring opacity
       this.shellGroup.children.forEach((mesh, index) => {
         if (mesh instanceof THREE.Mesh) {
           const material = mesh.material as THREE.MeshBasicMaterial
@@ -211,9 +218,13 @@ export class LocalGroupScene {
     if (!landmark || !target) return undefined
 
     this.focusTarget = target.clone()
-    const direction = this.camera.position.clone().sub(this.controls.target).normalize()
-    this.focusCamPos = target.clone().add(direction.multiplyScalar(FOCUS_OFFSET))
+    this.focusTarget.z = 0
+
+    const distance = Math.sqrt(target.x * target.x + target.y * target.y)
+    const zoomLevel = distance > 0 ? (MAX_RANGE_SCENE_UNITS / distance) * 0.6 : 1.0
+
     this.controls.autoRotate = false
+    this.focusZoom = zoomLevel
     return landmark
   }
 
@@ -222,7 +233,7 @@ export class LocalGroupScene {
    */
   resetView(): void {
     this.focusTarget = this.defaultTarget.clone()
-    this.focusCamPos = this.defaultCamPos.clone()
+    this.focusZoom = 1.0
     this.controls.autoRotate = true
   }
 
