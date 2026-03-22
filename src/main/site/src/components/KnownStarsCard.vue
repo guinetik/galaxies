@@ -7,7 +7,7 @@
     <div v-if="error" class="error-row">
       {{ error }}
     </div>
-    <div v-else-if="!loading && objects.length === 0" class="empty-row">
+    <div v-else-if="hasQueried && !loading && objects.length === 0" class="empty-row">
       {{ t('pages.galaxy.knownStars.empty') }}
     </div>
     <div v-else class="results-list">
@@ -36,12 +36,31 @@ import type { Galaxy } from '@/types/galaxy'
 
 const { t } = useI18n()
 
+/** Delay after 3D scene is ready before querying SIMBAD (reduces contention with WebGPU init). */
+const SIMBAD_DELAY_AFTER_SCENE_MS = 2000
+
 const props = defineProps<{
   galaxy: Galaxy
+  /** When true, the galaxy detail canvas has finished initializing (WebGPU or WebGL). */
+  sceneReady: boolean
 }>()
 
-const { loading, results, error, query } = useSimbadLookup()
+const { loading, results, error, query, reset: resetSimbad } = useSimbadLookup()
 const isNarrowViewport = ref(false)
+/** True after the first SIMBAD request has been started (avoids showing "empty" before deferred load). */
+const hasQueried = ref(false)
+
+let simbadDelayTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Clears the pending SIMBAD schedule (e.g. scene reset or unmount).
+ */
+function clearSimbadDelayTimer(): void {
+  if (simbadDelayTimer !== null) {
+    clearTimeout(simbadDelayTimer)
+    simbadDelayTimer = null
+  }
+}
 
 function checkViewport() {
   isNarrowViewport.value = window.innerWidth < 768
@@ -54,6 +73,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkViewport)
+  clearSimbadDelayTimer()
 })
 
 /** Minimum search radius in arcseconds when galaxy size is unknown or very small */
@@ -114,20 +134,27 @@ const objects = computed(() => {
 })
 
 /**
- * Silently query SIMBAD when galaxy becomes available.
- * Uses galaxy RA/Dec from the database.
+ * Query SIMBAD for catalogued objects near the galaxy (RA/Dec from the database).
  */
-function fetchKnownStars() {
+function fetchKnownStars(): void {
   const g = props.galaxy
   if (!g || g.ra == null || g.dec == null) return
+  hasQueried.value = true
   const radiusArcsec = getSearchRadiusArcsec(g)
-  query(g.ra, g.dec, radiusArcsec, { objectTypeFilter: 'starsAndGalaxies' })
+  void query(g.ra, g.dec, radiusArcsec, { objectTypeFilter: 'starsAndGalaxies' })
 }
 
 watch(
-  () => props.galaxy,
-  (g) => {
-    if (g) fetchKnownStars()
+  () => [props.sceneReady, props.galaxy] as const,
+  ([ready, g]) => {
+    clearSimbadDelayTimer()
+    resetSimbad()
+    hasQueried.value = false
+    if (!ready || !g || g.ra == null || g.dec == null) return
+    simbadDelayTimer = setTimeout(() => {
+      simbadDelayTimer = null
+      fetchKnownStars()
+    }, SIMBAD_DELAY_AFTER_SCENE_MS)
   },
   { immediate: true }
 )

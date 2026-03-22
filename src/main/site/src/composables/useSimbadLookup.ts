@@ -47,6 +47,18 @@ export function useSimbadLookup() {
   const loading = ref(false)
   const results = ref<SimbadObject[]>([])
   const error = ref<string | null>(null)
+  let fetchAbort: AbortController | null = null
+
+  /**
+   * Clears UI state and aborts any in-flight SIMBAD request.
+   */
+  function reset(): void {
+    fetchAbort?.abort()
+    fetchAbort = null
+    loading.value = false
+    error.value = null
+    results.value = []
+  }
 
   /**
    * Query SIMBAD for objects near given coordinates
@@ -61,6 +73,10 @@ export function useSimbadLookup() {
     radiusArcsec: number = 30,
     options?: { objectTypeFilter?: 'starsAndGalaxies' }
   ): Promise<void> {
+    fetchAbort?.abort()
+    fetchAbort = new AbortController()
+    const signal = fetchAbort.signal
+
     loading.value = true
     error.value = null
     results.value = []
@@ -72,7 +88,7 @@ export function useSimbadLookup() {
         // TAP API: filter at source — stars only (exclude Nova, Em*, galaxies)
         const adql = `SELECT TOP 50 main_id, ra, dec, otype FROM basic WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${ra}, ${dec}, ${radiusDeg})) = 1 AND otype = 'Star..' AND otype NOT IN ('No*', 'Em*')`
         const url = `https://simbad.cds.unistra.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=json&QUERY=${encodeURIComponent(adql)}`
-        const response = await fetch(url)
+        const response = await fetch(url, { signal })
         if (!response.ok) throw new Error(`SIMBAD TAP error: ${response.statusText}`)
         const data = await response.json()
         if (data.data && Array.isArray(data.data)) {
@@ -92,7 +108,7 @@ export function useSimbadLookup() {
         coneUrl.searchParams.set('SR', radiusDeg.toString())
         coneUrl.searchParams.set('RESPONSEFORMAT', 'json')
         coneUrl.searchParams.set('VERB', '2')
-        const response = await fetch(coneUrl.toString())
+        const response = await fetch(coneUrl.toString(), { signal })
         if (!response.ok) throw new Error(`SIMBAD API error: ${response.statusText}`)
         const data = await response.json()
         if (data.columns && data.data && Array.isArray(data.data)) {
@@ -121,10 +137,16 @@ export function useSimbadLookup() {
         }
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       error.value = err instanceof Error ? err.message : 'Unknown error'
       results.value = []
     } finally {
-      loading.value = false
+      if (!signal.aborted) {
+        loading.value = false
+        fetchAbort = null
+      }
     }
   }
 
@@ -133,5 +155,6 @@ export function useSimbadLookup() {
     results: readonly(results),
     error: readonly(error),
     query,
+    reset,
   }
 }

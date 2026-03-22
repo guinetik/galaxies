@@ -3,7 +3,7 @@
     <GalaxyDetail v-if="galaxy" :galaxy="galaxy" :renderer="renderer" :key="renderer" @active-renderer="activeRenderer = $event" @ready="sceneReady = true" />
     <div v-if="galaxy" class="info-cards-column">
       <GalaxyInfoCard :galaxy="galaxy" />
-      <KnownStarsCard :galaxy="galaxy" />
+      <KnownStarsCard :galaxy="galaxy" :scene-ready="sceneReady" />
     </div>
     <div class="top-header">
       <div class="top-buttons">
