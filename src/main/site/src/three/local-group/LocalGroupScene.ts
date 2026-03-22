@@ -504,9 +504,11 @@ export class LocalGroupScene {
     for (const landmark of landmarks) {
       const resolved = this.resolveLandmarkCoordinates(landmark, groups)
       const local = this.toLocalDisplayCoordinates(resolved)
-      const world = this.projectionGroup.localToWorld(local.clone())
-      this.landmarkPositions.set(landmark.id, world)
 
+      // Store world position for focus animations
+      this.landmarkPositions.set(landmark.id, local.clone())
+
+      // Beacon sphere at landmark position on plane
       const beacon = new THREE.Mesh(
         new THREE.SphereGeometry(landmark.id === 'milky-way' ? 46 : 26, 20, 20),
         new THREE.MeshBasicMaterial({
@@ -517,10 +519,13 @@ export class LocalGroupScene {
         }),
       )
       beacon.position.copy(local)
+      beacon.position.z = 0 // Ensure on plane
       this.beaconGroup.add(beacon)
 
+      // Label sprite positioned above beacon
       const label = this.makeLabelSprite(landmark.label, landmark.id === 'milky-way')
-      label.position.copy(local).add(new THREE.Vector3(0, landmark.id === 'milky-way' ? 180 : 120, 0))
+      label.position.copy(local)
+      label.position.z = 80 // Slight Z offset for visibility
       this.labelGroup.add(label)
     }
   }
@@ -557,8 +562,11 @@ export class LocalGroupScene {
    * Maps SGX, SGY, and SGZ into the flat Local Group display coordinates.
    */
   private toLocalDisplayCoordinates(source: LocalGroupCoordinates): THREE.Vector3 {
-    const display = toFlatLocalGroupDisplayCoordinates(source.sgx, source.sgy, source.sgz, LOCAL_GROUP_SCENE_UNITS_PER_MPC)
-    return new THREE.Vector3(display.x, display.y, display.z)
+    return new THREE.Vector3(
+      source.sgx * LOCAL_GROUP_SCENE_UNITS_PER_MPC,
+      source.sgy * LOCAL_GROUP_SCENE_UNITS_PER_MPC,
+      0 // Always on plane (flat projection)
+    )
   }
 
   /**
