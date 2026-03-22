@@ -18,7 +18,6 @@ const MAX_RANGE_MPC = 100
 const RANGE_STEP_MPC = 10
 const MAX_RANGE_SCENE_UNITS = MAX_RANGE_MPC * LOCAL_GROUP_SCENE_UNITS_PER_MPC
 const CAMERA_HEIGHT = 3000 // Z position for top-down orthographic view
-const FOCUS_OFFSET = 1600 // Camera position offset when focusing (for compatibility)
 
 /**
  * Three.js scene for the NASA-inspired Local Group visualization.
@@ -42,7 +41,6 @@ export class LocalGroupScene {
   private readonly pointMaterial: THREE.PointsMaterial
   private readonly points: THREE.Points
   private readonly defaultTarget = new THREE.Vector3(0, 0, 0)
-  private readonly defaultCamPos = new THREE.Vector3(-3200, 2400, 6900)
   private readonly layerVisibility: LocalGroupLayerVisibility = {
     shells: true,
     rings: true,
@@ -53,7 +51,6 @@ export class LocalGroupScene {
   private animationId = 0
   private focusTarget: THREE.Vector3 | null = null
   private focusZoom: number | null = null
-  private focusCamPos: THREE.Vector3 | null = null
   private pointPositions = new Float32Array(0)
   private pointData: GalaxyGroup[] = []
   private landmarkPositions = new Map<string, THREE.Vector3>()
@@ -170,11 +167,12 @@ export class LocalGroupScene {
       if (this.focusTarget) {
         this.controls.target.lerp(this.focusTarget, 0.05)
         if (this.focusZoom) {
-          this.camera.zoom += (this.focusZoom - this.camera.zoom) * 0.05
-          this.camera.updateProjectionMatrix()
+          const orthoCamera = this.controls.object as THREE.OrthographicCamera
+          orthoCamera.zoom += (this.focusZoom - orthoCamera.zoom) * 0.05
+          orthoCamera.updateProjectionMatrix()
         }
         if (this.controls.target.distanceTo(this.focusTarget) < 2 &&
-            (!this.focusZoom || Math.abs(this.camera.zoom - this.focusZoom) < 0.02)) {
+            (!this.focusZoom || Math.abs((this.controls.object as THREE.OrthographicCamera).zoom - this.focusZoom) < 0.02)) {
           this.focusTarget = null
           this.focusZoom = null
         }
