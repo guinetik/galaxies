@@ -4,7 +4,6 @@ import { velocityToColor } from '@/types/galaxy'
 import type { GalaxyGroup } from '@/types/galaxy'
 import {
   getLocalGroupRangeRingsMpc,
-  toFlatLocalGroupDisplayCoordinates,
   LOCAL_GROUP_SCENE_UNITS_PER_MPC,
 } from './localGroupProjection'
 import { LOCAL_GROUP_LANDMARKS } from './localGroupLandmarks'
