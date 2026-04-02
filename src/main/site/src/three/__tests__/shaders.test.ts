@@ -16,11 +16,23 @@ const shaderDeps: Record<string, string[]> = {
   'galaxy.frag.glsl': ['noise-value.glsl', 'galaxy-render.glsl'],
 }
 
+const planetFragShaders = [
+  'rocky.frag.glsl', 'gasGiant.frag.glsl', 'hotJupiter.frag.glsl',
+  'iceGiant.frag.glsl', 'icyWorld.frag.glsl', 'lavaWorld.frag.glsl',
+  'oceanWorld.frag.glsl', 'subNeptune.frag.glsl', 'desertWorld.frag.glsl',
+  'tidallyLocked.frag.glsl',
+]
+for (const name of planetFragShaders) {
+  shaderDeps[name] = ['../noise.glsl', '../color.glsl', '../lighting.glsl', '../seed.glsl']
+}
+
 const shaderDirs = [
   'src/three/shaders',
   'src/three/galaxy-detail/shaders',
   'src/three/cosmic-map/shaders',
   'src/three/nsa/shaders',
+  'src/three/star/shaders',
+  'src/three/star/shaders/planet',
 ]
 
 // Discover all .glsl files across shader directories
