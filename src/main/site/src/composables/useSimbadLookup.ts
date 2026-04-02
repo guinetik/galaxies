@@ -133,7 +133,7 @@ export function useSimbadLookup() {
               }
             })
             .filter((obj: SimbadObject) => obj.name && obj.name !== 'Unknown' && isDisplayableSimbadType(obj.type))
-            .slice(0, 50)
+            .slice(0, 20)
         }
       }
     } catch (err) {
