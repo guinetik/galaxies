@@ -86,7 +86,7 @@ export function useSimbadLookup() {
 
       if (options?.objectTypeFilter === 'starsAndGalaxies') {
         // TAP API: filter at source — stars only (exclude Nova, Em*, galaxies)
-        const adql = `SELECT TOP 50 main_id, ra, dec, otype FROM basic WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${ra}, ${dec}, ${radiusDeg})) = 1 AND otype = 'Star..' AND otype NOT IN ('No*', 'Em*')`
+        const adql = `SELECT TOP 10 main_id, ra, dec, otype FROM basic WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${ra}, ${dec}, ${radiusDeg})) = 1 AND otype = 'Star..' AND otype NOT IN ('No*', 'Em*') ORDER BY nbref DESC`
         const url = `https://simbad.cds.unistra.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=json&QUERY=${encodeURIComponent(adql)}`
         const response = await fetch(url, { signal })
         if (!response.ok) throw new Error(`SIMBAD TAP error: ${response.statusText}`)
