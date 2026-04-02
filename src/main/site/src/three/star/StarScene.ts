@@ -26,6 +26,13 @@ import {
   generateSeed,
   type StarShaderUniforms,
 } from './StarUniforms'
+import type { PlanetarySystem } from './PlanetGenerator'
+import {
+  mapPlanetToShaderType,
+  getPlanetVertexShader,
+  getPlanetFragmentShader,
+  createPlanetUniforms,
+} from './PlanetUniforms'
 
 // Number of solar flare sites
 const NUM_FLARES = 4
@@ -66,6 +73,11 @@ export class StarScene {
   // Star group (for rotation)
   private starGroup: THREE.Group
 
+  // Planets
+  private planetGroup: THREE.Group
+  private planetMaterials: THREE.ShaderMaterial[] = []
+  private planetOrbitalData: Array<{ sceneRadius: number; speed: number }> = []
+
   private uniforms: StarShaderUniforms
 
   constructor(
@@ -104,12 +116,15 @@ export class StarScene {
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.05
     this.controls.minDistance = 2
-    this.controls.maxDistance = 15
+    this.controls.maxDistance = 25
     this.controls.enablePan = false
 
     // Star group
     this.starGroup = new THREE.Group()
     this.scene.add(this.starGroup)
+
+    this.planetGroup = new THREE.Group()
+    this.scene.add(this.planetGroup)
 
     // Build star layers
     this.buildSurface()
@@ -314,6 +329,91 @@ export class StarScene {
     this.starGroup.add(mesh)
   }
 
+  /** Add planets to the scene from a generated system */
+  setPlanets(system: PlanetarySystem): void {
+    // Clear existing planets
+    while (this.planetGroup.children.length > 0) {
+      const child = this.planetGroup.children[0]
+      this.planetGroup.remove(child)
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+        if (child.material instanceof THREE.Material) child.material.dispose()
+      }
+      if (child instanceof THREE.LineLoop) {
+        child.geometry.dispose()
+        if (child.material instanceof THREE.Material) child.material.dispose()
+      }
+    }
+    this.planetMaterials = []
+    this.planetOrbitalData = []
+
+    const starTeff = system.host.teff ?? 5800
+
+    system.planets.forEach((planet, index) => {
+      // Visual sizing (logarithmic scale per spec)
+      let visualRadius: number
+      if (planet.type === 'GasGiant') {
+        visualRadius = 0.25 + (planet.radius - 8) / (12 - 8) * 0.15
+      } else if (planet.type === 'SubNeptune') {
+        visualRadius = 0.12 + (planet.radius - 1.7) / (3.5 - 1.7) * 0.08
+      } else {
+        visualRadius = 0.08 + (planet.radius - 0.8) / (1.5 - 0.8) * 0.04
+      }
+      visualRadius = Math.max(0.06, Math.min(0.4, visualRadius))
+
+      // Scene positioning (log-compressed)
+      const sceneRadius = 2.0 + Math.log10(planet.semiMajorAxis + 0.1) * 3.0
+
+      // Orbital speed (inversely proportional to period)
+      const speed = planet.orbitalPeriod > 0 ? 0.3 / planet.orbitalPeriod : 0.1
+
+      // Shader setup
+      const shaderType = mapPlanetToShaderType(planet)
+      const planetSeed = (index + 1) * 0.137
+      const uniforms = createPlanetUniforms(planet, shaderType, planetSeed, starTeff)
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: getPlanetVertexShader(),
+        fragmentShader: getPlanetFragmentShader(shaderType),
+        uniforms,
+      })
+
+      // Planet mesh
+      const geo = new THREE.SphereGeometry(visualRadius, 32, 32)
+      const mesh = new THREE.Mesh(geo, material)
+
+      // Initial position (golden angle spread)
+      const startAngle = index * 2.399
+      mesh.position.set(
+        Math.cos(startAngle) * sceneRadius,
+        0,
+        Math.sin(startAngle) * sceneRadius,
+      )
+
+      this.planetGroup.add(mesh)
+      this.planetMaterials.push(material)
+      this.planetOrbitalData.push({ sceneRadius, speed })
+
+      // Orbit ring
+      const ringSegments = 128
+      const ringGeo = new THREE.BufferGeometry()
+      const ringPoints = new Float32Array((ringSegments + 1) * 3)
+      for (let i = 0; i <= ringSegments; i++) {
+        const angle = (i / ringSegments) * Math.PI * 2
+        ringPoints[i * 3] = Math.cos(angle) * sceneRadius
+        ringPoints[i * 3 + 1] = 0
+        ringPoints[i * 3 + 2] = Math.sin(angle) * sceneRadius
+      }
+      ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPoints, 3))
+      const ringMat = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.15,
+      })
+      this.planetGroup.add(new THREE.LineLoop(ringGeo, ringMat))
+    })
+  }
+
   // ── Animation ────────────────────────────────────────────────────────
 
   start(): void {
@@ -371,6 +471,26 @@ export class StarScene {
 
     // Backdrop follows camera
     this.backdrop.update(time, this.camera)
+
+    // Animate planets
+    let meshIndex = 0
+    for (let i = 0; i < this.planetGroup.children.length; i++) {
+      const child = this.planetGroup.children[i]
+      if (child instanceof THREE.Mesh && this.planetOrbitalData[meshIndex]) {
+        const data = this.planetOrbitalData[meshIndex]
+        const angle = time * data.speed + meshIndex * 2.399
+        child.position.set(
+          Math.cos(angle) * data.sceneRadius,
+          0,
+          Math.sin(angle) * data.sceneRadius,
+        )
+        child.rotation.y = time * 0.2
+        if (this.planetMaterials[meshIndex]) {
+          this.planetMaterials[meshIndex].uniforms.uTime.value = time
+        }
+        meshIndex++
+      }
+    }
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────────
