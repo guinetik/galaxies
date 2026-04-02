@@ -37,6 +37,10 @@
           <span class="label">Distance</span>
           <span class="value">{{ distanceDisplay }}</span>
         </div>
+        <div v-if="planetarySystem" class="info-row">
+          <span class="label">Planets</span>
+          <span class="value">{{ planetarySystem.planets.length }} (generated)</span>
+        </div>
       </div>
       <a :href="star.simbadUrl" target="_blank" rel="noopener noreferrer" class="simbad-link">
         SIMBAD <span class="link-icon">↗</span>
@@ -50,6 +54,38 @@
       <router-link to="/" class="back-link">Back to home</router-link>
     </div>
     <button class="back-btn" @click="$router.back()">←</button>
+    <button class="info-btn" @click="showInfo = !showInfo" aria-label="Info">i</button>
+    <Transition name="sidebar">
+      <div v-if="showInfo" class="info-sidebar">
+        <div class="sidebar-content">
+          <button class="sidebar-close" @click="showInfo = false" aria-label="Close">&times;</button>
+          <h2 class="sidebar-title">Planetary System</h2>
+          <div class="sidebar-section">
+            <p>
+              This star's planetary system is procedurally generated based on
+              scientific heuristics derived from exoplanet survey statistics.
+            </p>
+            <p>
+              <strong>Metallicity</strong> ([Fe/H]) strongly influences gas giant
+              probability — metal-rich stars are more likely to host Jupiter-sized
+              planets, following the well-established giant planet–metallicity
+              correlation.
+            </p>
+            <p>
+              <strong>Stellar mass</strong> (estimated from temperature) determines
+              planet count: M dwarfs tend to host many small planets, while massive
+              stars host fewer. The snow line scales with luminosity, placing gas
+              giants further out around hotter stars.
+            </p>
+            <p>
+              These planets are <em>speculative</em> — they are not observed data.
+              The generation uses occurrence rates from Kepler survey statistics
+              to produce plausible systems, not confirmed discoveries.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -59,11 +95,16 @@ import { useRoute } from 'vue-router'
 import { useSimbadStar } from '@/composables/useSimbadStar'
 import { parseSpectralClass, getStarColor } from '@/three/star/StarUniforms'
 import { StarScene } from '@/three/star/StarScene'
+import { generatePlanetarySystem } from '@/three/star/PlanetGenerator'
+import type { PlanetarySystem } from '@/three/star/PlanetGenerator'
+import { generateSeed } from '@/three/star/StarUniforms'
 
 const route = useRoute()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const { loading, star, error, query } = useSimbadStar()
 let scene: StarScene | null = null
+const planetarySystem = ref<PlanetarySystem | null>(null)
+const showInfo = ref(false)
 
 const spClass = computed(() => star.value ? parseSpectralClass(star.value.spectralType) : null)
 
@@ -93,6 +134,13 @@ function initScene(): void {
   scene?.dispose()
   const sc = spClass.value || 'G'
   scene = new StarScene(canvasRef.value, sc, star.value.teff, star.value.mainId)
+
+  // Generate planetary system
+  const seed = Math.abs(Math.round(generateSeed(star.value.mainId) * 2147483647))
+  const system = generatePlanetarySystem(star.value, seed)
+  planetarySystem.value = system
+  scene.setPlanets(system)
+
   scene.resize(canvasRef.value.clientWidth, canvasRef.value.clientHeight)
   scene.start()
 }
@@ -258,5 +306,90 @@ onUnmounted(() => {
 .back-link {
   color: #22d3ee;
   font-size: 12px;
+}
+
+.info-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  z-index: 20;
+  font-style: italic;
+}
+
+.info-btn:hover {
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.info-sidebar {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: min(360px, calc(100vw - 48px));
+  z-index: 30;
+}
+
+.sidebar-content {
+  position: relative;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(8, 8, 12, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+}
+
+.sidebar-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.sidebar-section {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sidebar-section p {
+  margin: 0 0 10px;
+}
+
+.sidebar-section p:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-enter-active,
+.sidebar-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-enter-from,
+.sidebar-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>
