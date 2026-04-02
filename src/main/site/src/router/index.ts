@@ -96,6 +96,15 @@ export const router = createRouter({
         description: 'Explore iconic galaxies by morphology — spirals, ellipticals, barred spirals, lenticulars, and irregulars.',
       },
     },
+    {
+      path: '/star/:id',
+      name: 'star',
+      component: () => import('@/views/StarView.vue'),
+      meta: {
+        title: 'Star | Galaxies',
+        description: 'Explore a star with procedural 3D rendering driven by SIMBAD catalog data.',
+      },
+    },
   ],
 })
 

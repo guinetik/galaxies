@@ -11,18 +11,19 @@
       {{ t('pages.galaxy.knownStars.empty') }}
     </div>
     <div v-else class="results-list">
-      <a
+      <component
+        :is="isStarLike(obj.type) ? 'router-link' : 'a'"
         v-for="obj in objects"
         :key="obj.name"
-        :href="obj.simbadUrl"
-        target="_blank"
-        rel="noopener noreferrer"
+        v-bind="isStarLike(obj.type)
+          ? { to: `/star/${encodeURIComponent(obj.name)}` }
+          : { href: obj.simbadUrl, target: '_blank', rel: 'noopener noreferrer' }"
         class="result-item"
       >
         <span class="obj-name">{{ obj.name }}</span>
         <span class="obj-type">{{ obj.type }}</span>
-        <span class="link-icon">↗</span>
-      </a>
+        <span v-if="!isStarLike(obj.type)" class="link-icon">↗</span>
+      </component>
     </div>
   </div>
 </template>
