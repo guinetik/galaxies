@@ -106,19 +106,13 @@ watch(compiledQuery, (sql) => {
   if (!editMode.value) {
     currentQuery.value = sql
   }
-})
+}, { immediate: true })
 
 // When edit mode is turned off, sync back to compiled query
 watch(editMode, (isEdit) => {
   if (!isEdit) {
     currentQuery.value = compiledQuery.value
   }
-})
-
-// Initialize with compiled query
-onMounted(async () => {
-  await ready
-  currentQuery.value = compiledQuery.value
 })
 
 function onApplySample(sample: SampleQuery) {

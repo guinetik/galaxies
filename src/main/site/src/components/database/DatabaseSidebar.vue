@@ -239,6 +239,12 @@ defineEmits<{
   border-radius: 4px;
 }
 
+.filter-select option,
+.filter-select optgroup {
+  background: #1a1a2e;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .col-select {
   flex: 1;
   min-width: 80px;
@@ -251,6 +257,7 @@ defineEmits<{
 .filter-input {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.85);
+  color-scheme: dark;
   font-size: 12px;
   padding: 4px 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);
