@@ -105,6 +105,15 @@ export const router = createRouter({
         description: 'Explore a star with procedural 3D rendering driven by SIMBAD catalog data.',
       },
     },
+    {
+      path: '/database',
+      name: 'database',
+      component: () => import('@/views/DatabaseView.vue'),
+      meta: {
+        title: 'Database | Galaxies',
+        description: 'Query the galaxy catalog directly — explore 88,000+ galaxies with filters, SQL, and linked results.',
+      },
+    },
   ],
 })
 

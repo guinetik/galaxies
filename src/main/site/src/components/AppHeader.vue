@@ -29,6 +29,9 @@
       <router-link to="/local-group" class="text-xs text-white/50 hover:text-white/80 transition-colors">
         {{ t('nav.localGroup') }}
       </router-link>
+      <router-link to="/database" class="text-xs text-white/50 hover:text-white/80 transition-colors">
+        {{ t('nav.database') }}
+      </router-link>
     </nav>
 
     <!-- Desktop tools (right) -->
@@ -98,6 +101,9 @@
         </router-link>
         <router-link to="/local-group" class="mobile-link" @click="menuOpen = false">
           {{ t('nav.localGroup') }}
+        </router-link>
+        <router-link to="/database" class="mobile-link" @click="menuOpen = false">
+          {{ t('nav.database') }}
         </router-link>
 
         <div class="mobile-menu-divider" />
