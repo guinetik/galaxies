@@ -364,18 +364,19 @@
             No objects found
           </div>
           <div v-else class="results-list">
-            <a
+            <component
+              :is="obj.type === 'Star' || (obj.type && obj.type.includes('*')) ? 'router-link' : 'a'"
               v-for="obj in simbadTooltip.objects"
               :key="obj.name"
-              :href="obj.simbadUrl"
-              target="_blank"
-              rel="noopener noreferrer"
+              v-bind="obj.type === 'Star' || (obj.type && obj.type.includes('*'))
+                ? { to: `/star/${encodeURIComponent(obj.name)}` }
+                : { href: obj.simbadUrl, target: '_blank', rel: 'noopener noreferrer' }"
               class="result-item result-link"
             >
               <span class="obj-name">{{ obj.name }}</span>
               <span class="obj-type">{{ obj.type }}</span>
-              <span class="link-icon">↗</span>
-            </a>
+              <span v-if="obj.type !== 'Star' && !(obj.type && obj.type.includes('*'))" class="link-icon">↗</span>
+            </component>
           </div>
           <button class="tooltip-close" @click="simbadTooltip.visible = false">×</button>
         </div>
