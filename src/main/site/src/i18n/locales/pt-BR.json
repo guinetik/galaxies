@@ -570,6 +570,57 @@
       "velocity": "km/s",
       "type": "Tipo",
       "viewGalaxy": "Ver Galáxia"
+    },
+    "star": {
+      "loading": "Carregando dados da estrela...",
+      "backToHome": "Voltar ao início",
+      "type": "Tipo",
+      "temperature": "Temperatura",
+      "surfaceGravity": "Gravidade superficial",
+      "metallicity": "Metalicidade",
+      "vMagnitude": "Magnitude V",
+      "distance": "Distância",
+      "planets": "Planetas",
+      "planetsGenerated": "{count} (gerados)",
+      "proceduralHeading": "Sistema Planetário Simulado",
+      "derivation": {
+        "starClass": "Com uma temperatura superficial de {teff} K, esta é aproximadamente uma estrela {massLabel} ({mass} M☉).",
+        "massLabelLow": "anã vermelha de baixa massa",
+        "massLabelMid": "tipo-Solar",
+        "massLabelHigh": "massiva",
+        "metallicityHigh": "Sua alta metalicidade ([Fe/H] = {feh}) dá {pGiant}% de chance de abrigar um gigante gasoso — discos ricos em metais formam planetas gigantes mais facilmente.",
+        "metallicityLow": "Sua baixa metalicidade ([Fe/H] = {feh}) torna gigantes gasosos improváveis ({pGiant}% de chance) — não havia material pesado suficiente no disco protoplanetário.",
+        "metallicityMid": "Com metalicidade próxima à solar ([Fe/H] = {feh}), tem {pGiant}% de chance de abrigar um gigante gasoso.",
+        "giant": "Um gigante gasoso se formou além da linha de gelo a {snowLine} UA, onde gelos podiam condensar.",
+        "noGiant": "Nenhum gigante gasoso se formou — os dados rolaram contra a probabilidade de {pGiant}%.",
+        "smallPlanets": "Modelos estatísticos preveem ~{mean} planetas pequenos para esta massa estelar; {count} foram posicionados em órbitas geometricamente espaçadas.",
+        "evolved": "Como uma estrela evoluída (log g = {logg}), sua expansão provavelmente engoliu planetas dentro de 0,5 UA.",
+        "noPlanets": "Apesar de {pAny}% de chance de ter planetas, esta estrela em particular gerou um sistema vazio — nem toda estrela tem sorte.",
+        "defaults": "O SIMBAD não tem {fields} medidos para esta estrela, então {estimateExplanation} (valores marcados com ~ no cartão).",
+        "defaultTeff": "temperatura",
+        "defaultFeh": "metalicidade",
+        "defaultLogg": "gravidade superficial",
+        "estimateTeff": "assumimos 5800 K como uma estrela tipo-Solar",
+        "estimateFeh": "a metalicidade foi sorteada de uma distribuição galáctica típica",
+        "estimateLogg": "assumimos gravidade de sequência principal"
+      },
+      "info": {
+        "title": "Sistema Planetário Procedural",
+        "disclaimer": "Estes planetas são especulativos — não são dados observados. O sistema é gerado proceduralmente a partir das propriedades SIMBAD desta estrela usando taxas de ocorrência das missões Kepler, TESS e levantamentos de velocidade radial.",
+        "metallicityTitle": "Metalicidade determina gigantes gasosos",
+        "metallicityBody": "A probabilidade de gigantes gasosos segue P ≈ 0,03 × 10^(1,8 [Fe/H]), reproduzindo a forte correlação planeta–metalicidade: ~25% em [Fe/H]=+0,3 mas <1% em [Fe/H]=−0,5.",
+        "metallicityCite": "Fischer & Valenti 2005; Wang & Fischer 2015",
+        "massTitle": "Massa estelar molda o sistema",
+        "massBody": "Anãs M hospedam 3,5× mais planetas pequenos que estrelas tipo-Solar, com média de ~2,5 por estrela. Estrelas A/F mostram o oposto — a ocorrência de sub-Netunos cai abaixo de 1%.",
+        "massCite": "Mulders et al. 2015; Giacalone & Dressing 2025",
+        "snowLineTitle": "Linha de gelo e arquitetura orbital",
+        "snowLineBody": "Gigantes gasosos se formam além da linha de gelo em a ≈ 2,7√(L/L☉) UA, onde as temperaturas do disco permitem a condensação do gelo. Órbitas internas são preenchidas com mundos rochosos e sub-Netunos geometricamente espaçados.",
+        "evolvedTitle": "Estrelas evoluídas",
+        "evolvedBody": "Estrelas com baixa gravidade superficial (log g < 3,5) expandiram além do ramo das gigantes vermelhas, provavelmente engolindo planetas próximos. Órbitas internas até ~0,5 UA são eliminadas.",
+        "evolvedCite": "Wolthoff et al. 2022",
+        "appearanceTitle": "Aparência dos planetas",
+        "appearanceBody": "O shader de cada planeta é selecionado a partir de sua temperatura de equilíbrio e tipo — gigantes gasosos quentes são renderizados como Júpiteres quentes brilhantes, mundos rochosos frios como superfícies geladas, mundos temperados de baixa densidade como planetas oceânicos, e assim por diante em 10 estilos visuais distintos."
+      }
     }
   }
 }

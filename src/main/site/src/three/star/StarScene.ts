@@ -72,6 +72,8 @@ export class StarScene {
 
   // Star group (for rotation)
   private starGroup: THREE.Group
+  private raysMesh!: THREE.Mesh
+  private glowMesh!: THREE.Mesh
 
   // Planets
   private planetGroup: THREE.Group
@@ -94,7 +96,10 @@ export class StarScene {
       antialias: true,
       alpha: false,
     })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Cap DPR — at 4K native res, supersampling is invisible but halves FPS
+    const physicalW = window.screen.width * window.devicePixelRatio
+    const maxDpr = physicalW > 3000 ? 1.0 : 2.0
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr))
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight)
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.0
@@ -109,7 +114,7 @@ export class StarScene {
       0.1,
       2000,
     )
-    this.camera.position.set(0, 0, 4)
+    this.camera.position.set(0, 8, 14)
 
     // Controls
     this.controls = new OrbitControls(this.camera, canvas)
@@ -151,7 +156,7 @@ export class StarScene {
   // ── Build methods ────────────────────────────────────────────────────
 
   private buildSurface(): void {
-    const geo = new THREE.SphereGeometry(1, 64, 64)
+    const geo = new THREE.SphereGeometry(1, 48, 32)
     const vertSrc = noiseLib + colorLib + seedLib + surfaceVert
     const fragSrc = noiseLib + colorLib + lightingLib + seedLib + surfaceFrag
     this.surfaceMaterial = new THREE.ShaderMaterial({
@@ -163,7 +168,7 @@ export class StarScene {
   }
 
   private buildCorona(): void {
-    const geo = new THREE.SphereGeometry(STAR_RENDERING.CORONA_SCALE, 64, 64)
+    const geo = new THREE.SphereGeometry(STAR_RENDERING.CORONA_SCALE, 32, 24)
     const fragSrc = noiseLib + colorLib + seedLib + coronaFrag
     this.coronaMaterial = new THREE.ShaderMaterial({
       vertexShader: coronaVert,
@@ -178,7 +183,7 @@ export class StarScene {
   }
 
   private buildFlameTongues(): void {
-    const geo = new THREE.SphereGeometry(STAR_RENDERING.FLAME_TONGUES_SCALE, 64, 64)
+    const geo = new THREE.SphereGeometry(STAR_RENDERING.FLAME_TONGUES_SCALE, 32, 24)
     const fragSrc = noiseLib + colorLib + seedLib + flameTonguesFrag
     this.flameTonguesMaterial = new THREE.ShaderMaterial({
       vertexShader: flameTonguesVert,
@@ -262,9 +267,8 @@ export class StarScene {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     })
-    const mesh = new THREE.Mesh(geo, this.raysMaterial)
-    mesh.name = 'rays-billboard'
-    this.starGroup.add(mesh)
+    this.raysMesh = new THREE.Mesh(geo, this.raysMaterial)
+    this.starGroup.add(this.raysMesh)
   }
 
   private buildGlow(): void {
@@ -324,9 +328,8 @@ export class StarScene {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     })
-    const mesh = new THREE.Mesh(geo, this.glowMaterial)
-    mesh.name = 'glow-billboard'
-    this.starGroup.add(mesh)
+    this.glowMesh = new THREE.Mesh(geo, this.glowMaterial)
+    this.starGroup.add(this.glowMesh)
   }
 
   /** Add planets to the scene from a generated system */
@@ -349,6 +352,14 @@ export class StarScene {
 
     const starTeff = system.host.teff ?? 5800
 
+    // Shared geometry and materials — reduce GPU state changes
+    const sharedPlanetGeo = new THREE.SphereGeometry(1, 16, 12)
+    const sharedRingMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.15,
+    })
+
     system.planets.forEach((planet, index) => {
       // Visual sizing (logarithmic scale per spec)
       let visualRadius: number
@@ -362,7 +373,7 @@ export class StarScene {
       visualRadius = Math.max(0.06, Math.min(0.4, visualRadius))
 
       // Scene positioning (log-compressed)
-      const sceneRadius = 2.0 + Math.log10(planet.semiMajorAxis + 0.1) * 3.0
+      const sceneRadius = 3.5 + (Math.log10(planet.semiMajorAxis + 0.1) + 1.0) * 3.0
 
       // Orbital speed (inversely proportional to period)
       const speed = planet.orbitalPeriod > 0 ? 0.3 / planet.orbitalPeriod : 0.1
@@ -378,9 +389,9 @@ export class StarScene {
         uniforms,
       })
 
-      // Planet mesh
-      const geo = new THREE.SphereGeometry(visualRadius, 32, 32)
-      const mesh = new THREE.Mesh(geo, material)
+      // Planet mesh — shared geometry, scaled per planet
+      const mesh = new THREE.Mesh(sharedPlanetGeo, material)
+      mesh.scale.setScalar(visualRadius)
 
       // Initial position (golden angle spread)
       const startAngle = index * 2.399
@@ -395,7 +406,7 @@ export class StarScene {
       this.planetOrbitalData.push({ sceneRadius, speed })
 
       // Orbit ring
-      const ringSegments = 128
+      const ringSegments = 64
       const ringGeo = new THREE.BufferGeometry()
       const ringPoints = new Float32Array((ringSegments + 1) * 3)
       for (let i = 0; i <= ringSegments; i++) {
@@ -405,12 +416,7 @@ export class StarScene {
         ringPoints[i * 3 + 2] = Math.sin(angle) * sceneRadius
       }
       ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPoints, 3))
-      const ringMat = new THREE.LineBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.15,
-      })
-      this.planetGroup.add(new THREE.LineLoop(ringGeo, ringMat))
+      this.planetGroup.add(new THREE.LineLoop(ringGeo, sharedRingMat))
     })
   }
 
@@ -431,10 +437,8 @@ export class StarScene {
     this.controls.update()
 
     // Billboard rays and glow to face camera
-    const raysMesh = this.starGroup.getObjectByName('rays-billboard') as THREE.Mesh | undefined
-    const glowMesh = this.starGroup.getObjectByName('glow-billboard') as THREE.Mesh | undefined
-    if (raysMesh) raysMesh.quaternion.copy(this.camera.quaternion)
-    if (glowMesh) glowMesh.quaternion.copy(this.camera.quaternion)
+    this.raysMesh.quaternion.copy(this.camera.quaternion)
+    this.glowMesh.quaternion.copy(this.camera.quaternion)
 
     // Update all shader time uniforms
     this.surfaceMaterial.uniforms.uTime.value = time
@@ -463,7 +467,7 @@ export class StarScene {
         const escapePhase = (activePhase - 0.6) / 0.4
         travelDistance = 1.2 + escapePhase * escapePhase * 10.0
       }
-      mesh.position.copy(data.direction.clone().multiplyScalar(travelDistance))
+      mesh.position.copy(data.direction).multiplyScalar(travelDistance)
 
       mat.uniforms.uTime.value = time
       mat.uniforms.uFlarePhase.value = activePhase

@@ -32,12 +32,16 @@ import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
 import type { IGalaxyScene } from '../IGalaxyScene'
 import { getInitialOrbitAngles } from '../initialOrbit'
-import { detectQuality, dprCap, type Quality } from '../qualityDetect'
+import { detectQuality, dprCap, rtScale, type Quality } from '../qualityDetect'
 
 // Reusable math objects (avoid per-frame allocations)
 const _yAxis = new THREE.Vector3(0, 1, 0)
 const _qDrag = new THREE.Quaternion()
 const _mvpMatrix = new THREE.Matrix4()
+const _camPos = new THREE.Vector3()
+const _mouseNDC = new THREE.Vector2()
+const _lensingUV = new THREE.Vector2()
+const _right = new THREE.Vector3()
 
 // WebGPU particle count — scaled by device quality
 // Mobile (Z Fold Adreno 740): 150k is still 3.5× WebGL's desktop max
@@ -165,7 +169,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.scene.add(this.clouds.sprite)
 
     // ─── Black hole (separate scene — composited on top after lensing+bloom)
-    this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08)
+    this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08, rtScale(this.quality))
     this.bhScene.add(this.blackHole.depthMesh)
     this.bhScene.add(this.blackHole.mesh)
 
@@ -255,11 +259,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.onMouseDown = () => { this.mousePressed = true }
     this.onMouseUp = () => { this.mousePressed = false }
     this.onMouseMove = (e: MouseEvent) => {
-      const mouse = new THREE.Vector2(
+      _mouseNDC.set(
         (e.clientX / canvas.clientWidth) * 2 - 1,
         -(e.clientY / canvas.clientHeight) * 2 + 1,
       )
-      this.raycaster.setFromCamera(mouse, this.camera)
+      this.raycaster.setFromCamera(_mouseNDC, this.camera)
       this.raycaster.ray.intersectPlane(this.intersectionPlane, this.mouse3D)
     }
 
@@ -294,8 +298,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     _qDrag.setFromAxisAngle(_yAxis, -dx)
     this.orbitQuat.premultiply(_qDrag)
 
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.orbitQuat)
-    _qDrag.setFromAxisAngle(right, -dy)
+    _right.set(1, 0, 0).applyQuaternion(this.orbitQuat)
+    _qDrag.setFromAxisAngle(_right, -dy)
     this.orbitQuat.premultiply(_qDrag)
 
     this.orbitQuat.normalize()
@@ -319,8 +323,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     await this.renderer.init()
 
     // ─── Post-processing (bloom + lensing + BH composite + fg stars) ─
+    const postFxScale = rtScale(this.quality)
     this.postProcessing = new GalaxyPostProcessing(
-      this.renderer, this.scene, this.bhScene, this.fgScene, this.camera,
+      this.renderer, this.scene, this.bhScene, this.fgScene, this.camera, postFxScale,
     )
 
     // ─── Run init compute (once) ────────────────────────────────────
@@ -383,8 +388,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Camera orbit position ───────────────────────────────────────
     const distance = this.baseDistance / this.zoom
-    const camPos = new THREE.Vector3(0, 0, distance).applyQuaternion(this.orbitQuat)
-    this.camera.position.copy(camPos)
+    _camPos.set(0, 0, distance).applyQuaternion(this.orbitQuat)
+    this.camera.position.copy(_camPos)
     this.camera.lookAt(0, 0, 0)
     this.camera.updateMatrixWorld(true)
 
@@ -472,14 +477,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this._bhScreenVec.set(0, 0, 0).project(this.camera)
     const lod = this.blackHole.getLOD()
     const lensStrength = lod * lod * 0.03
-    this.postProcessing.updateLensing(
-      new THREE.Vector2(
-        this._bhScreenVec.x * 0.5 + 0.5,
-        this._bhScreenVec.y * 0.5 + 0.5,
-      ),
-      lensStrength,
-      this.camera.aspect,
+    _lensingUV.set(
+      this._bhScreenVec.x * 0.5 + 0.5,
+      this._bhScreenVec.y * 0.5 + 0.5,
     )
+    this.postProcessing.updateLensing(_lensingUV, lensStrength, this.camera.aspect)
 
     // ─── Render ──────────────────────────────────────────────────────
     this.postProcessing.render()

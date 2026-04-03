@@ -8,25 +8,35 @@
           {{ star.spectralType || spClass }}
         </span>
       </div>
+      <div v-if="planetarySystem" class="derivation-block">
+        <div class="derivation-heading">{{ t('pages.star.proceduralHeading') }}</div>
+        <div class="derivation-text">{{ derivationText }}</div>
+      </div>
       <div class="card-body">
         <div class="info-row">
-          <span class="label">Type</span>
+          <span class="label">{{ t('pages.star.type') }}</span>
           <span class="value">{{ star.objectType }}</span>
         </div>
         <div class="info-row">
-          <span class="label">Temperature</span>
-          <span class="value">{{ star.teff != null ? `${star.teff} K` : '--' }}</span>
+          <span class="label">{{ t('pages.star.temperature') }}</span>
+          <span class="value" :class="{ estimated: star.teff == null && planetarySystem }">
+            {{ star.teff != null ? `${star.teff} K` : planetarySystem ? `~${Math.round(planetarySystem.derivation.teff)} K` : '--' }}
+          </span>
         </div>
         <div class="info-row">
-          <span class="label">Surface gravity</span>
-          <span class="value">{{ star.logg != null ? `log g = ${star.logg.toFixed(2)}` : '--' }}</span>
+          <span class="label">{{ t('pages.star.surfaceGravity') }}</span>
+          <span class="value" :class="{ estimated: star.logg == null && planetarySystem }">
+            {{ star.logg != null ? `log g = ${star.logg.toFixed(2)}` : planetarySystem ? `~log g = ${planetarySystem.derivation.logg.toFixed(2)}` : '--' }}
+          </span>
         </div>
         <div class="info-row">
-          <span class="label">Metallicity</span>
-          <span class="value">{{ star.feh != null ? `[Fe/H] = ${star.feh.toFixed(2)}` : '--' }}</span>
+          <span class="label">{{ t('pages.star.metallicity') }}</span>
+          <span class="value" :class="{ estimated: star.feh == null && planetarySystem }">
+            {{ star.feh != null ? `[Fe/H] = ${star.feh.toFixed(2)}` : planetarySystem ? `~[Fe/H] = ${planetarySystem.derivation.feh.toFixed(2)}` : '--' }}
+          </span>
         </div>
         <div class="info-row">
-          <span class="label">V magnitude</span>
+          <span class="label">{{ t('pages.star.vMagnitude') }}</span>
           <span class="value">{{ star.vMag != null ? star.vMag.toFixed(2) : '--' }}</span>
         </div>
         <div class="info-row">
@@ -34,12 +44,12 @@
           <span class="value">{{ bvColor }}</span>
         </div>
         <div class="info-row">
-          <span class="label">Distance</span>
+          <span class="label">{{ t('pages.star.distance') }}</span>
           <span class="value">{{ distanceDisplay }}</span>
         </div>
         <div v-if="planetarySystem" class="info-row">
-          <span class="label">Planets</span>
-          <span class="value">{{ planetarySystem.planets.length }} (generated)</span>
+          <span class="label">{{ t('pages.star.planets') }}</span>
+          <span class="value">{{ t('pages.star.planetsGenerated', { count: planetarySystem.planets.length }) }}</span>
         </div>
       </div>
       <a :href="star.simbadUrl" target="_blank" rel="noopener noreferrer" class="simbad-link">
@@ -47,11 +57,11 @@
       </a>
     </div>
     <div v-if="loading" class="loading-overlay">
-      <span class="loading-text">Loading star data...</span>
+      <span class="loading-text">{{ t('pages.star.loading') }}</span>
     </div>
     <div v-if="error" class="error-overlay">
       <span>{{ error }}</span>
-      <router-link to="/" class="back-link">Back to home</router-link>
+      <router-link to="/" class="back-link">{{ t('pages.star.backToHome') }}</router-link>
     </div>
     <button class="back-btn" @click="$router.back()">←</button>
     <button class="info-btn" @click="showInfo = !showInfo" aria-label="Info">i</button>
@@ -59,29 +69,33 @@
       <div v-if="showInfo" class="info-sidebar">
         <div class="sidebar-content">
           <button class="sidebar-close" @click="showInfo = false" aria-label="Close">&times;</button>
-          <h2 class="sidebar-title">Planetary System</h2>
+          <h2 class="sidebar-title">{{ t('pages.star.info.title') }}</h2>
           <div class="sidebar-section">
+            <p class="sidebar-note">{{ t('pages.star.info.disclaimer') }}</p>
+
+            <h3 class="sidebar-subtitle">{{ t('pages.star.info.metallicityTitle') }}</h3>
             <p>
-              This star's planetary system is procedurally generated based on
-              scientific heuristics derived from exoplanet survey statistics.
+              {{ t('pages.star.info.metallicityBody') }}
+              <span class="cite">{{ t('pages.star.info.metallicityCite') }}</span>
             </p>
+
+            <h3 class="sidebar-subtitle">{{ t('pages.star.info.massTitle') }}</h3>
             <p>
-              <strong>Metallicity</strong> ([Fe/H]) strongly influences gas giant
-              probability — metal-rich stars are more likely to host Jupiter-sized
-              planets, following the well-established giant planet–metallicity
-              correlation.
+              {{ t('pages.star.info.massBody') }}
+              <span class="cite">{{ t('pages.star.info.massCite') }}</span>
             </p>
+
+            <h3 class="sidebar-subtitle">{{ t('pages.star.info.snowLineTitle') }}</h3>
+            <p>{{ t('pages.star.info.snowLineBody') }}</p>
+
+            <h3 class="sidebar-subtitle">{{ t('pages.star.info.evolvedTitle') }}</h3>
             <p>
-              <strong>Stellar mass</strong> (estimated from temperature) determines
-              planet count: M dwarfs tend to host many small planets, while massive
-              stars host fewer. The snow line scales with luminosity, placing gas
-              giants further out around hotter stars.
+              {{ t('pages.star.info.evolvedBody') }}
+              <span class="cite">{{ t('pages.star.info.evolvedCite') }}</span>
             </p>
-            <p>
-              These planets are <em>speculative</em> — they are not observed data.
-              The generation uses occurrence rates from Kepler survey statistics
-              to produce plausible systems, not confirmed discoveries.
-            </p>
+
+            <h3 class="sidebar-subtitle">{{ t('pages.star.info.appearanceTitle') }}</h3>
+            <p>{{ t('pages.star.info.appearanceBody') }}</p>
           </div>
         </div>
       </div>
@@ -92,6 +106,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSimbadStar } from '@/composables/useSimbadStar'
 import { parseSpectralClass, getStarColor } from '@/three/star/StarUniforms'
 import { StarScene } from '@/three/star/StarScene'
@@ -99,6 +114,7 @@ import { generatePlanetarySystem } from '@/three/star/PlanetGenerator'
 import type { PlanetarySystem } from '@/three/star/PlanetGenerator'
 import { generateSeed } from '@/three/star/StarUniforms'
 
+const { t } = useI18n()
 const route = useRoute()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const { loading, star, error, query } = useSimbadStar()
@@ -127,6 +143,85 @@ const distanceDisplay = computed(() => {
   const ly = pc * 3.2616
   if (ly < 100) return `${ly.toFixed(1)} ly`
   return `${Math.round(ly).toLocaleString()} ly`
+})
+
+const derivationText = computed(() => {
+  const sys = planetarySystem.value
+  if (!sys) return ''
+  const d = sys.derivation
+  const p = 'pages.star.derivation'
+  const parts: string[] = []
+
+  // Star classification
+  const massLabel = d.estimatedMass < 0.6
+    ? t(`${p}.massLabelLow`)
+    : d.estimatedMass > 1.5
+      ? t(`${p}.massLabelHigh`)
+      : t(`${p}.massLabelMid`)
+  parts.push(t(`${p}.starClass`, {
+    teff: Math.round(d.teff),
+    massLabel,
+    mass: d.estimatedMass.toFixed(2),
+  }))
+
+  // Metallicity → gas giant probability
+  const pGiantPct = Math.round(d.pGiant * 100)
+  if (d.feh > 0.15) {
+    parts.push(t(`${p}.metallicityHigh`, { feh: d.feh.toFixed(2), pGiant: pGiantPct }))
+  } else if (d.feh < -0.15) {
+    parts.push(t(`${p}.metallicityLow`, { feh: d.feh.toFixed(2), pGiant: pGiantPct }))
+  } else {
+    parts.push(t(`${p}.metallicityMid`, { feh: d.feh.toFixed(2), pGiant: pGiantPct }))
+  }
+
+  // Gas giant outcome
+  if (sys.planets.length === 0) {
+    parts.push(t(`${p}.noPlanets`, { pAny: Math.round(d.pAny * 100) }))
+  } else {
+    if (d.hasGiant) {
+      parts.push(t(`${p}.giant`, { snowLine: d.snowLine.toFixed(1) }))
+    } else if (pGiantPct > 0) {
+      parts.push(t(`${p}.noGiant`, { pGiant: pGiantPct }))
+    }
+
+    // Small planets
+    const smallCount = sys.planets.filter(pl => pl.type !== 'GasGiant').length
+    if (smallCount > 0) {
+      parts.push(t(`${p}.smallPlanets`, {
+        mean: d.meanSmallCount.toFixed(1),
+        count: smallCount,
+      }))
+    }
+  }
+
+  // Evolved star
+  if (d.isEvolved) {
+    parts.push(t(`${p}.evolved`, { logg: d.logg.toFixed(2) }))
+  }
+
+  // Defaults disclaimer — explain which values were estimated and why
+  if (d.teffIsDefault || d.fehIsDefault || d.loggIsDefault) {
+    const fields: string[] = []
+    const explanations: string[] = []
+    if (d.teffIsDefault) {
+      fields.push(t(`${p}.defaultTeff`))
+      explanations.push(t(`${p}.estimateTeff`))
+    }
+    if (d.fehIsDefault) {
+      fields.push(t(`${p}.defaultFeh`))
+      explanations.push(t(`${p}.estimateFeh`))
+    }
+    if (d.loggIsDefault) {
+      fields.push(t(`${p}.defaultLogg`))
+      explanations.push(t(`${p}.estimateLogg`))
+    }
+    parts.push(t(`${p}.defaults`, {
+      fields: fields.join(', '),
+      estimateExplanation: explanations.join('; '),
+    }))
+  }
+
+  return parts.join(' ')
 })
 
 function initScene(): void {
@@ -247,6 +342,32 @@ onUnmounted(() => {
   text-align: right;
 }
 
+.value.estimated {
+  color: rgba(255, 200, 50, 0.7);
+  font-style: italic;
+}
+
+.derivation-block {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.derivation-heading {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 200, 50, 0.6);
+  margin-bottom: 6px;
+}
+
+.derivation-text {
+  font-size: 10px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .simbad-link {
   display: flex;
   align-items: center;
@@ -272,7 +393,7 @@ onUnmounted(() => {
 
 .back-btn {
   position: absolute;
-  top: 16px;
+  top: calc(var(--header-height) + 16px);
   left: 16px;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -310,7 +431,7 @@ onUnmounted(() => {
 
 .info-btn {
   position: absolute;
-  top: 16px;
+  top: calc(var(--header-height) + 16px);
   right: 16px;
   width: 32px;
   height: 32px;
@@ -333,7 +454,7 @@ onUnmounted(() => {
 
 .info-sidebar {
   position: absolute;
-  top: 60px;
+  top: calc(var(--header-height) + 60px);
   right: 16px;
   width: min(360px, calc(100vw - 48px));
   z-index: 30;
@@ -374,12 +495,45 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
+.sidebar-note {
+  background: rgba(255, 200, 50, 0.08);
+  border-left: 2px solid rgba(255, 200, 50, 0.4);
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+}
+
+.sidebar-subtitle {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .sidebar-section p {
   margin: 0 0 10px;
 }
 
 .sidebar-section p:last-child {
   margin-bottom: 0;
+}
+
+.sidebar-section code {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.cite {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
 }
 
 .sidebar-enter-active,

@@ -528,6 +528,57 @@
       "velocity": "km/s",
       "type": "Type",
       "viewGalaxy": "View Galaxy"
+    },
+    "star": {
+      "loading": "Loading star data...",
+      "backToHome": "Back to home",
+      "type": "Type",
+      "temperature": "Temperature",
+      "surfaceGravity": "Surface gravity",
+      "metallicity": "Metallicity",
+      "vMagnitude": "V magnitude",
+      "distance": "Distance",
+      "planets": "Planets",
+      "planetsGenerated": "{count} (generated)",
+      "proceduralHeading": "Simulated Planetary System",
+      "derivation": {
+        "starClass": "With a surface temperature of {teff} K, this is roughly a {massLabel} star ({mass} M☉).",
+        "massLabelLow": "low-mass red dwarf",
+        "massLabelMid": "Sun-like",
+        "massLabelHigh": "massive",
+        "metallicityHigh": "Its high metallicity ([Fe/H] = {feh}) gives a {pGiant}% chance of hosting a gas giant — metal-rich disks form giant planets more easily.",
+        "metallicityLow": "Its low metallicity ([Fe/H] = {feh}) makes gas giants unlikely ({pGiant}% chance) — there wasn't enough heavy material in the protoplanetary disk.",
+        "metallicityMid": "With near-solar metallicity ([Fe/H] = {feh}), it has a {pGiant}% chance of hosting a gas giant.",
+        "giant": "A gas giant formed beyond the snow line at {snowLine} AU, where ices could condense.",
+        "noGiant": "No gas giant formed — the dice rolled against the {pGiant}% probability.",
+        "smallPlanets": "Statistical models predict ~{mean} small planets for this stellar mass; {count} were placed in geometrically-spaced orbits.",
+        "evolved": "As an evolved star (log g = {logg}), its expansion likely engulfed any planets within 0.5 AU.",
+        "noPlanets": "Despite a {pAny}% chance of hosting planets, this particular star drew an empty system — not every star gets lucky.",
+        "defaults": "SIMBAD has no measured {fields} for this star, so {estimateExplanation} (values marked ~ in the card).",
+        "defaultTeff": "temperature",
+        "defaultFeh": "metallicity",
+        "defaultLogg": "surface gravity",
+        "estimateTeff": "we assumed a Sun-like 5800 K",
+        "estimateFeh": "metallicity was drawn from a typical galactic distribution",
+        "estimateLogg": "we assumed main-sequence gravity"
+      },
+      "info": {
+        "title": "Procedural Planetary System",
+        "disclaimer": "These planets are speculative — not observed data. The system is procedurally generated from this star's SIMBAD properties using occurrence rates from Kepler, TESS, and radial velocity surveys.",
+        "metallicityTitle": "Metallicity drives gas giants",
+        "metallicityBody": "Gas giant probability follows P ≈ 0.03 × 10^(1.8 [Fe/H]), reproducing the strong planet–metallicity correlation: ~25% at [Fe/H]=+0.3 but <1% at [Fe/H]=−0.5.",
+        "metallicityCite": "Fischer & Valenti 2005; Wang & Fischer 2015",
+        "massTitle": "Stellar mass shapes the system",
+        "massBody": "M dwarfs host 3.5× more small planets than Sun-like stars, averaging ~2.5 per star. A/F stars show the opposite — sub-Neptune occurrence drops below 1%.",
+        "massCite": "Mulders et al. 2015; Giacalone & Dressing 2025",
+        "snowLineTitle": "Snow line and orbital architecture",
+        "snowLineBody": "Gas giants form beyond the snow line at a ≈ 2.7√(L/L☉) AU, where disk temperatures allow ice to condense. Inner orbits fill with geometrically-spaced rocky and sub-Neptune worlds.",
+        "evolvedTitle": "Evolved stars",
+        "evolvedBody": "Stars with low surface gravity (log g < 3.5) have expanded past the red giant branch, likely engulfing close-in planets. Inner orbits within ~0.5 AU are cleared.",
+        "evolvedCite": "Wolthoff et al. 2022",
+        "appearanceTitle": "Planet appearance",
+        "appearanceBody": "Each planet's shader is selected from its equilibrium temperature and type — hot gas giants render as glowing hot Jupiters, cold rocky worlds as icy surfaces, temperate low-density worlds as ocean planets, and so on across 10 distinct visual styles."
+      }
     }
   }
 }

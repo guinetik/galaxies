@@ -153,7 +153,7 @@ export function createPlanetUniforms(
     uDensity:                   { value: uDensity },
     uInsolation:                { value: uInsolation },
     uStarTemp:                  { value: starTeff },
-    uDetailLevel:               { value: 1.0 },
+    uDetailLevel:               { value: 0.4 },
     uEnableTerminator:          { value: 0.0 },
     uColorTempFactor:           { value: 0.5 },
     uColorCompositionFactor:    { value: 0.5 },

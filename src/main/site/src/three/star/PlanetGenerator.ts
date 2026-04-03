@@ -15,9 +15,27 @@ export interface Planet {
   orbitalPeriod: number   // Years
 }
 
+/** Intermediate values captured during generation — for "show your work" UI */
+export interface PlanetDerivation {
+  teff: number              // effective temperature used (may be default)
+  feh: number               // metallicity used (may be default)
+  logg: number              // surface gravity used
+  estimatedMass: number     // solar masses
+  snowLine: number          // AU
+  pAny: number              // probability of hosting any planets
+  pGiant: number            // probability of a gas giant
+  hasGiant: boolean         // whether a gas giant was generated
+  meanSmallCount: number    // expected small planet count (Poisson lambda)
+  isEvolved: boolean        // whether inner clearing was applied
+  teffIsDefault: boolean
+  fehIsDefault: boolean
+  loggIsDefault: boolean
+}
+
 export interface PlanetarySystem {
   host: SimbadStar
   planets: Planet[]
+  derivation: PlanetDerivation
 }
 
 // Seeded random number generator (Park-Miller LCG)
@@ -117,8 +135,22 @@ export function generatePlanetarySystem(star: SimbadStar, seed: number): Planeta
   P_any *= 1 + 0.5 * Math.tanh(feh / 0.3)  // metallicity boost
   P_any = Math.max(0, Math.min(0.99, P_any))
 
+  const teffIsDefault = star.teff == null
+  const fehIsDefault = star.feh == null
+  const loggIsDefault = star.logg == null
+  const L = Math.pow(teff / 5800, 4)
+  const snowLine = 2.7 * Math.sqrt(L)
+
   if (!rng.bool(P_any)) {
-    return { host: star, planets: [] }
+    return {
+      host: star, planets: [],
+      derivation: {
+        teff, feh, logg, estimatedMass: mass, snowLine,
+        pAny: P_any, pGiant: 0, hasGiant: false,
+        meanSmallCount: 0, isEvolved: logg < 3.5,
+        teffIsDefault, fehIsDefault, loggIsDefault,
+      },
+    }
   }
 
   const planets: Planet[] = []
@@ -131,11 +163,10 @@ export function generatePlanetarySystem(star: SimbadStar, seed: number): Planeta
   P_giant = Math.min(0.99, P_giant)
 
   // 4. Add gas giant(s) if any
+  let hasGiant = false
   if (rng.bool(P_giant)) {
-    // Snow line approx: 2.7 * sqrt(L), where L ~ (Teff/5800)^4
-    const L = Math.pow(teff / 5800, 4)
-    const a_snow = 2.7 * Math.sqrt(L)
-    const a_giant = rng.uniform(a_snow * 1.1, a_snow * 3.5)
+    hasGiant = true
+    const a_giant = rng.uniform(snowLine * 1.1, snowLine * 3.5)
     const giantRadius = rng.uniform(8, 12)
     planets.push({
       type: 'GasGiant',
@@ -186,5 +217,14 @@ export function generatePlanetarySystem(star: SimbadStar, seed: number): Planeta
     }
   }
 
-  return { host: star, planets }
+  return {
+    host: star,
+    planets,
+    derivation: {
+      teff, feh, logg, estimatedMass: mass, snowLine,
+      pAny: P_any, pGiant: P_giant, hasGiant,
+      meanSmallCount: mean_small, isEvolved: logg < 3.5,
+      teffIsDefault, fehIsDefault, loggIsDefault,
+    },
+  }
 }

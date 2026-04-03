@@ -50,7 +50,7 @@ export class GalaxyBlackHoleWebGPU {
   private uRotY = uniform(0)
   private uLOD = uniform(0)
 
-  constructor(quadSize = 60) {
+  constructor(quadSize = 60, postFxScale = 1.0) {
     this.quadSize = quadSize
 
     // Depth sphere (invisible, writes depth to occlude stars behind BH)
@@ -97,8 +97,10 @@ export class GalaxyBlackHoleWebGPU {
       const power = float(0.3) // gravity steering strength
       const bandWidth = float(0.04) // disk Y-band half-width
 
-      // Step size: LOD-adaptive
-      const stepSize = mix(float(0.018), float(0.012), uLOD)
+      // Step size: LOD-adaptive, larger steps at high res to compensate for pixel count
+      const baseStep = postFxScale < 1.0 ? 0.024 : 0.018
+      const fineStep = postFxScale < 1.0 ? 0.016 : 0.012
+      const stepSize = mix(float(baseStep), float(fineStep), uLOD)
 
       // Ray state — direction-based (singularity model)
       const rayPos = ro.toVar()

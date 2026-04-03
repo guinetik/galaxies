@@ -62,6 +62,7 @@ export class GalaxyPostProcessing {
     bhScene: THREE.Scene,
     foregroundScene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
+    postFxScale = 1.0,
   ) {
     this.postProcessing = new THREE.PostProcessing(renderer)
 
@@ -137,6 +138,11 @@ export class GalaxyPostProcessing {
     this.bloomPassNode.threshold.value = 0.2
     this.bloomPassNode.strength.value = 0.12
     this.bloomPassNode.radius.value = 0.08
+
+    // At 4K+, raise threshold to reduce luminance-pass write traffic
+    if (postFxScale < 1.0) {
+      this.bloomPassNode.threshold.value = 0.35
+    }
 
     // ─── Composite: lensed galaxy + bloom → BH on top → fg additive ─
     const galaxyResult = lensedGalaxy.add(this.bloomPassNode)

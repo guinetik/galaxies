@@ -1,6 +1,12 @@
 import { ref, readonly } from 'vue'
 import { arcsecToDeg } from '@/lib/astronomy'
 
+/** Schedule work when main thread is idle, falling back to setTimeout */
+const scheduleIdle: (cb: () => void) => void =
+  typeof requestIdleCallback === 'function'
+    ? (cb) => requestIdleCallback(cb, { timeout: 500 })
+    : (cb) => setTimeout(cb, 50)
+
 /**
  * Result from SIMBAD cone search
  */
@@ -90,16 +96,25 @@ export function useSimbadLookup() {
         const url = `https://simbad.cds.unistra.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=json&QUERY=${encodeURIComponent(adql)}`
         const response = await fetch(url, { signal })
         if (!response.ok) throw new Error(`SIMBAD TAP error: ${response.statusText}`)
-        const data = await response.json()
-        if (data.data && Array.isArray(data.data)) {
-          results.value = data.data.map((row: unknown[]) => ({
-            name: row[0] || 'Unknown',
-            type: row[3] || 'Unknown',
-            ra: typeof row[1] === 'number' ? row[1] : undefined,
-            dec: typeof row[2] === 'number' ? row[2] : undefined,
-            simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(String(row[0] || ''))}`,
-          })).filter((obj: SimbadObject) => obj.name && obj.name !== 'Unknown')
-        }
+        // Read as text first, then parse + assign during idle to avoid blocking GPU pipeline
+        const text = await response.text()
+        if (signal.aborted) return
+        await new Promise<void>((resolve) => {
+          scheduleIdle(() => {
+            if (signal.aborted) { resolve(); return }
+            const data = JSON.parse(text)
+            if (data.data && Array.isArray(data.data)) {
+              results.value = data.data.map((row: unknown[]) => ({
+                name: row[0] || 'Unknown',
+                type: row[3] || 'Unknown',
+                ra: typeof row[1] === 'number' ? row[1] : undefined,
+                dec: typeof row[2] === 'number' ? row[2] : undefined,
+                simbadUrl: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(String(row[0] || ''))}`,
+              })).filter((obj: SimbadObject) => obj.name && obj.name !== 'Unknown')
+            }
+            resolve()
+          })
+        })
       } else {
         // Cone search (all types, client-side filter)
         const coneUrl = new URL('https://simbad.cds.unistra.fr/cone/')
