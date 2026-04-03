@@ -17,7 +17,8 @@
     "cosmography": "Cosmography",
     "spacetime": "Spacetime",
     "localGroup": "Local Group",
-    "tour": "Tour"
+    "tour": "Tour",
+    "database": "Database"
   },
   "catalog": {
     "ugc": "Uppsala General Catalogue",
@@ -578,6 +579,57 @@
         "evolvedCite": "Wolthoff et al. 2022",
         "appearanceTitle": "Planet appearance",
         "appearanceBody": "Each planet's shader is selected from its equilibrium temperature and type — hot gas giants render as glowing hot Jupiters, cold rocky worlds as icy surfaces, temperate low-density worlds as ocean planets, and so on across 10 distinct visual styles."
+      }
+    },
+    "database": {
+      "title": "Database",
+      "subtitle": "Query the galaxy catalog directly",
+      "editToggle": "Edit Query",
+      "runButton": "Run",
+      "sidebar": {
+        "filters": "Filters",
+        "columns": "Columns",
+        "orderBy": "Order By",
+        "limit": "Limit",
+        "sampleQueries": "Sample Queries",
+        "addFilter": "Add filter",
+        "selectAll": "Select all",
+        "clearAll": "Clear all",
+        "asc": "Ascending",
+        "desc": "Descending",
+        "columnGroups": {
+          "identifiers": "Identifiers",
+          "coordinates": "Coordinates",
+          "distances": "Distances",
+          "distanceMethods": "Distance Methods",
+          "physicalProperties": "Physical Properties",
+          "hiStarFormation": "HI & Star Formation"
+        }
+      },
+      "operators": {
+        "eq": "equals",
+        "neq": "not equals",
+        "gt": "greater than",
+        "lt": "less than",
+        "gte": "greater or equal",
+        "lte": "less or equal",
+        "like": "contains",
+        "isNull": "is empty",
+        "isNotNull": "is not empty"
+      },
+      "samples": {
+        "nearest": "Nearest galaxies",
+        "spirals": "Spiral galaxies",
+        "alfalfa": "ALFALFA HI-rich galaxies",
+        "cepheid": "Galaxies with Cepheid distances",
+        "brightest": "Brightest galaxies"
+      },
+      "results": {
+        "empty": "Run a query to see results",
+        "loading": "Running query...",
+        "error": "Query error",
+        "showing": "Showing {count} results",
+        "noResults": "No results found"
       }
     }
   }

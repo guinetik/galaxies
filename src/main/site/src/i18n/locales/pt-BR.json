@@ -17,7 +17,8 @@
     "cosmography": "Cosmografia",
     "spacetime": "Espaço-Tempo",
     "localGroup": "Grupo Local",
-    "tour": "Tour"
+    "tour": "Tour",
+    "database": "Banco de Dados"
   },
   "catalog": {
     "ugc": "Catálogo Geral de Uppsala",
@@ -620,6 +621,57 @@
         "evolvedCite": "Wolthoff et al. 2022",
         "appearanceTitle": "Aparência dos planetas",
         "appearanceBody": "O shader de cada planeta é selecionado a partir de sua temperatura de equilíbrio e tipo — gigantes gasosos quentes são renderizados como Júpiteres quentes brilhantes, mundos rochosos frios como superfícies geladas, mundos temperados de baixa densidade como planetas oceânicos, e assim por diante em 10 estilos visuais distintos."
+      }
+    },
+    "database": {
+      "title": "Banco de Dados",
+      "subtitle": "Consulte o catálogo de galáxias diretamente",
+      "editToggle": "Editar Consulta",
+      "runButton": "Executar",
+      "sidebar": {
+        "filters": "Filtros",
+        "columns": "Colunas",
+        "orderBy": "Ordenar Por",
+        "limit": "Limite",
+        "sampleQueries": "Consultas de Exemplo",
+        "addFilter": "Adicionar filtro",
+        "selectAll": "Selecionar tudo",
+        "clearAll": "Limpar tudo",
+        "asc": "Crescente",
+        "desc": "Decrescente",
+        "columnGroups": {
+          "identifiers": "Identificadores",
+          "coordinates": "Coordenadas",
+          "distances": "Distâncias",
+          "distanceMethods": "Métodos de Distância",
+          "physicalProperties": "Propriedades Físicas",
+          "hiStarFormation": "HI e Formação Estelar"
+        }
+      },
+      "operators": {
+        "eq": "igual a",
+        "neq": "diferente de",
+        "gt": "maior que",
+        "lt": "menor que",
+        "gte": "maior ou igual",
+        "lte": "menor ou igual",
+        "like": "contém",
+        "isNull": "está vazio",
+        "isNotNull": "não está vazio"
+      },
+      "samples": {
+        "nearest": "Galáxias mais próximas",
+        "spirals": "Galáxias espirais",
+        "alfalfa": "Galáxias ALFALFA ricas em HI",
+        "cepheid": "Galáxias com distâncias Cefeidas",
+        "brightest": "Galáxias mais brilhantes"
+      },
+      "results": {
+        "empty": "Execute uma consulta para ver os resultados",
+        "loading": "Executando consulta...",
+        "error": "Erro na consulta",
+        "showing": "Mostrando {count} resultados",
+        "noResults": "Nenhum resultado encontrado"
       }
     }
   }
