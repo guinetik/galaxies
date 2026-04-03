@@ -25,7 +25,7 @@
         <div v-for="(filter, idx) in filters" :key="idx" class="filter-row">
           <select v-model="filter.column" class="filter-select col-select" :disabled="disabled">
             <optgroup v-for="(cols, groupKey) in COLUMN_GROUPS" :key="groupKey" :label="t(`pages.database.sidebar.columnGroups.${groupKey}`)">
-              <option v-for="col in cols" :key="col" :value="col">{{ col }}</option>
+              <option v-for="col in cols" :key="col" :value="col" :title="COLUMN_DESCRIPTIONS[col] ?? col">{{ col }}</option>
             </optgroup>
           </select>
           <select v-model="filter.operator" class="filter-select op-select" :disabled="disabled">
@@ -60,7 +60,7 @@
         </div>
         <div v-for="(cols, groupKey) in COLUMN_GROUPS" :key="groupKey" class="column-group">
           <div class="group-label">{{ t(`pages.database.sidebar.columnGroups.${groupKey}`) }}</div>
-          <label v-for="col in cols" :key="col" class="column-check">
+          <label v-for="col in cols" :key="col" class="column-check" :title="COLUMN_DESCRIPTIONS[col] ?? col">
             <input
               type="checkbox"
               :value="col"
@@ -79,7 +79,7 @@
         <div class="order-row">
           <select :value="orderByColumn" :disabled="disabled" class="filter-select" @change="$emit('update:orderByColumn', ($event.target as HTMLSelectElement).value)">
             <optgroup v-for="(cols, groupKey) in COLUMN_GROUPS" :key="groupKey" :label="t(`pages.database.sidebar.columnGroups.${groupKey}`)">
-              <option v-for="col in cols" :key="col" :value="col">{{ col }}</option>
+              <option v-for="col in cols" :key="col" :value="col" :title="COLUMN_DESCRIPTIONS[col] ?? col">{{ col }}</option>
             </optgroup>
           </select>
           <select :value="orderByDirection" :disabled="disabled" class="filter-select" @change="$emit('update:orderByDirection', ($event.target as HTMLSelectElement).value)">
@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { COLUMN_GROUPS, OPERATOR_MAP, NO_VALUE_OPERATORS, SAMPLE_QUERIES, type QueryFilter, type SampleQuery } from '@/composables/useQueryBuilder'
+import { COLUMN_GROUPS, COLUMN_DESCRIPTIONS, OPERATOR_MAP, NO_VALUE_OPERATORS, SAMPLE_QUERIES, type QueryFilter, type SampleQuery } from '@/composables/useQueryBuilder'
 
 const { t } = useI18n()
 

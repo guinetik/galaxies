@@ -18,6 +18,7 @@
               v-for="col in columns"
               :key="col"
               class="cursor-pointer select-none"
+              :title="COLUMN_DESCRIPTIONS[col] ?? col"
               @click="$emit('sort', col)"
             >
               {{ col }}
@@ -47,6 +48,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { COLUMN_DESCRIPTIONS } from '@/composables/useQueryBuilder'
 
 const { t } = useI18n()
 
@@ -131,7 +133,7 @@ thead {
 }
 
 th {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(18, 18, 32);
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
   text-align: left;
@@ -145,7 +147,7 @@ th {
 
 th:hover {
   color: rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(25, 25, 42);
 }
 
 .sort-indicator {

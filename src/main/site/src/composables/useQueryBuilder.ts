@@ -34,6 +34,54 @@ export const COLUMN_GROUPS: Record<string, string[]> = {
 /** All column names flattened */
 export const ALL_COLUMNS = Object.values(COLUMN_GROUPS).flat()
 
+/** Human-readable descriptions for each column */
+export const COLUMN_DESCRIPTIONS: Record<string, string> = {
+  pgc: 'Principal Galaxies Catalogue ID',
+  name: 'Galaxy name or designation',
+  agc: 'Arecibo General Catalog ID (ALFALFA)',
+  source: 'Data source catalog (CF4, ALFALFA, FSS, UGC)',
+  ra: 'Right Ascension (degrees)',
+  dec: 'Declination (degrees)',
+  glon: 'Galactic longitude (degrees)',
+  glat: 'Galactic latitude (degrees)',
+  sgl: 'Supergalactic longitude (degrees)',
+  sgb: 'Supergalactic latitude (degrees)',
+  vcmb: 'CMB-frame velocity (km/s)',
+  dm: 'Distance modulus (mag)',
+  distance_mpc: 'Distance in Megaparsecs',
+  distance_mly: 'Distance in Million light-years',
+  dm_snia: 'Distance modulus — Type Ia Supernovae',
+  e_dm_snia: 'Error on SN Ia distance modulus',
+  dm_tf: 'Distance modulus — Tully-Fisher relation',
+  e_dm_tf: 'Error on Tully-Fisher distance modulus',
+  dm_fp: 'Distance modulus — Fundamental Plane',
+  e_dm_fp: 'Error on Fundamental Plane distance modulus',
+  dm_sbf: 'Distance modulus — Surface Brightness Fluctuation',
+  e_dm_sbf: 'Error on SBF distance modulus',
+  dm_snii: 'Distance modulus — Type II Supernovae',
+  e_dm_snii: 'Error on SN II distance modulus',
+  dm_trgb: 'Distance modulus — Tip of Red Giant Branch',
+  e_dm_trgb: 'Error on TRGB distance modulus',
+  dm_ceph: 'Distance modulus — Cepheid variables',
+  e_dm_ceph: 'Error on Cepheid distance modulus',
+  dm_mas: 'Distance modulus — Maser distances',
+  e_dm_mas: 'Error on Maser distance modulus',
+  t17: 'Tully 2017 morphological classification',
+  morphology: 'Galaxy type (spiral, elliptical, barred, etc.)',
+  b_mag: 'Apparent B-band magnitude',
+  diameter_arcsec: 'Angular diameter (arcseconds)',
+  axial_ratio: 'Minor-to-major axis ratio (b/a)',
+  position_angle: 'Position angle (degrees)',
+  ba: 'Axis ratio b/a',
+  log_mhi: 'Log HI mass (solar masses)',
+  e_log_mhi: 'Error on log HI mass',
+  log_ms_t: 'Log stellar mass (solar masses)',
+  e_log_ms_t: 'Error on log stellar mass',
+  log_sfr_nuv: 'Log star formation rate (NUV)',
+  e_log_sfr_nuv: 'Error on log SFR',
+  v_hi: 'HI 21cm velocity (km/s)',
+}
+
 const DEFAULT_COLUMNS = ['pgc', 'name', 'ra', 'dec', 'morphology', 'distance_mly', 'source']
 
 /** Operators that don't require a value input */
