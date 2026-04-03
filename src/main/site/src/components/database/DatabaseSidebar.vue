@@ -157,7 +157,7 @@ defineEmits<{
 .sidebar-toggle {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
   width: 24px;
   height: 24px;
   background: rgba(255, 255, 255, 0.1);
@@ -173,7 +173,7 @@ defineEmits<{
 }
 
 .sidebar.collapsed .sidebar-toggle {
-  right: 6px;
+  left: 6px;
 }
 
 .sidebar-toggle:hover {
