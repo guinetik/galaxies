@@ -192,8 +192,10 @@ export function useGalaxyData() {
     const hasLimit = /\bLIMIT\s+\d+/i.test(trimmed)
     const query = hasLimit ? trimmed : `${trimmed} LIMIT 1000`
     const result = db.exec(query)
-    if (result.length === 0) return { columns: [], rows: [] }
-    return { columns: result[0].columns, rows: result[0].values }
+    if (!result || result.length === 0) return { columns: [], rows: [] }
+    // sql.js may use 'columns' or 'lc' depending on build/version
+    const cols: string[] = result[0].columns ?? (result[0] as any).lc ?? []
+    return { columns: cols, rows: result[0].values }
   }
 
   return {
