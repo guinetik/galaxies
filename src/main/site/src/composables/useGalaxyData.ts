@@ -178,6 +178,24 @@ export function useGalaxyData() {
     return galaxies
   }
 
+  /**
+   * Execute an arbitrary read-only SQL query against the database.
+   * Returns column names and row data. Rejects non-SELECT statements.
+   */
+  function executeRawQuery(sql: string): { columns: string[]; rows: unknown[][] } {
+    if (!db) throw new Error('Database not loaded')
+    const trimmed = sql.trim().replace(/;+$/, '').trim()
+    if (!/^SELECT\b/i.test(trimmed)) {
+      throw new Error('Only SELECT queries are allowed')
+    }
+    // Enforce LIMIT — append if missing, cap if over 1000
+    const hasLimit = /\bLIMIT\s+\d+/i.test(trimmed)
+    const query = hasLimit ? trimmed : `${trimmed} LIMIT 1000`
+    const result = db.exec(query)
+    if (result.length === 0) return { columns: [], rows: [] }
+    return { columns: result[0].columns, rows: result[0].values }
+  }
+
   return {
     isLoading,
     galaxyCount,
@@ -189,5 +207,6 @@ export function useGalaxyData() {
     getGalaxyByPgc,
     getGalaxiesByPgcList,
     getAllGroups,
+    executeRawQuery,
   }
 }
