@@ -4,13 +4,13 @@
     <div class="results-status">
       <span v-if="loading" class="text-white/50">{{ t('pages.database.results.loading') }}</span>
       <span v-else-if="error" class="text-red-400">{{ t('pages.database.results.error') }}: {{ error }}</span>
-      <span v-else-if="columns.length === 0" class="text-white/40">{{ t('pages.database.results.empty') }}</span>
-      <span v-else-if="rows.length === 0" class="text-white/40">{{ t('pages.database.results.noResults') }}</span>
+      <span v-else-if="!columns || columns.length === 0" class="text-white/40">{{ t('pages.database.results.empty') }}</span>
+      <span v-else-if="!rows || rows.length === 0" class="text-white/40">{{ t('pages.database.results.noResults') }}</span>
       <span v-else class="text-white/60">{{ t('pages.database.results.showing', { count: rows.length }) }}</span>
     </div>
 
     <!-- Table -->
-    <div v-if="columns.length > 0 && rows.length > 0" class="table-scroll">
+    <div v-if="columns && columns.length > 0 && rows && rows.length > 0" class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -50,20 +50,27 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  columns: string[]
-  rows: unknown[][]
-  loading: boolean
-  error: string
-  currentSort: string
-  sortDir: 'ASC' | 'DESC'
-}>()
+const props = withDefaults(defineProps<{
+  columns?: string[]
+  rows?: unknown[][]
+  loading?: boolean
+  error?: string
+  currentSort?: string
+  sortDir?: 'ASC' | 'DESC'
+}>(), {
+  columns: () => [],
+  rows: () => [],
+  loading: false,
+  error: '',
+  currentSort: '',
+  sortDir: 'ASC',
+})
 
 defineEmits<{
   sort: [column: string]
 }>()
 
-const pgcIndex = computed(() => props.columns.indexOf('pgc'))
+const pgcIndex = computed(() => props.columns?.indexOf('pgc') ?? -1)
 
 const LINK_COLUMNS = new Set(['pgc', 'name'])
 
