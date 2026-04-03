@@ -178,35 +178,122 @@
         "physical": "Physical Properties"
       },
       "fields": {
-        "pgc": { "label": "PGC", "desc": "Principal Galaxies Catalogue identifier" },
-        "group_pgc": { "label": "Group PGC", "desc": "Dominant galaxy in gravitational group" },
-        "t17": { "label": "Tempel Group", "desc": "Tempel+ 2017 group identifier" },
-        "morphology": { "label": "Morphology", "desc": "Procedurally assigned type (no CF4 data)" },
-        "dm": { "label": "Distance Modulus", "desc": "Combined weighted DM from all methods" },
-        "e_dm": { "label": "DM Uncertainty", "desc": "Standard error of distance modulus" },
-        "distance_mpc": { "label": "Distance (Mpc)", "desc": "Megaparsecs, computed from DM" },
-        "distance_mly": { "label": "Distance (Mly)", "desc": "Million light-years, computed from DM" },
-        "vcmb": { "label": "CMB Velocity", "desc": "Recession velocity in CMB frame" },
-        "ra": { "label": "Right Ascension", "desc": "J2000 equatorial longitude" },
-        "dec": { "label": "Declination", "desc": "J2000 equatorial latitude" },
-        "glon": { "label": "Galactic Lon", "desc": "Galactic coordinate system longitude" },
-        "glat": { "label": "Galactic Lat", "desc": "Galactic coordinate system latitude" },
-        "sgl": { "label": "Supergalactic Lon", "desc": "Supergalactic coordinate longitude" },
-        "sgb": { "label": "Supergalactic Lat", "desc": "Supergalactic coordinate latitude" },
-        "dm_snia": { "label": "Type Ia Supernovae", "desc": "White dwarf standardizable explosions" },
-        "dm_tf": { "label": "Tully-Fisher", "desc": "Spiral rotation-luminosity relation" },
-        "dm_fp": { "label": "Fundamental Plane", "desc": "Elliptical size-brightness-velocity relation" },
-        "dm_sbf": { "label": "Surface Brightness Fluctuations", "desc": "Pixel granularity distance measure" },
-        "dm_snii": { "label": "Type II Supernovae", "desc": "Core-collapse photosphere expansion" },
-        "dm_trgb": { "label": "Tip of Red Giant Branch", "desc": "Red giant luminosity cutoff" },
-        "dm_ceph": { "label": "Cepheid Variables", "desc": "Period-luminosity pulsating stars" },
-        "dm_mas": { "label": "Masers", "desc": "Water maser geometric distances" },
-        "diameter_arcsec": { "label": "Angular Diameter", "desc": "Apparent diameter from FSS catalog (arcseconds)" },
-        "axial_ratio": { "label": "Axial Ratio (FSS)", "desc": "Minor/major axis ratio from FSS catalog" },
-        "ba": { "label": "Axial Ratio (SDSS)", "desc": "Minor/major axis ratio from SDSS photometry" },
-        "log_ms_t": { "label": "Stellar Mass", "desc": "Total stellar mass (log M☉)" },
-        "diameter_kpc": { "label": "Diameter", "desc": "Physical diameter in kiloparsecs" },
-        "size_method": { "label": "Size Method", "desc": "How the physical size was determined" }
+        "pgc": {
+          "label": "PGC",
+          "desc": "Principal Galaxies Catalogue identifier"
+        },
+        "group_pgc": {
+          "label": "Group PGC",
+          "desc": "Dominant galaxy in gravitational group"
+        },
+        "t17": {
+          "label": "Tempel Group",
+          "desc": "Tempel+ 2017 group identifier"
+        },
+        "morphology": {
+          "label": "Morphology",
+          "desc": "Procedurally assigned type (no CF4 data)"
+        },
+        "dm": {
+          "label": "Distance Modulus",
+          "desc": "Combined weighted DM from all methods"
+        },
+        "e_dm": {
+          "label": "DM Uncertainty",
+          "desc": "Standard error of distance modulus"
+        },
+        "distance_mpc": {
+          "label": "Distance (Mpc)",
+          "desc": "Megaparsecs, computed from DM"
+        },
+        "distance_mly": {
+          "label": "Distance (Mly)",
+          "desc": "Million light-years, computed from DM"
+        },
+        "vcmb": {
+          "label": "CMB Velocity",
+          "desc": "Recession velocity in CMB frame"
+        },
+        "ra": {
+          "label": "Right Ascension",
+          "desc": "J2000 equatorial longitude"
+        },
+        "dec": {
+          "label": "Declination",
+          "desc": "J2000 equatorial latitude"
+        },
+        "glon": {
+          "label": "Galactic Lon",
+          "desc": "Galactic coordinate system longitude"
+        },
+        "glat": {
+          "label": "Galactic Lat",
+          "desc": "Galactic coordinate system latitude"
+        },
+        "sgl": {
+          "label": "Supergalactic Lon",
+          "desc": "Supergalactic coordinate longitude"
+        },
+        "sgb": {
+          "label": "Supergalactic Lat",
+          "desc": "Supergalactic coordinate latitude"
+        },
+        "dm_snia": {
+          "label": "Type Ia Supernovae",
+          "desc": "White dwarf standardizable explosions"
+        },
+        "dm_tf": {
+          "label": "Tully-Fisher",
+          "desc": "Spiral rotation-luminosity relation"
+        },
+        "dm_fp": {
+          "label": "Fundamental Plane",
+          "desc": "Elliptical size-brightness-velocity relation"
+        },
+        "dm_sbf": {
+          "label": "Surface Brightness Fluctuations",
+          "desc": "Pixel granularity distance measure"
+        },
+        "dm_snii": {
+          "label": "Type II Supernovae",
+          "desc": "Core-collapse photosphere expansion"
+        },
+        "dm_trgb": {
+          "label": "Tip of Red Giant Branch",
+          "desc": "Red giant luminosity cutoff"
+        },
+        "dm_ceph": {
+          "label": "Cepheid Variables",
+          "desc": "Period-luminosity pulsating stars"
+        },
+        "dm_mas": {
+          "label": "Masers",
+          "desc": "Water maser geometric distances"
+        },
+        "diameter_arcsec": {
+          "label": "Angular Diameter",
+          "desc": "Apparent diameter from FSS catalog (arcseconds)"
+        },
+        "axial_ratio": {
+          "label": "Axial Ratio (FSS)",
+          "desc": "Minor/major axis ratio from FSS catalog"
+        },
+        "ba": {
+          "label": "Axial Ratio (SDSS)",
+          "desc": "Minor/major axis ratio from SDSS photometry"
+        },
+        "log_ms_t": {
+          "label": "Stellar Mass",
+          "desc": "Total stellar mass (log M☉)"
+        },
+        "diameter_kpc": {
+          "label": "Diameter",
+          "desc": "Physical diameter in kiloparsecs"
+        },
+        "size_method": {
+          "label": "Size Method",
+          "desc": "How the physical size was determined"
+        }
       }
     },
     "galaxyPhoto": {
@@ -583,7 +670,6 @@
     },
     "database": {
       "title": "Database",
-      "subtitle": "Query the galaxy catalog directly",
       "editToggle": "Edit Query",
       "runButton": "Run",
       "sidebar": {
@@ -630,7 +716,11 @@
         "error": "Query error",
         "showing": "Showing {count} results",
         "noResults": "No results found"
-      }
+      },
+      "subtitlePrefix": "Query the ",
+      "subtitleLink": "galaxy catalog",
+      "subtitleSuffix": " directly",
+      "downloadCsv": "Download CSV"
     }
   }
 }

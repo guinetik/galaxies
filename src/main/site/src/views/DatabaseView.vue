@@ -26,7 +26,11 @@
       <!-- Page header -->
       <div class="page-header">
         <h1 class="page-title">{{ t('pages.database.title') }}</h1>
-        <p class="page-subtitle">{{ t('pages.database.subtitle') }}</p>
+        <p class="page-subtitle">
+          {{ t('pages.database.subtitlePrefix') }}
+          <a href="/data/galaxies.db" download="galaxies.db" class="db-download-link">{{ t('pages.database.subtitleLink') }}</a>
+          {{ t('pages.database.subtitleSuffix') }}
+        </p>
       </div>
 
       <!-- Query bar -->
@@ -48,9 +52,18 @@
             spellcheck="false"
             @keydown.ctrl.enter="runQuery"
           />
-          <button class="run-btn" :disabled="isLoading || !currentQuery.trim()" @click="runQuery">
-            {{ t('pages.database.runButton') }}
-          </button>
+          <div class="run-actions">
+            <button class="run-btn" :disabled="isLoading || !currentQuery.trim()" @click="runQuery">
+              {{ t('pages.database.runButton') }}
+            </button>
+            <button
+              v-if="resultColumns.length > 0 && resultRows.length > 0"
+              class="download-btn"
+              @click="downloadCsv"
+            >
+              {{ t('pages.database.downloadCsv') }}
+            </button>
+          </div>
         </div>
         <div v-if="queryError" class="query-error">{{ queryError }}</div>
       </div>
@@ -141,6 +154,23 @@ function onColumnSort(col: string) {
   }
 }
 
+function downloadCsv() {
+  const escape = (v: unknown) => {
+    if (v === null || v === undefined) return ''
+    const s = String(v)
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const header = resultColumns.value.map(escape).join(',')
+  const body = resultRows.value.map((row) => row.map(escape).join(',')).join('\n')
+  const blob = new Blob([header + '\n' + body], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'galaxies-query.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function runQuery() {
   queryError.value = ''
   queryRunning.value = true
@@ -190,6 +220,16 @@ function runQuery() {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
+}
+
+.db-download-link {
+  color: rgb(96, 165, 250);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.db-download-link:hover {
+  color: rgb(147, 197, 253);
 }
 
 .query-bar {
@@ -251,6 +291,13 @@ function runQuery() {
   border-color: rgba(96, 165, 250, 0.6);
 }
 
+.run-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: flex-end;
+}
+
 .run-btn {
   padding: 10px 24px;
   background: rgb(59, 130, 246);
@@ -261,7 +308,22 @@ function runQuery() {
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  align-self: flex-end;
+}
+
+.download-btn {
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.download-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
 }
 
 .run-btn:hover:not(:disabled) {

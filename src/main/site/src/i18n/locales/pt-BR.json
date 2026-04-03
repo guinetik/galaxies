@@ -220,35 +220,122 @@
         "physical": "Propriedades Físicas"
       },
       "fields": {
-        "pgc": { "label": "PGC", "desc": "Identificador do Catálogo Principal de Galáxias" },
-        "group_pgc": { "label": "PGC do Grupo", "desc": "Galáxia dominante no grupo gravitacional" },
-        "t17": { "label": "Grupo Tempel", "desc": "Identificador de grupo Tempel+ 2017" },
-        "morphology": { "label": "Morfologia", "desc": "Tipo atribuído proceduralmente (sem dados CF4)" },
-        "dm": { "label": "Módulo de Distância", "desc": "DM combinado ponderado de todos os métodos" },
-        "e_dm": { "label": "Incerteza do DM", "desc": "Erro padrão do módulo de distância" },
-        "distance_mpc": { "label": "Distância (Mpc)", "desc": "Megaparsecs, calculado a partir do DM" },
-        "distance_mly": { "label": "Distância (Mal)", "desc": "Milhões de anos-luz, calculado a partir do DM" },
-        "vcmb": { "label": "Velocidade CMB", "desc": "Velocidade de recessão no referencial CMB" },
-        "ra": { "label": "Ascensão Reta", "desc": "Longitude equatorial J2000" },
-        "dec": { "label": "Declinação", "desc": "Latitude equatorial J2000" },
-        "glon": { "label": "Lon Galáctica", "desc": "Longitude no sistema de coordenadas galácticas" },
-        "glat": { "label": "Lat Galáctica", "desc": "Latitude no sistema de coordenadas galácticas" },
-        "sgl": { "label": "Lon Supergaláctica", "desc": "Longitude em coordenadas supergalácticas" },
-        "sgb": { "label": "Lat Supergaláctica", "desc": "Latitude em coordenadas supergalácticas" },
-        "dm_snia": { "label": "Supernovas Tipo Ia", "desc": "Explosões padronizáveis de anãs brancas" },
-        "dm_tf": { "label": "Tully-Fisher", "desc": "Relação rotação-luminosidade de espirais" },
-        "dm_fp": { "label": "Plano Fundamental", "desc": "Relação tamanho-brilho-velocidade de elípticas" },
-        "dm_sbf": { "label": "Flutuações de Brilho Superficial", "desc": "Medida de distância por granularidade de pixels" },
-        "dm_snii": { "label": "Supernovas Tipo II", "desc": "Expansão da fotosfera de colapso de núcleo" },
-        "dm_trgb": { "label": "Ponta do Ramo das Gigantes Vermelhas", "desc": "Corte de luminosidade de gigantes vermelhas" },
-        "dm_ceph": { "label": "Variáveis Cefeidas", "desc": "Estrelas pulsantes período-luminosidade" },
-        "dm_mas": { "label": "Masers", "desc": "Distâncias geométricas de masers de água" },
-        "diameter_arcsec": { "label": "Diâmetro Angular", "desc": "Diâmetro aparente do catálogo FSS (segundos de arco)" },
-        "axial_ratio": { "label": "Razão Axial (FSS)", "desc": "Razão eixo menor/maior do catálogo FSS" },
-        "ba": { "label": "Razão Axial (SDSS)", "desc": "Razão eixo menor/maior da fotometria SDSS" },
-        "log_ms_t": { "label": "Massa Estelar", "desc": "Massa estelar total (log M☉)" },
-        "diameter_kpc": { "label": "Diâmetro", "desc": "Diâmetro físico em quiloparsecs" },
-        "size_method": { "label": "Método de Tamanho", "desc": "Como o tamanho físico foi determinado" }
+        "pgc": {
+          "label": "PGC",
+          "desc": "Identificador do Catálogo Principal de Galáxias"
+        },
+        "group_pgc": {
+          "label": "PGC do Grupo",
+          "desc": "Galáxia dominante no grupo gravitacional"
+        },
+        "t17": {
+          "label": "Grupo Tempel",
+          "desc": "Identificador de grupo Tempel+ 2017"
+        },
+        "morphology": {
+          "label": "Morfologia",
+          "desc": "Tipo atribuído proceduralmente (sem dados CF4)"
+        },
+        "dm": {
+          "label": "Módulo de Distância",
+          "desc": "DM combinado ponderado de todos os métodos"
+        },
+        "e_dm": {
+          "label": "Incerteza do DM",
+          "desc": "Erro padrão do módulo de distância"
+        },
+        "distance_mpc": {
+          "label": "Distância (Mpc)",
+          "desc": "Megaparsecs, calculado a partir do DM"
+        },
+        "distance_mly": {
+          "label": "Distância (Mal)",
+          "desc": "Milhões de anos-luz, calculado a partir do DM"
+        },
+        "vcmb": {
+          "label": "Velocidade CMB",
+          "desc": "Velocidade de recessão no referencial CMB"
+        },
+        "ra": {
+          "label": "Ascensão Reta",
+          "desc": "Longitude equatorial J2000"
+        },
+        "dec": {
+          "label": "Declinação",
+          "desc": "Latitude equatorial J2000"
+        },
+        "glon": {
+          "label": "Lon Galáctica",
+          "desc": "Longitude no sistema de coordenadas galácticas"
+        },
+        "glat": {
+          "label": "Lat Galáctica",
+          "desc": "Latitude no sistema de coordenadas galácticas"
+        },
+        "sgl": {
+          "label": "Lon Supergaláctica",
+          "desc": "Longitude em coordenadas supergalácticas"
+        },
+        "sgb": {
+          "label": "Lat Supergaláctica",
+          "desc": "Latitude em coordenadas supergalácticas"
+        },
+        "dm_snia": {
+          "label": "Supernovas Tipo Ia",
+          "desc": "Explosões padronizáveis de anãs brancas"
+        },
+        "dm_tf": {
+          "label": "Tully-Fisher",
+          "desc": "Relação rotação-luminosidade de espirais"
+        },
+        "dm_fp": {
+          "label": "Plano Fundamental",
+          "desc": "Relação tamanho-brilho-velocidade de elípticas"
+        },
+        "dm_sbf": {
+          "label": "Flutuações de Brilho Superficial",
+          "desc": "Medida de distância por granularidade de pixels"
+        },
+        "dm_snii": {
+          "label": "Supernovas Tipo II",
+          "desc": "Expansão da fotosfera de colapso de núcleo"
+        },
+        "dm_trgb": {
+          "label": "Ponta do Ramo das Gigantes Vermelhas",
+          "desc": "Corte de luminosidade de gigantes vermelhas"
+        },
+        "dm_ceph": {
+          "label": "Variáveis Cefeidas",
+          "desc": "Estrelas pulsantes período-luminosidade"
+        },
+        "dm_mas": {
+          "label": "Masers",
+          "desc": "Distâncias geométricas de masers de água"
+        },
+        "diameter_arcsec": {
+          "label": "Diâmetro Angular",
+          "desc": "Diâmetro aparente do catálogo FSS (segundos de arco)"
+        },
+        "axial_ratio": {
+          "label": "Razão Axial (FSS)",
+          "desc": "Razão eixo menor/maior do catálogo FSS"
+        },
+        "ba": {
+          "label": "Razão Axial (SDSS)",
+          "desc": "Razão eixo menor/maior da fotometria SDSS"
+        },
+        "log_ms_t": {
+          "label": "Massa Estelar",
+          "desc": "Massa estelar total (log M☉)"
+        },
+        "diameter_kpc": {
+          "label": "Diâmetro",
+          "desc": "Diâmetro físico em quiloparsecs"
+        },
+        "size_method": {
+          "label": "Método de Tamanho",
+          "desc": "Como o tamanho físico foi determinado"
+        }
       }
     },
     "galaxyPhoto": {
@@ -625,7 +712,6 @@
     },
     "database": {
       "title": "Banco de Dados",
-      "subtitle": "Consulte o catálogo de galáxias diretamente",
       "editToggle": "Editar Consulta",
       "runButton": "Executar",
       "sidebar": {
@@ -672,7 +758,11 @@
         "error": "Erro na consulta",
         "showing": "Mostrando {count} resultados",
         "noResults": "Nenhum resultado encontrado"
-      }
+      },
+      "subtitlePrefix": "Consulte o ",
+      "subtitleLink": "catálogo de galáxias",
+      "subtitleSuffix": " diretamente",
+      "downloadCsv": "Baixar CSV"
     }
   }
 }
