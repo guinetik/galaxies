@@ -135,7 +135,8 @@ onMounted(async () => {
 
   try {
     // Dynamic import: Aladin Lite (~2.4 MB) loads only when mosaic view is used
-    const { default: A } = await import('aladin-lite')
+    const { default: A } = await import('aladin-lite') as any
+    await A.init
     aladin = A.aladin('#' + containerId, {
       survey: 'P/SDSS9/color',
       fov: 0.2, // Field of view in degrees
