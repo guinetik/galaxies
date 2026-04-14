@@ -653,7 +653,17 @@ export function createComputeInit(
     })
 
     const baseRgb = kelvinToRgb(temperature)
-    const rgb = baseRgb.mul(brightness)
+    // Boost saturation — physical blackbody is too desaturated for additive point sprites.
+    // Push each channel away from luminance to make colors visually distinct.
+    const lum = baseRgb.x.mul(0.299).add(baseRgb.y.mul(0.587)).add(baseRgb.z.mul(0.114))
+    const satBoost = float(1.6)
+    const satRgb = vec3(
+      clamp(lum.add(baseRgb.x.sub(lum).mul(satBoost)), float(0), float(1)),
+      clamp(lum.add(baseRgb.y.sub(lum).mul(satBoost)), float(0), float(1)),
+      clamp(lum.add(baseRgb.z.sub(lum).mul(satBoost)), float(0), float(1)),
+    )
+    // Scale down to compensate for 3x more star particles (no dust layer)
+    const rgb = satRgb.mul(brightness).mul(0.35)
 
     // ─── Dust extinction: wavelength-dependent absorption ──────────────
     const extinctedRgb = vec3(rgb.x, rgb.y, rgb.z).toVar()

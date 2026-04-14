@@ -2,8 +2,9 @@
  * GPU Compute Shader — Per-Frame Physics Update
  *
  * Runs every frame to:
- * - Apply fake orbit lifecycle (fade-in → orbit → fade-out → reset)
- * - Prevent spiral arm winding by computing rotation from original position
+ * - Apply differential rotation (spiral arms) or rigid-body rotation (bar region)
+ * - Skip rotation for elliptical/irregular galaxies
+ * - Fade lifecycle: per-star alpha modulation (fade-in / visible / fade-out)
  * - Twinkle modulation for bright-layer stars
  */
 
@@ -31,64 +32,68 @@ export function createComputeUpdate(
   const computeUpdate = Fn(() => {
     const idx = instanceIndex
     const position = buffers.positionBuffer.element(idx).toVar()
-    const originalPos = buffers.originalPositionBuffer.element(idx).toVar()
+    const originalPos = buffers.originalPositionBuffer.element(idx)
     const layer = buffers.layerBuffer.element(idx)
 
-    // ─── Fake orbit lifecycle ──────────────────────────────────────────
-    // Each star has a random phase offset. During its lifecycle:
-    //   fade in (8%) → orbit with differential rotation → fade out (8%) → reset
-    // ~84% of stars visible at any time. Arms never accumulate winding.
-    const cycleDuration = uniforms.orbitCycleDuration
-    const fadeInFrac = uniforms.orbitFadeIn
-    const fadeOutFrac = uniforms.orbitFadeOut
-
-    // Per-star random phase offset [0, 1)
-    const starPhaseOffset = hash(idx.toFloat().mul(0.7531).add(42.0))
-
-    // Current lifecycle phase [0, 1)
-    const phase = fract(uniforms.time.div(max(cycleDuration, float(0.1))).add(starPhaseOffset))
-
-    // Fade envelope
-    const fadeIn = smoothstep(float(0), fadeInFrac, phase)
-    const fadeOut = float(1).sub(smoothstep(float(1).sub(fadeOutFrac), float(1), phase))
-    const fadeAlpha = min(fadeIn, fadeOut)
-
-    // ─── Rotation from original position ──────────────────────────────
-    // Compute rotation FROM originalPos based on cycle elapsed time.
-    // This prevents winding because each star resets when its cycle ends.
-    const cycleElapsed = phase.mul(cycleDuration)
-
+    // ─── Rotation (morphology-aware) ──────────────────────────────────
+    // Continuous differential rotation preserves spiral arm coherence.
+    // Elliptical & irregular galaxies: rotationSpeed is set to 0 at scene level.
+    // Barred spirals: bar region uses rigid-body rotation to prevent shearing.
     If(uniforms.barLength.greaterThan(0), () => {
-      const distFromCenter = length(vec3(originalPos.x, float(0), originalPos.z))
-      const rigidAngle = uniforms.rotationSpeed.mul(cycleElapsed).negate()
+      const distFromCenter = length(vec3(position.x, float(0), position.z))
+      const rigidAngle = uniforms.rotationSpeed.mul(uniforms.deltaTime).negate()
 
       If(distFromCenter.lessThan(uniforms.barLength), () => {
-        // Inside bar: rigid-body rotation
-        position.assign(rotateXZ(originalPos, rigidAngle))
+        // Inside bar: rigid-body rotation preserves bar structure
+        position.assign(rotateXZ(position, rigidAngle))
+        buffers.originalPositionBuffer.element(idx).assign(
+          rotateXZ(originalPos, rigidAngle),
+        )
       }).Else(() => {
-        // Outside bar: differential rotation
+        // Outside bar: differential rotation for spiral arms
         position.assign(applyDifferentialRotation(
-          originalPos, uniforms.rotationSpeed, cycleElapsed,
+          position, uniforms.rotationSpeed, uniforms.deltaTime,
         ))
+        buffers.originalPositionBuffer.element(idx).assign(
+          applyDifferentialRotation(
+            originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+          ),
+        )
       })
     }).Else(() => {
-      // Non-barred: differential rotation from original
+      // Non-barred: differential rotation (spirals/lenticular)
       // Elliptical/irregular have rotationSpeed=0, so this is a no-op
-      position.assign(applyDifferentialRotation(
-        originalPos, uniforms.rotationSpeed, cycleElapsed,
-      ))
+      const rotatedPos = applyDifferentialRotation(
+        position, uniforms.rotationSpeed, uniforms.deltaTime,
+      )
+      position.assign(rotatedPos)
+      buffers.originalPositionBuffer.element(idx).assign(
+        applyDifferentialRotation(
+          originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+        ),
+      )
     })
 
     buffers.positionBuffer.element(idx).assign(position)
 
-    // ─── Apply fade to alpha channel ──────────────────────────────────
+    // ─── Fade lifecycle (alpha modulation only) ───────────────────────
+    // Each star gets a random phase offset → smooth fade-in / fade-out cycle.
+    // ~84% of stars fully visible at any time, creating a gentle shimmer.
+    // Position is NOT affected — only alpha, preserving spiral structure.
+    const cycleDuration = uniforms.orbitCycleDuration
+    const fadeInFrac = uniforms.orbitFadeIn
+    const fadeOutFrac = uniforms.orbitFadeOut
+    const starPhaseOffset = hash(idx.toFloat().mul(0.7531).add(42.0))
+    const phase = fract(uniforms.time.div(max(cycleDuration, float(0.1))).add(starPhaseOffset))
+    const fadeIn = smoothstep(float(0), fadeInFrac, phase)
+    const fadeOut = float(1).sub(smoothstep(float(1).sub(fadeOutFrac), float(1), phase))
+    const fadeAlpha = min(fadeIn, fadeOut)
+
     // Read base alpha from velocity buffer (stored during init)
     const baseAlpha = buffers.velocityBuffer.element(idx).x
-
     buffers.colorBuffer.element(idx).w.assign(baseAlpha.mul(fadeAlpha))
 
     // ─── Twinkle for bright layer (layer == 1) ────────────────────────
-    // Layer mapping: 0=star, 1=bright (dust layer was removed)
     If(layer.equal(1), () => {
       const twinklePhase = idx.toFloat().mul(0.7831)
       const twinkle = sin(uniforms.time.mul(2).add(twinklePhase)).mul(0.15).add(0.85)
