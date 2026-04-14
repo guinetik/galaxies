@@ -615,10 +615,10 @@ export function createComputeInit(
     // Red giant = remainder
 
     If(spiralRole.equal(2), () => {
-      // Arm star: bluer population (16% hot OBA — makes arms visibly bluer)
-      pMK.assign(0.56)
-      pFG.assign(0.24)
-      pOBA.assign(0.16)
+      // Arm star: bluer population — needs more blue to cut through glow shader white mix
+      pMK.assign(0.46)
+      pFG.assign(0.20)
+      pOBA.assign(0.26)
     }).ElseIf(spiralRole.equal(1), () => {
       // Field star: redder population
       pMK.assign(0.78)
@@ -657,9 +657,16 @@ export function createComputeInit(
         sat.assign(0.22)
       })
     }).ElseIf(typeRand.lessThan(cumOBA), () => {
-      // O/B/A hot: blue-white (215° ±7.5°)
-      hue.assign(float(0.597).add(hueSpread.sub(0.5).mul(0.042)))
-      sat.assign(0.30)
+      // Split OBA into blue-white (A/B) and hot blue (O)
+      If(hueRand.lessThan(float(0.55)), () => {
+        // A/B: blue-white (215° ±7.5°)
+        hue.assign(float(0.597).add(hueSpread.sub(0.5).mul(0.042)))
+        sat.assign(0.28)
+      }).Else(() => {
+        // O: visibly blue (225° ±5°, high sat to cut through glow white)
+        hue.assign(float(0.625).add(hueSpread.sub(0.5).mul(0.028)))
+        sat.assign(0.50)
+      })
     }).Else(() => {
       // Red giant: warm orange-red (15° ±6°, prominent)
       hue.assign(float(0.042).add(hueSpread.sub(0.5).mul(0.033)))
