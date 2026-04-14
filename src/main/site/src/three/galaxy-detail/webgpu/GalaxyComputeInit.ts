@@ -594,18 +594,28 @@ export function createComputeInit(
     buffers.positionBuffer.element(idx).assign(position)
     buffers.originalPositionBuffer.element(idx).assign(position)
 
-    // ─── Color: population-aware blackbody temperatures ─────────────────
-    const tempRand = hash(seed.add(900))
-    const typeRand = hash(seed.add(901))
-    const temperature = float(5500).toVar()
+    // ─── Color: population-aware spectral class system ───────────────────
+    // Population distributions vary by role (from codetard's analysis):
+    //   Arm stars:  56% M/K, 24% F/G, 16% OBA, 4% red giant → bluer arms
+    //   Field:      78% M/K, 17% F/G, 3% OBA, 2% red giant → redder inter-arm
+    //   Bulge:      68% M/K, 12% F/G, 1% OBA, 19% red giant → warm center
+    //   Elliptical: 74% M/K, 11% F/G, 0.5% OBA, 14.5% red giant → old pop
+    // HSL output is the proven system that works with the glow shader.
+    const hueRand = hash(seed.add(900))
+    const hueSpread = hash(seed.add(901))
+    const typeRand = hash(seed.add(902))
+    const hue = float(0).toVar()
+    const sat = float(0).toVar()
+    const light = float(0).toVar()
 
-    // Population distribution varies by role
+    // Population cumulative thresholds (vary by role)
     const pMK = float(0.72).toVar()
     const pFG = float(0.20).toVar()
     const pOBA = float(0.065).toVar()
+    // Red giant = remainder
 
     If(spiralRole.equal(2), () => {
-      // Arm star: bluer population (16% hot OBA)
+      // Arm star: bluer population (16% hot OBA — makes arms visibly bluer)
       pMK.assign(0.56)
       pFG.assign(0.24)
       pOBA.assign(0.16)
@@ -628,42 +638,51 @@ export function createComputeInit(
       pOBA.assign(0.005)
     })
 
-    // Temperature assignment by population type
     const cumMK = pMK
     const cumFG = pMK.add(pFG)
     const cumOBA = cumFG.add(pOBA)
 
+    // Select spectral class from population, assign proven HSL values
     If(typeRand.lessThan(cumMK), () => {
-      temperature.assign(float(2600).add(pow(tempRand, float(0.64)).mul(3400)))
+      // M/K dwarf: red-orange (10° ±4°, high sat)
+      hue.assign(float(0.028).add(hueSpread.sub(0.5).mul(0.022)))
+      sat.assign(0.85)
     }).ElseIf(typeRand.lessThan(cumFG), () => {
-      temperature.assign(float(5200).add(tempRand.mul(3200)))
-    }).ElseIf(typeRand.lessThan(cumOBA), () => {
-      temperature.assign(float(8500).add(tempRand.mul(7500)))
-    }).Else(() => {
-      temperature.assign(float(2900).add(tempRand.mul(1800)))
-    })
-
-    // Bright layer: bias toward luminous extremes
-    If(layerVal.equal(1), () => {
-      If(typeRand.lessThan(float(0.6)), () => {
-        temperature.assign(float(2900).add(tempRand.mul(1800)))
+      // F/G star: split between K-orange and G-yellow
+      If(hueRand.lessThan(float(0.4)), () => {
+        hue.assign(float(0.069).add(hueSpread.sub(0.5).mul(0.022))) // K: 25° ±4°
+        sat.assign(0.60)
       }).Else(() => {
-        temperature.assign(float(10000).add(tempRand.mul(15000)))
+        hue.assign(float(0.133).add(hueSpread.sub(0.5).mul(0.014))) // G: 48° ±2.5°
+        sat.assign(0.22)
       })
+    }).ElseIf(typeRand.lessThan(cumOBA), () => {
+      // O/B/A hot: blue-white (215° ±7.5°)
+      hue.assign(float(0.597).add(hueSpread.sub(0.5).mul(0.042)))
+      sat.assign(0.30)
+    }).Else(() => {
+      // Red giant: warm orange-red (15° ±6°, prominent)
+      hue.assign(float(0.042).add(hueSpread.sub(0.5).mul(0.033)))
+      sat.assign(0.70)
     })
 
-    const baseRgb = kelvinToRgb(temperature)
-    // Boost saturation — physical blackbody is too desaturated for additive point sprites.
-    // Push each channel away from luminance to make colors visually distinct.
-    const lum = baseRgb.x.mul(0.299).add(baseRgb.y.mul(0.587)).add(baseRgb.z.mul(0.114))
-    const satBoost = float(1.6)
-    const satRgb = vec3(
-      clamp(lum.add(baseRgb.x.sub(lum).mul(satBoost)), float(0), float(1)),
-      clamp(lum.add(baseRgb.y.sub(lum).mul(satBoost)), float(0), float(1)),
-      clamp(lum.add(baseRgb.z.sub(lum).mul(satBoost)), float(0), float(1)),
-    )
-    // Scale down to compensate for 3x more star particles (no dust layer)
-    const rgb = satRgb.mul(brightness).mul(0.35)
+    light.assign(brightness.mul(0.6))
+
+    // Bright layer: override with luminous extremes
+    If(layerVal.equal(1), () => {
+      If(hueRand.lessThan(float(0.6)), () => {
+        // Red giant (10-45°)
+        hue.assign(hueRand.div(0.6).mul(0.097).add(0.028))
+        sat.assign(0.50)
+      }).Else(() => {
+        // Blue OB (200-230°)
+        hue.assign(hueRand.sub(0.6).div(0.4).mul(0.083).add(0.556))
+        sat.assign(0.35)
+      })
+      light.assign(brightness.mul(0.85))
+    })
+
+    const rgb = hslToRgb(hue, sat, light)
 
     // ─── Dust extinction: wavelength-dependent absorption ──────────────
     const extinctedRgb = vec3(rgb.x, rgb.y, rgb.z).toVar()
