@@ -10,8 +10,10 @@
  */
 
 import {
+  abs,
   instancedArray,
   instanceIndex,
+  vec2,
   vec3,
   vec4,
   float,
@@ -34,7 +36,7 @@ import {
 import * as THREE from 'three'
 import type { GalaxyRenderParams } from '../morphology'
 import { deriveBandInfluenceConfig } from '../bandInfluence'
-import { hash, hslToRgb } from './tsl-helpers'
+import { hash, hslToRgb, kelvinToRgb, fbmNoise2d } from './tsl-helpers'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -96,6 +98,13 @@ export interface GalaxyUniforms {
   mouseActive: any
   mouseForce: any
   mouseRadius: any
+  // Dust extinction
+  dustStrength: any
+  dustArmBoost: any
+  // Fake orbit lifecycle
+  orbitCycleDuration: any
+  orbitFadeIn: any
+  orbitFadeOut: any
 }
 
 // ─── Create buffers ────────────────────────────────────────────────────────
@@ -107,7 +116,7 @@ export function createGalaxyBuffers(count: number): GalaxyBuffers {
     velocityBuffer: instancedArray(count, 'vec3'),
     colorBuffer: instancedArray(count, 'vec4'),
     sizeBuffer: instancedArray(count, 'float'),
-    layerBuffer: instancedArray(count, 'float'), // 0=dust, 1=star, 2=bright
+    layerBuffer: instancedArray(count, 'float'), // 0=star, 1=bright
     foregroundAlphaBuffer: instancedArray(count, 'float'),
   }
 }
@@ -155,6 +164,11 @@ export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms
     mouseActive: uniform(0.0),
     mouseForce: uniform(7.0),
     mouseRadius: uniform(params.galaxyRadius * 0.3),
+    dustStrength: uniform(0),
+    dustArmBoost: uniform(0),
+    orbitCycleDuration: uniform(60.0),
+    orbitFadeIn: uniform(0.08),
+    orbitFadeOut: uniform(0.08),
   }
   syncGalaxyUniforms(uniforms, params)
   return uniforms
@@ -202,6 +216,8 @@ export function syncGalaxyUniforms(
   uniforms.projectedAxisRatio.value = influence.projectedAxisRatio
   uniforms.projectedAngle.value = influence.projectedAngle
   uniforms.projectedStrength.value = influence.projectedStrength
+  uniforms.dustStrength.value = m.dustStrength
+  uniforms.dustArmBoost.value = m.dustArmBoost
   uniforms.mouseRadius.value = params.galaxyRadius * 0.3
 }
 
@@ -259,25 +275,19 @@ export function createComputeInit(
 
     const R = uniforms.galaxyRadius
     const clearRadius = R.mul(0.06) // central exclusion zone
-    const dustFraction = mix(
-      float(0.55),
-      float(0.76),
-      clamp(uniforms.bandDustMix.add(uniforms.bandDustLaneStrength.mul(0.35)), float(0), float(1)),
-    )
+
+    // ─── Layer assignment: star ~94%, bright ~6% (no dust layer) ──────
     const brightFraction = mix(
-      float(0.02),
+      float(0.04),
       float(0.08),
       clamp(uniforms.bandHotMix.mul(0.7).add(uniforms.bandClumpBoost.mul(0.3)), float(0), float(1)),
     )
 
-    // ─── Layer assignment: dust 65%, star 32%, bright 3% ───────────────
     const layerRoll = hash(seed.add(100))
-    // 0=dust, 1=star, 2=bright
+    // 0=star, 1=bright (no dust layer)
     const layerVal = float(0).toVar()
     If(layerRoll.greaterThan(float(1).sub(brightFraction)), () => {
-      layerVal.assign(2) // bright
-    }).ElseIf(layerRoll.greaterThan(dustFraction), () => {
-      layerVal.assign(1) // star
+      layerVal.assign(1) // bright
     })
     buffers.layerBuffer.element(idx).assign(layerVal)
 
@@ -285,8 +295,6 @@ export function createComputeInit(
     const sizeRand = hash(seed.add(200))
     const starSize = float(0).toVar()
     If(layerVal.equal(0), () => {
-      starSize.assign(sizeRand.mul(1.5).add(0.8).mul(mix(float(0.95), float(1.35), uniforms.bandDustMix)))
-    }).ElseIf(layerVal.equal(1), () => {
       starSize.assign(sizeRand.mul(3.0).add(1.5)) // star: 1.5-4.5
     }).Else(() => {
       starSize.assign(sizeRand.mul(6.0).add(4.0).mul(mix(float(0.9), float(1.4), uniforms.bandHotMix))) // bright: 4-10
@@ -299,13 +307,10 @@ export function createComputeInit(
     const brightness = float(0).toVar()
     const alpha = float(0).toVar()
     If(layerVal.equal(0), () => {
-      brightness.assign(brightRand.mul(0.16).add(0.08).mul(mix(float(0.9), float(1.35), uniforms.bandDustMix))) // dust
-      alpha.assign(alphaRand.mul(0.2).add(0.12).mul(mix(float(0.9), float(1.2), uniforms.bandDustLaneStrength)))
-    }).ElseIf(layerVal.equal(1), () => {
-      brightness.assign(brightRand.mul(0.4).add(0.32).mul(mix(float(0.95), float(1.15), uniforms.bandHotMix))) // star
+      brightness.assign(brightRand.mul(0.4).add(0.32).mul(mix(float(0.95), float(1.15), uniforms.bandHotMix)))
       alpha.assign(alphaRand.mul(0.4).add(0.4))
     }).Else(() => {
-      brightness.assign(brightRand.mul(0.16).add(0.64).mul(mix(float(0.95), float(1.25), uniforms.bandHotMix))) // bright
+      brightness.assign(brightRand.mul(0.16).add(0.64).mul(mix(float(0.95), float(1.25), uniforms.bandHotMix)))
       alpha.assign(alphaRand.mul(0.24).add(0.56).mul(mix(float(0.95), float(1.2), uniforms.bandClumpBoost)))
     })
 
@@ -589,81 +594,138 @@ export function createComputeInit(
     buffers.positionBuffer.element(idx).assign(position)
     buffers.originalPositionBuffer.element(idx).assign(position)
 
-    // ─── Color: realistic spectral class system (no green stars) ─────
-    // Stars follow the main sequence: M(red) → K(orange) → G(pale yellow) →
-    // F(near-white) → A/B(blue-white) → O(blue).
-    // M-class dominates (~72% inner, ~55% outer) matching real populations.
-    // G/F classes have LOW saturation — Sun-like stars appear pale, not green.
-    // Hues normalized to 0-1 range (hue/360).
-    const hueRand = hash(seed.add(900))
-    const hueSpread = hash(seed.add(901)) // per-star spread within class
-    const hue = float(0).toVar()
-    const sat = float(0).toVar()
-    const light = float(0).toVar()
+    // ─── Color: population-aware blackbody temperatures ─────────────────
+    const tempRand = hash(seed.add(900))
+    const typeRand = hash(seed.add(901))
+    const temperature = float(5500).toVar()
 
-    If(layerVal.equal(0), () => {
-      // Dust: purple-blue hues (240-280° → 0.667-0.778)
-      hue.assign(hueRand.mul(0.111).add(0.667))
-      sat.assign(0.3)
-      light.assign(brightness.mul(0.4))
-    }).ElseIf(layerVal.equal(2), () => {
-      // Bright: giants and OB stars — mix of warm and cool
-      // ~60% red giants (10-45°), ~40% blue OB (200-230°)
-      If(hueRand.lessThan(float(0.6)), () => {
-        hue.assign(hueRand.div(0.6).mul(0.097).add(0.028)) // 10-45°
-        sat.assign(0.50)
-      }).Else(() => {
-        hue.assign(hueRand.sub(0.6).div(0.4).mul(0.083).add(0.556)) // 200-230°
-        sat.assign(0.35)
-      })
-      light.assign(brightness.mul(0.85))
-    }).Else(() => {
-      // Star layer: weighted spectral class selection based on distance.
-      // Cumulative thresholds shift with distance from center.
-      // Inner (d=0): dominated by old M/K. Outer (d=1): more young hot stars.
-      const d = pow(clamp(distFactor, float(0), float(1)), float(0.6))
-      const hotBias = uniforms.bandHotMix.sub(uniforms.bandDustMix).mul(0.16)
+    // Population distribution varies by role
+    const pMK = float(0.72).toVar()
+    const pFG = float(0.20).toVar()
+    const pOBA = float(0.065).toVar()
 
-      // Cumulative weights per spectral class [M, K, G, F, A/B, O]
-      // Inner: [0.58, 0.78, 0.88, 0.93, 0.98, 1.00]
-      // Outer: [0.30, 0.45, 0.55, 0.65, 0.87, 1.00]
-      const wM  = clamp(mix(float(0.58), float(0.30), d).sub(hotBias), float(0.12), float(0.8))
-      const wK  = clamp(mix(float(0.78), float(0.45), d).sub(hotBias.mul(0.75)), float(0.22), float(0.9))
-      const wG  = clamp(mix(float(0.88), float(0.55), d).sub(hotBias.mul(0.45)), float(0.35), float(0.96))
-      const wF  = clamp(mix(float(0.93), float(0.65), d).sub(hotBias.mul(0.25)), float(0.45), float(0.98))
-      const wAB = clamp(mix(float(0.98), float(0.87), d).sub(hotBias.mul(0.1)), float(0.7), float(0.995))
-      // O class gets remainder to 1.0
-
-      // Select spectral class by threshold — hue AND saturation per class.
-      // G/F classes get very low saturation so they appear white/pale yellow,
-      // never green. Real blackbody curves peak broadly for these temperatures.
-      If(hueRand.lessThan(wM), () => {
-        hue.assign(float(0.028).add(hueSpread.sub(0.5).mul(0.022))) // 10° ±4°
-        sat.assign(0.85)  // visibly orange-red
-      }).ElseIf(hueRand.lessThan(wK), () => {
-        hue.assign(float(0.069).add(hueSpread.sub(0.5).mul(0.022))) // 25° ±4°
-        sat.assign(0.60)  // warm orange
-      }).ElseIf(hueRand.lessThan(wG), () => {
-        hue.assign(float(0.133).add(hueSpread.sub(0.5).mul(0.014))) // 48° ±2.5°
-        sat.assign(0.22)  // pale yellow — Sun is NOT green
-      }).ElseIf(hueRand.lessThan(wF), () => {
-        hue.assign(float(0.153).add(hueSpread.sub(0.5).mul(0.011))) // 55° ±2°
-        sat.assign(0.12)  // near-white
-      }).ElseIf(hueRand.lessThan(wAB), () => {
-        hue.assign(float(0.597).add(hueSpread.sub(0.5).mul(0.042))) // 215° ±7.5°
-        sat.assign(0.25)  // blue-white tint
-      }).Else(() => {
-        hue.assign(float(0.625).add(hueSpread.sub(0.5).mul(0.028))) // 225° ±5°
-        sat.assign(0.45)  // noticeably blue
-      })
-      light.assign(brightness.mul(0.6))
+    If(spiralRole.equal(2), () => {
+      // Arm star: bluer population (16% hot OBA)
+      pMK.assign(0.56)
+      pFG.assign(0.24)
+      pOBA.assign(0.16)
+    }).ElseIf(spiralRole.equal(1), () => {
+      // Field star: redder population
+      pMK.assign(0.78)
+      pFG.assign(0.17)
+      pOBA.assign(0.03)
+    }).ElseIf(spiralRole.equal(0), () => {
+      // Bulge star: old population, many red giants
+      pMK.assign(0.68)
+      pFG.assign(0.12)
+      pOBA.assign(0.01)
     })
 
-    const rgb = hslToRgb(hue, sat, light)
-    buffers.colorBuffer.element(idx).assign(vec4(rgb.x, rgb.y, rgb.z, alpha))
+    // Elliptical override
+    If(uniforms.ellipticity.greaterThan(0), () => {
+      pMK.assign(0.74)
+      pFG.assign(0.11)
+      pOBA.assign(0.005)
+    })
 
-    // ─── Velocity (not actively used, but stored for spring target) ────
-    buffers.velocityBuffer.element(idx).assign(vec3(0, 0, 0))
+    // Temperature assignment by population type
+    const cumMK = pMK
+    const cumFG = pMK.add(pFG)
+    const cumOBA = cumFG.add(pOBA)
+
+    If(typeRand.lessThan(cumMK), () => {
+      temperature.assign(float(2600).add(pow(tempRand, float(0.64)).mul(3400)))
+    }).ElseIf(typeRand.lessThan(cumFG), () => {
+      temperature.assign(float(5200).add(tempRand.mul(3200)))
+    }).ElseIf(typeRand.lessThan(cumOBA), () => {
+      temperature.assign(float(8500).add(tempRand.mul(7500)))
+    }).Else(() => {
+      temperature.assign(float(2900).add(tempRand.mul(1800)))
+    })
+
+    // Bright layer: bias toward luminous extremes
+    If(layerVal.equal(1), () => {
+      If(typeRand.lessThan(float(0.6)), () => {
+        temperature.assign(float(2900).add(tempRand.mul(1800)))
+      }).Else(() => {
+        temperature.assign(float(10000).add(tempRand.mul(15000)))
+      })
+    })
+
+    const baseRgb = kelvinToRgb(temperature)
+    const rgb = baseRgb.mul(brightness)
+
+    // ─── Dust extinction: wavelength-dependent absorption ──────────────
+    const extinctedRgb = vec3(rgb.x, rgb.y, rgb.z).toVar()
+
+    If(uniforms.dustStrength.greaterThan(0), () => {
+      const absY = abs(posY)
+      const radialR = sqrt(posX.mul(posX).add(posZ.mul(posZ)))
+      const radialScale = R.mul(0.34)
+      const verticalScale = R.mul(0.06).mul(0.18)
+
+      const radialExt = float(0).sub(radialR.div(max(radialScale, float(0.01)))).exp()
+      const verticalExt = float(0).sub(absY.div(max(verticalScale, float(0.01)))).exp()
+      const baseExt = radialExt.mul(verticalExt)
+
+      // Suppress inside bulge core
+      const bulgeSuppress = smoothstep(
+        uniforms.bulgeRadius.mul(0.4),
+        uniforms.bulgeRadius.mul(1.2),
+        radialR,
+      )
+
+      // Spiral arm dust boost
+      const armDust = float(0).toVar()
+      If(uniforms.numArms.greaterThan(0).and(uniforms.dustArmBoost.greaterThan(0)), () => {
+        const starAngle = atan(posZ, posX)
+        const armSigma = uniforms.armWidth.div(R).mul(0.5)
+        const spiralStartR = max(uniforms.spiralStart.mul(R), float(0.001))
+
+        const bestArmScore = float(0).toVar()
+        // Unrolled loop checking up to 6 arms
+        const checkArm = (armIdx: number) => {
+          If(uniforms.numArms.greaterThan(armIdx), () => {
+            const armPhase = float(armIdx).mul(TAU).div(uniforms.numArms)
+            const expectedAngle = max(radialR.div(spiralStartR), float(1.0)).log()
+              .div(max(uniforms.spiralTightness, float(0.001)))
+              .mul(2.5)
+              .add(armPhase)
+            const angDist = starAngle.sub(expectedAngle).toVar()
+            angDist.assign(angDist.sub(floor(angDist.div(TAU).add(0.5)).mul(TAU)))
+            const armScore = float(0).sub(angDist.mul(angDist).div(armSigma.mul(armSigma).mul(2))).exp()
+            bestArmScore.assign(max(bestArmScore, armScore))
+          })
+        }
+        checkArm(0)
+        checkArm(1)
+        checkArm(2)
+        checkArm(3)
+        checkArm(4)
+        checkArm(5)
+        armDust.assign(bestArmScore.mul(uniforms.dustArmBoost))
+      })
+
+      // FBM noise for clumpiness
+      const noiseScale = float(8).div(max(R, float(1)))
+      const dustNoise = fbmNoise2d(vec2(posX.mul(noiseScale), posZ.mul(noiseScale)))
+
+      const extinction = uniforms.dustStrength
+        .mul(baseExt)
+        .mul(bulgeSuppress)
+        .mul(float(1).add(armDust))
+        .mul(dustNoise)
+
+      // Wavelength-dependent: red least absorbed, blue most
+      extinctedRgb.x.assign(rgb.x.mul(float(0).sub(extinction.mul(0.65)).exp()))
+      extinctedRgb.y.assign(rgb.y.mul(float(0).sub(extinction.mul(0.9)).exp()))
+      extinctedRgb.z.assign(rgb.z.mul(float(0).sub(extinction.mul(1.2)).exp()))
+    })
+
+    buffers.colorBuffer.element(idx).assign(vec4(extinctedRgb.x, extinctedRgb.y, extinctedRgb.z, alpha))
+
+    // Store base alpha in velocity buffer x-channel (velocity not used for physics)
+    buffers.velocityBuffer.element(idx).assign(vec3(alpha, 0, 0))
   })().compute(count)
 
   return computeInit
