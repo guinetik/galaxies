@@ -84,6 +84,12 @@ export interface GalaxyMorphology {
   // ── Population mix ─────────────────────────────────────────────────────────
   /** Fraction of stars in the diffuse field (not in arms). */
   fieldStarFraction: number
+
+  // ── Dust extinction ───────────────────────────────────────────────────────
+  /** Overall dust extinction strength [0, 10]. 0 = no dust. */
+  dustStrength: number
+  /** Extra extinction boost along spiral arms [0, 10]. */
+  dustArmBoost: number
 }
 
 /**
@@ -151,6 +157,8 @@ const BASE: Omit<GalaxyMorphology, 'preset'> = {
   irregularity: 0,
   clumpCount: 0,
   fieldStarFraction: 0,
+  dustStrength: 0,
+  dustArmBoost: 0,
 }
 
 export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
@@ -170,6 +178,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     bulgeRadius: 0.267,       // 80 / 300
     bulgeFraction: 0.4,
     diskThickness: 0.013,     // 4 / 300
+    dustStrength: 0.5,
+    dustArmBoost: 0,
   },
 
   // ── Tight Spiral (SAa) ────────────────────────────────────────────────────
@@ -182,6 +192,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     spiralStart: 0.156,       // 50 / 320
     bulgeRadius: 0.219,       // 70 / 320
     fieldStarFraction: 0.08,
+    dustStrength: 3.0,
+    dustArmBoost: 3.0,
   },
 
   // ── Spiral (SAb) ──────────────────────────────────────────────────────────
@@ -194,6 +206,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     spiralStart: 0.086,       // 30 / 350
     bulgeRadius: 0.100,       // 35 / 350
     fieldStarFraction: 0.15,
+    dustStrength: 4.0,
+    dustArmBoost: 4.0,
   },
 
   // ── Grand Design (SAc) ────────────────────────────────────────────────────
@@ -205,6 +219,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     spiralTightness: 0.22,
     spiralStart: 0.066,       // 25 / 380
     fieldStarFraction: 0.12,
+    dustStrength: 4.5,
+    dustArmBoost: 5.0,
   },
 
   // ── Flocculent (SAd) ──────────────────────────────────────────────────────
@@ -217,6 +233,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     spiralStart: 0.111,       // 40 / 360
     irregularity: 0.15,
     fieldStarFraction: 0.25,
+    dustStrength: 3.5,
+    dustArmBoost: 2.5,
   },
 
   // ── Barred Tight (SBa) ────────────────────────────────────────────────────
@@ -231,6 +249,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     barLength: 0.438,         // 140 / 320
     barWidth: 0.094,          // 30 / 320
     fieldStarFraction: 0.06,
+    dustStrength: 3.0,
+    dustArmBoost: 3.5,
   },
 
   // ── Barred Spiral (SBb) ───────────────────────────────────────────────────
@@ -245,6 +265,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     barLength: 0.343,         // 120 / 350
     barWidth: 0.071,          // 25 / 350
     fieldStarFraction: 0.1,
+    dustStrength: 4.0,
+    dustArmBoost: 4.0,
   },
 
   // ── Barred Open (SBc) ─────────────────────────────────────────────────────
@@ -258,6 +280,8 @@ export const MORPHOLOGY_PRESETS: Record<MorphologyPreset, GalaxyMorphology> = {
     barLength: 0.237,         // 90 / 380
     barWidth: 0.053,          // 20 / 380
     fieldStarFraction: 0.18,
+    dustStrength: 4.0,
+    dustArmBoost: 4.5,
   },
 
   // ── Irregular (Irr) ───────────────────────────────────────────────────────
