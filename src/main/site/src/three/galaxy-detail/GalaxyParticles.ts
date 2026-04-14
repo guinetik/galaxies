@@ -20,7 +20,6 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 
 function layerLightness(layer: Star['layer'], brightness: number): number {
   switch (layer) {
-    case 'dust':   return brightness * 0.4
     case 'star':   return brightness * 0.6
     case 'bright': return brightness * 0.85
   }

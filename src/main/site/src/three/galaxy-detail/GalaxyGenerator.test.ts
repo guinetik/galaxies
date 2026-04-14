@@ -208,7 +208,6 @@ describe('layer assignment (no dust)', () => {
     }
     const stars = generateGalaxy(params)
     const layers = new Set(stars.map(s => s.layer))
-    expect(layers.has('dust')).toBe(false)
     expect(layers.has('star')).toBe(true)
     expect(layers.has('bright')).toBe(true)
   })
