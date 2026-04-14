@@ -21,6 +21,8 @@ import {
   dot,
   floor,
   mix,
+  clamp,
+  smoothstep,
 } from 'three/tsl'
 
 // ==============================================================================
@@ -199,4 +201,51 @@ export const hslToRgb = Fn(([h, s, l]: [any, any, any]) => {
   const f4 = l.sub(a.mul(max(min(min(k4.sub(3.0), float(9.0).sub(k4)), float(1.0)), float(-1.0))))
 
   return vec3(f0, f8, f4)
+})
+
+/**
+ * Tanner Helland blackbody approximation: color temperature (K) → linear RGB.
+ * Valid range: 1000K–40000K. Returns vec3 in [0,1] linear space.
+ */
+export const kelvinToRgb = Fn(([tempK]: [any]) => {
+  const n = clamp(tempK, float(1000), float(40000)).div(100)
+
+  // Red channel
+  const rHot = pow(n.sub(60), float(-0.1332)).mul(329.6987).div(255)
+  const r = clamp(
+    mix(float(1.0), rHot, smoothstep(float(65.9), float(66.1), n)),
+    float(0), float(1),
+  )
+
+  // Green channel
+  const gCool = n.log().mul(99.4708).sub(161.1196).div(255)
+  const gHot = pow(n.sub(60), float(-0.0755)).mul(288.1222).div(255)
+  const g = clamp(
+    mix(gCool, gHot, smoothstep(float(65.9), float(66.1), n)),
+    float(0), float(1),
+  )
+
+  // Blue channel
+  const bCool = max(n.sub(10), float(1)).log().mul(138.5177).sub(305.0448).div(255)
+  const bLow = mix(float(0), bCool, smoothstep(float(19), float(20), n))
+  const b = clamp(
+    mix(bLow, float(1.0), smoothstep(float(65.9), float(66.1), n)),
+    float(0), float(1),
+  )
+
+  // sRGB → linear conversion
+  const toLinear = (c: any) =>
+    mix(c.div(12.92), pow(c.add(0.055).div(1.055), float(2.4)), smoothstep(float(0.04045), float(0.04046), c))
+
+  return vec3(toLinear(r), toLinear(g), toLinear(b))
+})
+
+/**
+ * 2-octave FBM noise for dust lane clumpiness.
+ * Returns ~[0, 1] range.
+ */
+export const fbmNoise2d = Fn(([p]: [any]) => {
+  const value = noise2d(p).mul(0.5).add(0.5).toVar()
+  value.addAssign(noise2d(p.mul(2.0)).mul(0.25).add(0.125))
+  return clamp(value, float(0), float(1))
 })
