@@ -2,8 +2,8 @@
  * GPU Compute Shader — Per-Frame Physics Update
  *
  * Runs every frame to:
- * - Apply differential rotation (spiral arms) or rigid-body rotation (bar region)
- * - Skip rotation for elliptical/irregular galaxies
+ * - Apply fake orbit lifecycle (fade-in → orbit → fade-out → reset)
+ * - Prevent spiral arm winding by computing rotation from original position
  * - Twinkle modulation for bright-layer stars
  */
 
@@ -14,10 +14,14 @@ import {
   If,
   length,
   sin,
+  fract,
+  max,
+  min,
+  smoothstep,
   vec3,
 } from 'three/tsl'
 import type { GalaxyBuffers, GalaxyUniforms } from './GalaxyComputeInit'
-import { applyDifferentialRotation, rotateXZ } from './tsl-helpers'
+import { hash, applyDifferentialRotation, rotateXZ } from './tsl-helpers'
 
 export function createComputeUpdate(
   count: number,
@@ -27,61 +31,68 @@ export function createComputeUpdate(
   const computeUpdate = Fn(() => {
     const idx = instanceIndex
     const position = buffers.positionBuffer.element(idx).toVar()
-    const originalPos = buffers.originalPositionBuffer.element(idx)
+    const originalPos = buffers.originalPositionBuffer.element(idx).toVar()
+    const layer = buffers.layerBuffer.element(idx)
 
-    // ─── Rotation (morphology-aware) ──────────────────────────────────
-    // Elliptical & irregular galaxies: rotationSpeed is set to 0 at scene level.
-    // Barred spirals: bar region uses rigid-body rotation to prevent shearing.
+    // ─── Fake orbit lifecycle ──────────────────────────────────────────
+    // Each star has a random phase offset. During its lifecycle:
+    //   fade in (8%) → orbit with differential rotation → fade out (8%) → reset
+    // ~84% of stars visible at any time. Arms never accumulate winding.
+    const cycleDuration = uniforms.orbitCycleDuration
+    const fadeInFrac = uniforms.orbitFadeIn
+    const fadeOutFrac = uniforms.orbitFadeOut
+
+    // Per-star random phase offset [0, 1)
+    const starPhaseOffset = hash(idx.toFloat().mul(0.7531).add(42.0))
+
+    // Current lifecycle phase [0, 1)
+    const phase = fract(uniforms.time.div(max(cycleDuration, float(0.1))).add(starPhaseOffset))
+
+    // Fade envelope
+    const fadeIn = smoothstep(float(0), fadeInFrac, phase)
+    const fadeOut = float(1).sub(smoothstep(float(1).sub(fadeOutFrac), float(1), phase))
+    const fadeAlpha = min(fadeIn, fadeOut)
+
+    // ─── Rotation from original position ──────────────────────────────
+    // Compute rotation FROM originalPos based on cycle elapsed time.
+    // This prevents winding because each star resets when its cycle ends.
+    const cycleElapsed = phase.mul(cycleDuration)
+
     If(uniforms.barLength.greaterThan(0), () => {
-      // Bar region: rigid-body rotation (constant angular speed, no radius dependence)
-      const distFromCenter = length(vec3(position.x, float(0), position.z))
-      const rigidAngle = uniforms.rotationSpeed.mul(uniforms.deltaTime).negate()
+      const distFromCenter = length(vec3(originalPos.x, float(0), originalPos.z))
+      const rigidAngle = uniforms.rotationSpeed.mul(cycleElapsed).negate()
 
       If(distFromCenter.lessThan(uniforms.barLength), () => {
-        // Inside bar: rigid-body rotation preserves bar structure
-        position.assign(rotateXZ(position, rigidAngle))
-        buffers.originalPositionBuffer.element(idx).assign(
-          rotateXZ(originalPos, rigidAngle),
-        )
+        // Inside bar: rigid-body rotation
+        position.assign(rotateXZ(originalPos, rigidAngle))
       }).Else(() => {
-        // Outside bar: differential rotation for spiral arms
+        // Outside bar: differential rotation
         position.assign(applyDifferentialRotation(
-          position, uniforms.rotationSpeed, uniforms.deltaTime,
+          originalPos, uniforms.rotationSpeed, cycleElapsed,
         ))
-        buffers.originalPositionBuffer.element(idx).assign(
-          applyDifferentialRotation(
-            originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
-          ),
-        )
       })
     }).Else(() => {
-      // Non-barred: differential rotation (spirals/lenticular)
-      // Elliptical/irregular have rotationSpeed=0, so this is a no-op for them
-      const rotatedPos = applyDifferentialRotation(
-        position, uniforms.rotationSpeed, uniforms.deltaTime,
-      )
-      position.assign(rotatedPos)
-      buffers.originalPositionBuffer.element(idx).assign(
-        applyDifferentialRotation(
-          originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
-        ),
-      )
+      // Non-barred: differential rotation from original
+      // Elliptical/irregular have rotationSpeed=0, so this is a no-op
+      position.assign(applyDifferentialRotation(
+        originalPos, uniforms.rotationSpeed, cycleElapsed,
+      ))
     })
 
     buffers.positionBuffer.element(idx).assign(position)
 
-    // ─── Twinkle for bright layer (layer == 2) ────────────────────────
-    const layer = buffers.layerBuffer.element(idx)
-    If(layer.equal(2), () => {
-      const color = buffers.colorBuffer.element(idx)
-      // Use idx as twinkle phase, modulate alpha
+    // ─── Apply fade to alpha channel ──────────────────────────────────
+    // Read base alpha from velocity buffer (stored during init)
+    const baseAlpha = buffers.velocityBuffer.element(idx).x
+
+    buffers.colorBuffer.element(idx).w.assign(baseAlpha.mul(fadeAlpha))
+
+    // ─── Twinkle for bright layer (layer == 1) ────────────────────────
+    // Layer mapping: 0=star, 1=bright (dust layer was removed)
+    If(layer.equal(1), () => {
       const twinklePhase = idx.toFloat().mul(0.7831)
       const twinkle = sin(uniforms.time.mul(2).add(twinklePhase)).mul(0.15).add(0.85)
-      // Store modulated alpha back (keep base alpha × twinkle)
-      const baseAlpha = color.w
-      // We only adjust the stored alpha gently — avoid compounding
-      // Instead we read a stable base and apply modulation
-      buffers.colorBuffer.element(idx).w.assign(baseAlpha.mul(twinkle))
+      buffers.colorBuffer.element(idx).w.assign(baseAlpha.mul(fadeAlpha).mul(twinkle))
     })
   })().compute(count)
 
