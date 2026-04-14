@@ -4,10 +4,11 @@
  * Generates star positions for different galaxy morphologies (Hubble sequence):
  * Spiral, Barred Spiral, Lenticular, Elliptical, and Irregular.
  *
- * Stars are assigned to one of three visual layers:
- *   - dust   — faint, small background particles (nebular blue-violet)
+ * Stars are assigned to one of two visual layers:
  *   - star   — mid-brightness main-sequence stars
  *   - bright — luminous OB stars or giants
+ *
+ * Dust manifests only as wavelength-dependent extinction, not as a particle layer.
  */
 
 import type { GalaxyRenderParams } from './morphology'
@@ -25,7 +26,7 @@ export interface Star {
   brightness: number
   size: number
   alpha: number
-  layer: 'dust' | 'star' | 'bright'
+  layer: 'star' | 'bright'
   twinklePhase: number
 }
 
@@ -44,10 +45,6 @@ const CONFIG = {
   },
   visual: {
     diskThicknessRatio: 0.06,
-    dustFraction: 0.65,
-    brightFraction: 0.03,
-    dustHueRange: [240, 280] as [number, number],
-    brightHueRange: [10, 45] as [number, number],
     hiiRegionChance: 0.15,
   },
 } as const
@@ -94,38 +91,120 @@ function clamp01(value: number): number {
 }
 
 /**
- * Clamps a value between min and max.
+ * Tanner Helland blackbody approximation: temperature (K) → linear RGB [0,1].
  */
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
+function kelvinToRgb(tempK: number): { r: number; g: number; b: number } {
+  const n = Math.min(Math.max(tempK, 1000), 40000) / 100
+  let r: number, g: number, b: number
+
+  if (n <= 66) {
+    r = 1.0
+    g = Math.min(1, Math.max(0, (Math.log(n) * 99.4708 - 161.1196) / 255))
+    b = n <= 19
+      ? 0
+      : Math.min(1, Math.max(0, (Math.log(n - 10) * 138.5177 - 305.0448) / 255))
+  } else {
+    const t = n - 60
+    r = Math.min(1, Math.max(0, Math.pow(t, -0.1332) * 329.6987 / 255))
+    g = Math.min(1, Math.max(0, Math.pow(t, -0.0755) * 288.1222 / 255))
+    b = 1.0
+  }
+
+  const toLinear = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+
+  return { r: toLinear(r), g: toLinear(g), b: toLinear(b) }
 }
 
-// ─── Stellar hues (spectral class blackbody sequence) ────────────────────────
+/** Stellar population distributions: [M/K, F/G, OBA, RedGiant] */
+const POP_ARM = [0.56, 0.24, 0.16, 0.04]
+const POP_FIELD = [0.78, 0.17, 0.03, 0.02]
+const POP_BULGE = [0.68, 0.12, 0.01, 0.19]
+const POP_ELLIPTICAL = [0.74, 0.11, 0.005, 0.145]
+const POP_DEFAULT = [0.72, 0.20, 0.065, 0.015]
 
-interface SpectralClass {
-  hue: number
-  spread: number
-  sat: number
-  wInner: number
-  wOuter: number
+type PopulationRole = 'arm' | 'field' | 'bulge' | 'elliptical' | 'default'
+
+/**
+ * Selects a blackbody temperature based on population distribution.
+ */
+function pickTemperature(population: number[]): number {
+  const [pMK, pFG, pOBA] = population
+  const roll = Math.random()
+
+  if (roll < pMK) {
+    return 2600 + Math.pow(Math.random(), 0.64) * 3400 // M/K dwarf: 2600-6000K
+  } else if (roll < pMK + pFG) {
+    return 5200 + Math.random() * 3200 // F/G star: 5200-8400K
+  } else if (roll < pMK + pFG + pOBA) {
+    return 8500 + Math.random() * 7500 // OBA hot: 8500-16000K
+  } else {
+    return 2900 + Math.random() * 1800 // Red giant: 2900-4700K
+  }
 }
 
-// Main-sequence proportions tuned for visual richness while staying realistic.
-// M-class dominates but not overwhelmingly — outer regions have enough blue
-// (OB associations in spiral arms) to create warm-to-cool radial contrast.
-// G/F have LOW saturation — Sun-like stars appear pale yellow, never green.
-const STELLAR_HUES: SpectralClass[] = [
-  { hue: 10,  spread: 8,  sat: 0.85, wInner: 0.58, wOuter: 0.30 }, // M — red dwarfs
-  { hue: 25,  spread: 8,  sat: 0.60, wInner: 0.20, wOuter: 0.15 }, // K — orange
-  { hue: 48,  spread: 5,  sat: 0.22, wInner: 0.10, wOuter: 0.10 }, // G — pale yellow (Sun)
-  { hue: 55,  spread: 4,  sat: 0.12, wInner: 0.05, wOuter: 0.10 }, // F — near-white
-  { hue: 215, spread: 15, sat: 0.25, wInner: 0.05, wOuter: 0.22 }, // A/B — blue-white
-  { hue: 225, spread: 10, sat: 0.45, wInner: 0.02, wOuter: 0.13 }, // O — hot blue
-]
+function smoothstepCPU(edge0: number, edge1: number, x: number): number {
+  const t = clamp01((x - edge0) / (edge1 - edge0))
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * Computes wavelength-dependent dust extinction for a star position.
+ */
+function computeDustExtinction(
+  x: number, y: number, z: number,
+  params: GalaxyRenderParams,
+): { r: number; g: number; b: number } {
+  const m = params.morphology
+  if (m.dustStrength <= 0) return { r: 1, g: 1, b: 1 }
+
+  const R = params.galaxyRadius
+  const radialR = Math.sqrt(x * x + z * z)
+  const radialScale = R * 0.34
+  const verticalScale = R * 0.06 * 0.18
+
+  const radialExt = Math.exp(-radialR / Math.max(radialScale, 0.01))
+  const verticalExt = Math.exp(-Math.abs(y) / Math.max(verticalScale, 0.01))
+  const baseExt = radialExt * verticalExt
+
+  const bulgeR = m.bulgeRadius * R
+  const bulgeSuppress = smoothstepCPU(bulgeR * 0.4, bulgeR * 1.2, radialR)
+
+  let armDust = 0
+  if (m.numArms > 0 && m.dustArmBoost > 0) {
+    const starAngle = Math.atan2(z, x)
+    const armSigma = m.armWidth * 0.5
+    const spiralStartR = Math.max(m.spiralStart * R, 0.001)
+
+    for (let i = 0; i < m.numArms; i++) {
+      const armPhase = (i * TAU) / m.numArms
+      const expectedAngle = Math.log(Math.max(radialR / spiralStartR, 1)) /
+        Math.max(m.spiralTightness, 0.001) * 2.5 + armPhase
+      let angDist = starAngle - expectedAngle
+      angDist = angDist - Math.round(angDist / TAU) * TAU
+      const score = Math.exp(-(angDist * angDist) / (2 * armSigma * armSigma))
+      armDust = Math.max(armDust, score)
+    }
+    armDust *= m.dustArmBoost
+  }
+
+  // Simple deterministic noise from position
+  const nx = Math.sin(x * 0.1 + z * 0.13) * 0.5 + 0.5
+  const nz = Math.sin(z * 0.11 - x * 0.09 + 3.7) * 0.5 + 0.5
+  const noise = (nx + nz) * 0.5
+
+  const extinction = m.dustStrength * baseExt * bulgeSuppress * (1 + armDust) * noise
+
+  return {
+    r: Math.exp(-extinction * 0.65),
+    g: Math.exp(-extinction * 0.9),
+    b: Math.exp(-extinction * 1.2),
+  }
+}
 
 // ─── Helper functions ────────────────────────────────────────────────────────
 
-type Layer = 'dust' | 'star' | 'bright'
+type Layer = 'star' | 'bright'
 
 interface LayerProps {
   size: number
@@ -134,13 +213,9 @@ interface LayerProps {
 }
 
 function assignLayer(roll: number, influence: BandInfluenceConfig | null = null): Layer {
-  const dustMix = clamp01(influence?.dustMix ?? 0.5)
   const hotMix = clamp01((influence?.hotMix ?? 0.5) * 0.7)
+  const brightF = mix(0.04, 0.08, hotMix)
 
-  const dustF = mix(0.55, 0.76, dustMix)
-  const brightF = mix(0.02, 0.08, hotMix)
-
-  if (roll < dustF) return 'dust'
   if (roll > 1 - brightF) return 'bright'
   return 'star'
 }
@@ -150,21 +225,14 @@ function layerProperties(
   influence: BandInfluenceConfig | null = null,
 ): LayerProps {
   switch (layer) {
-    case 'dust':
-      const dustBoost = mix(0.95, 1.35, influence?.dustMix ?? 0.5)
-      const dustAlphaBoost = mix(0.9, 1.2, influence?.dustLaneStrength ?? 0)
-      return {
-        size: (0.8 + Math.random() * 1.5) * dustBoost,
-        brightness: (0.08 + Math.random() * 0.16) * dustBoost,
-        alpha: (0.12 + Math.random() * 0.2) * dustAlphaBoost,
-      }
-    case 'bright':
+    case 'bright': {
       const hotBoost = mix(0.9, 1.4, influence?.hotMix ?? 0.5)
       return {
         size: (4 + Math.random() * 6) * hotBoost,
         brightness: (0.64 + Math.random() * 0.16) * hotBoost,
         alpha: (0.56 + Math.random() * 0.24) * mix(0.95, 1.2, influence?.clumpBoost ?? 0),
       }
+    }
     default: // 'star'
       return {
         size: 1.5 + Math.random() * 3.0,
@@ -175,58 +243,48 @@ function layerProperties(
 }
 
 /**
- * Selects a stellar hue and per-class saturation using the same broad radial
- * spectral weighting as the WebGPU generator so both renderers share the
- * same population mix.
+ * Selects a stellar hue and saturation using population-aware blackbody temperatures.
+ * The role determines which stellar population distribution to use.
  */
 function pickHueAndSat(
   layer: Layer,
   distFactor: number,
   influence: BandInfluenceConfig | null = null,
+  role: PopulationRole = 'default',
 ): { hue: number; sat: number } {
-  const v = CONFIG.visual
-  if (layer === 'dust') {
-    return {
-      hue: v.dustHueRange[0] + Math.random() * (v.dustHueRange[1] - v.dustHueRange[0]),
-      sat: 0.3,
-    }
-  }
+  let temp: number
+
   if (layer === 'bright') {
-    // ~60% red giants (10-45°), ~40% blue OB stars (200-230°)
-    if (Math.random() < 0.6) {
-      return {
-        hue: v.brightHueRange[0] + Math.random() * (v.brightHueRange[1] - v.brightHueRange[0]),
-        sat: 0.50,
-      }
-    }
-    return { hue: 200 + Math.random() * 30, sat: 0.35 }
+    temp = Math.random() < 0.6
+      ? 2900 + Math.random() * 1800
+      : 10000 + Math.random() * 15000
+  } else {
+    const pop =
+      role === 'arm' ? POP_ARM :
+      role === 'field' ? POP_FIELD :
+      role === 'bulge' ? POP_BULGE :
+      role === 'elliptical' ? POP_ELLIPTICAL :
+      POP_DEFAULT
+    temp = pickTemperature(pop)
   }
-  // Weighted selection from spectral classes based on radial position
-  const d = Math.pow(distFactor, 0.6)
-  const hotBias = (influence?.hotMix ?? 0.5 - 0.5) * 0.16
 
-  // Apply band-influenced spectral class weighting
-  const wM = clamp(mix(0.58, 0.30, d) - hotBias, 0.12, 0.8)
-  const wK = clamp(mix(0.78, 0.45, d) - hotBias * 0.75, 0.22, 0.9)
-  const wG = clamp(mix(0.88, 0.55, d) - hotBias * 0.45, 0.35, 0.96)
-  const wF = clamp(mix(0.93, 0.65, d) - hotBias * 0.25, 0.45, 0.98)
-  const wAB = clamp(mix(0.98, 0.87, d) - hotBias * 0.1, 0.7, 0.995)
-  const wO = STELLAR_HUES[5].wInner * (1 - d) + STELLAR_HUES[5].wOuter * d
+  // Map temperature to approximate hue/sat for Star interface compatibility
+  let hue: number, sat: number
+  if (temp < 4000) {
+    hue = 10 + (temp - 2600) / 1400 * 15
+    sat = 0.85
+  } else if (temp < 6000) {
+    hue = 25 + (temp - 4000) / 2000 * 23
+    sat = 0.4
+  } else if (temp < 8500) {
+    hue = 48 + (temp - 6000) / 2500 * 7
+    sat = 0.15
+  } else {
+    hue = 200 + (temp - 8500) / 7500 * 25
+    sat = 0.3
+  }
 
-  const weights = [wM, wK, wG, wF, wAB, wO]
-  let totalWeight = 0
-  for (const w of weights) {
-    totalWeight += w
-  }
-  let roll = Math.random() * totalWeight
-  for (let i = 0; i < STELLAR_HUES.length; i++) {
-    roll -= weights[i]
-    if (roll <= 0) {
-      const s = STELLAR_HUES[i]
-      return { hue: s.hue + (Math.random() - 0.5) * s.spread, sat: s.sat }
-    }
-  }
-  return { hue: 48, sat: 0.22 } // fallback: Sun-like
+  return { hue, sat }
 }
 
 function computeRotationSpeed(r: number): number {
@@ -264,7 +322,7 @@ function generateFieldStar(
   const props = layerProperties(layer, influence)
   const distFactor = radius / galaxyRadius
 
-  const spec = pickHueAndSat(layer, distFactor, influence)
+  const spec = pickHueAndSat(layer, distFactor, influence, 'field')
 
   const x = Math.cos(angle) * radius
   const z = Math.sin(angle) * radius
@@ -368,7 +426,7 @@ function generateArmStars(
       const layer = assignLayer(Math.random(), influence)
 
       const props = layerProperties(layer, influence)
-      const spec = pickHueAndSat(layer, distFactor, influence)
+      const spec = pickHueAndSat(layer, distFactor, influence, 'arm')
 
       stars.push({
         radius: actualRadius,
@@ -419,7 +477,7 @@ function generateBarStars(
     const silhouettedAngle = Math.atan2(finalZ, finalX)
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, 0.1, influence) // near-core colors
+    const spec = pickHueAndSat(layer, 0.1, influence, 'arm') // near-core colors
 
     stars.push({
       radius: silhouettedRadius,
@@ -468,7 +526,7 @@ function generateBulgeStars(
     const silhouettedRadius = Math.sqrt(silhouetted.x * silhouetted.x + silhouetted.z * silhouetted.z)
     const silhouettedAngle = Math.atan2(silhouetted.z, silhouetted.x)
 
-    const spec = pickHueAndSat(layer, 0.1, influence)
+    const spec = pickHueAndSat(layer, 0.1, influence, 'bulge')
     stars.push({
       radius: silhouettedRadius,
       angle: silhouettedAngle,
@@ -516,7 +574,7 @@ function generateEllipticalStars(
 
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, distFactor, influence)
+    const spec = pickHueAndSat(layer, distFactor, influence, 'elliptical')
 
     stars.push({
       radius: actualRadius,
@@ -578,7 +636,7 @@ function generateLenticularStars(
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
 
-    const spec = pickHueAndSat(layer, distFactor * 0.2, influence)
+    const spec = pickHueAndSat(layer, distFactor * 0.2, influence, 'default')
     stars.push({
       radius: silhouettedRadius,
       angle: silhouettedAngle,
@@ -658,7 +716,7 @@ function generateClumpStars(
 
     const layer = assignLayer(Math.random(), influence)
     const props = layerProperties(layer, influence)
-    const spec = pickHueAndSat(layer, distFactor, influence)
+    const spec = pickHueAndSat(layer, distFactor, influence, 'arm')
 
     stars.push({
       radius: actualRadius,
@@ -755,6 +813,20 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     const fieldCount = Math.floor(totalStars * fieldStarFraction)
     for (let i = 0; i < fieldCount; i++) {
       stars.push(generateFieldStar(galaxyRadius, influence))
+    }
+  }
+
+  // Apply dust extinction to all stars
+  for (const star of stars) {
+    const x = Math.cos(star.angle) * star.radius
+    const z = Math.sin(star.angle) * star.radius
+    const ext = computeDustExtinction(x, star.y, z, params)
+    // Modulate brightness by average extinction
+    star.brightness *= (ext.r + ext.g + ext.b) / 3
+    // Shift hue toward red when heavily extincted
+    if (ext.b < 0.5) {
+      star.hue = star.hue * 0.5 + 15 * 0.5
+      star.sat = Math.min(star.sat + 0.2, 1.0)
     }
   }
 

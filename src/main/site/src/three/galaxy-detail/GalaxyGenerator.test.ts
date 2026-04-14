@@ -196,3 +196,20 @@ describe('generateGalaxy', () => {
     expect(starsWithScatter.length).toBeGreaterThan(0)
   })
 })
+
+describe('layer assignment (no dust)', () => {
+  it('assigns only star and bright layers', () => {
+    const params: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      galaxyRadius: 350,
+      starCount: 1000,
+      diameterKpc: 25,
+      sizeSource: 'random' as const,
+    }
+    const stars = generateGalaxy(params)
+    const layers = new Set(stars.map(s => s.layer))
+    expect(layers.has('dust')).toBe(false)
+    expect(layers.has('star')).toBe(true)
+    expect(layers.has('bright')).toBe(true)
+  })
+})
