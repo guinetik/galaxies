@@ -736,6 +736,52 @@ function generateClumpStars(
   return stars
 }
 
+// ─── Halo star generator ─────────────────────────────────────────────────────
+
+const HALO_FRACTION = 0.03
+
+/**
+ * Generates a sparse spherical halo of old, dim stars distributed above/below
+ * and around the galaxy body. Provides vertical depth and a 3D volume feel.
+ * Stars are placed on a sphere of radius > galaxyRadius, with y reaching well
+ * beyond the thin disk slab (~0.7× the full spherical Y extent).
+ */
+function generateHaloStars(
+  params: GalaxyRenderParams,
+  count: number,
+  influence: BandInfluenceConfig | null,
+): Star[] {
+  const R = params.galaxyRadius
+  const out: Star[] = []
+  for (let i = 0; i < count; i++) {
+    const rHalo = R * (1.0 + Math.pow(Math.random(), 0.5) * 0.6)
+    const u = Math.random() * 2 - 1
+    const phi = Math.random() * Math.PI * 2
+    const s = Math.sqrt(1 - u * u)
+    const x = rHalo * s * Math.cos(phi)
+    const y = rHalo * u * 0.7
+    const z = rHalo * s * Math.sin(phi)
+    const radius = Math.sqrt(x * x + z * z)
+    const angle = Math.atan2(z, x)
+    const props = layerProperties('star', influence)
+    const { hue, sat } = pickHueAndSat('star', 1.0, influence, 'field')
+    out.push({
+      radius,
+      angle,
+      y,
+      rotationSpeed: computeRotationSpeed(radius),
+      hue,
+      sat,
+      size: props.size,
+      brightness: props.brightness * 0.45,
+      alpha: props.alpha,
+      layer: 'star',
+      twinklePhase: Math.random() * TAU,
+    })
+  }
+  return out
+}
+
 // ─── Main entry point ────────────────────────────────────────────────────────
 
 export function generateGalaxy(params: GalaxyRenderParams): Star[] {
@@ -751,20 +797,24 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
   const isElliptical = m.ellipticity > 0 && !hasArms && !hasBar && !hasClumps
   const isLenticular = !hasArms && !hasBar && !hasClumps && m.ellipticity === 0 && m.bulgeFraction > 0
 
+  // ── Reserve halo budget before distributing body stars ─────────────────
+  const haloCount = Math.floor(totalStars * HALO_FRACTION)
+  const bodyStars = totalStars - haloCount
+
   // ── Star count distribution ─────────────────────────────────────────────
 
   if (isElliptical) {
     // Elliptical: all stars go to elliptical envelope
-    stars.push(...generateEllipticalStars(params, totalStars, influence))
+    stars.push(...generateEllipticalStars(params, bodyStars, influence))
 
   } else if (isLenticular) {
     // Lenticular: single smooth oblate distribution (no bulge/disk split)
-    stars.push(...generateLenticularStars(params, totalStars, influence))
+    stars.push(...generateLenticularStars(params, bodyStars, influence))
 
   } else if (hasClumps) {
     // Irregular: all non-field stars go to clumps
-    const fieldCount = Math.floor(totalStars * m.fieldStarFraction)
-    const clumpStarCount = totalStars - fieldCount
+    const fieldCount = Math.floor(bodyStars * m.fieldStarFraction)
+    const clumpStarCount = bodyStars - fieldCount
     stars.push(...generateClumpStars(params, clumpStarCount, influence))
     for (let i = 0; i < fieldCount; i++) {
       stars.push(generateFieldStar(galaxyRadius, influence))
@@ -772,8 +822,8 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
 
   } else if (hasBar && hasArms) {
     // Barred spiral: bar 25%, arms get bulk, plus bulge
-    const barCount = Math.floor(totalStars * 0.25)
-    const remainingAfterBar = totalStars - barCount
+    const barCount = Math.floor(bodyStars * 0.25)
+    const remainingAfterBar = bodyStars - barCount
 
     stars.push(...generateBarStars(params, barCount, influence))
 
@@ -785,7 +835,7 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     const bulgeRadius = m.bulgeRadius * galaxyRadius
     if (bulgeRadius > 0) {
       const bulgeFrac = Math.min(0.20, 0.08 + 0.18 * (bulgeRadius / galaxyRadius))
-      const bulgeCount = Math.floor(totalStars * bulgeFrac)
+      const bulgeCount = Math.floor(bodyStars * bulgeFrac)
       stars.push(...generateBulgeStars(params, bulgeCount, influence))
     }
 
@@ -798,23 +848,26 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
   } else if (hasArms) {
     // Unbarred spiral: arms + bulge + field
     const fieldStarFraction = m.fieldStarFraction
-    const armCount = Math.floor(totalStars * (1 - fieldStarFraction))
+    const armCount = Math.floor(bodyStars * (1 - fieldStarFraction))
     stars.push(...generateArmStars(params, armCount, influence))
 
     // Bulge stars (additional, scaled by bulge/galaxy ratio)
     const bulgeRadius = m.bulgeRadius * galaxyRadius
     if (bulgeRadius > 0) {
       const bulgeFrac = Math.min(0.25, 0.10 + 0.20 * (bulgeRadius / galaxyRadius))
-      const bulgeCount = Math.floor(totalStars * bulgeFrac)
+      const bulgeCount = Math.floor(bodyStars * bulgeFrac)
       stars.push(...generateBulgeStars(params, bulgeCount, influence))
     }
 
     // Field stars
-    const fieldCount = Math.floor(totalStars * fieldStarFraction)
+    const fieldCount = Math.floor(bodyStars * fieldStarFraction)
     for (let i = 0; i < fieldCount; i++) {
       stars.push(generateFieldStar(galaxyRadius, influence))
     }
   }
+
+  // ── Halo population: sparse 3D shell above/below and around the body ───
+  stars.push(...generateHaloStars(params, haloCount, influence))
 
   // Apply dust extinction to all stars
   for (const star of stars) {

@@ -541,6 +541,22 @@ export function createComputeInit(
       radialGuidance.assign(sampleRadialGuidance(distFactor, uniforms))
     })
 
+    // ─── HALO: sparse 3D shell of distant dim stars (3% of particles) ──────
+    // Matches CPU HALO_FRACTION = 0.03 and identical spherical math.
+    const haloRoll = hash(seed.add(700))
+    If(haloRoll.lessThan(float(0.03)), () => {
+      const rHalo = float(1.0).add(pow(hash(seed.add(71)), float(0.5)).mul(0.6)).mul(R)
+      const u = hash(seed.add(72)).mul(2).sub(1)
+      const phi = hash(seed.add(73)).mul(TAU)
+      const s = sqrt(float(1).sub(u.mul(u)))
+      posX.assign(rHalo.mul(s).mul(cos(phi)))
+      posY.assign(rHalo.mul(u).mul(0.7))
+      posZ.assign(rHalo.mul(s).mul(sin(phi)))
+      brightness.assign(brightness.mul(0.45))
+      starSize.assign(hash(seed.add(200)).mul(1.4).add(0.6))
+      distFactor.assign(float(1.0))
+    })
+
     If(spiralRole.equal(0), () => {
       const bulgeBoost = mix(
         float(1.0),

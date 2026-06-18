@@ -230,4 +230,22 @@ describe('layer assignment (no dust)', () => {
     // Bright stars still pop: their mean size dwarfs the regular masses.
     expect(mean(bright.map(s => s.size))).toBeGreaterThan(mean(regular.map(s => s.size)) * 1.8)
   })
+
+  it('produces a 3D halo with stars far above/below the disk', () => {
+    const params: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      bandProfile: null,
+      galaxyRadius: 300,
+      starCount: 10000,
+      diameterKpc: 25,
+      sizeSource: 'random' as const,
+    }
+    const stars = generateGalaxy(params)
+    const R = 300
+    // Disk slab is ~6% of R; a halo must put some stars far beyond that in Y.
+    const farY = stars.filter(s => Math.abs(s.y) > R * 0.25)
+    expect(farY.length).toBeGreaterThan(50) // ~3% halo of 10k, many at high |y|
+    // Halo reaches well out vertically.
+    expect(Math.max(...stars.map(s => Math.abs(s.y)))).toBeGreaterThan(R * 0.6)
+  })
 })
