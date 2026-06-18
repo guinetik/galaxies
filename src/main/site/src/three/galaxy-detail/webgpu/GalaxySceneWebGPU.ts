@@ -95,6 +95,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private targetZoom = 4
   private isDragging = false
   private isPinching = false
+  private isPanning = false
+  private pivot = new THREE.Vector3()
   private lastX = 0
   private lastY = 0
   private velocityX = 0
@@ -124,9 +126,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private onTouchStart: (e: TouchEvent) => void
   private onTouchMove: (e: TouchEvent) => void
   private onTouchEnd: () => void
-  private onMouseDown: () => void
+  private onMouseDown: (e: MouseEvent) => void
   private onMouseUp: () => void
   private onMouseMove: (e: MouseEvent) => void
+  private onContextMenu: (e: Event) => void
   private resizeObserver: ResizeObserver
 
   constructor(canvas: HTMLCanvasElement, galaxy: Galaxy, neighbors: Galaxy[] = []) {
@@ -210,7 +213,13 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     this.onPointerDown = (e: PointerEvent) => {
       if (this.isPinching) return
-      this.isDragging = true
+      // Right button pans; any other button orbits.
+      if (e.button === 2) {
+        this.isPanning = true
+        this.isDragging = false
+      } else {
+        this.isDragging = true
+      }
       this.lastX = e.clientX
       this.lastY = e.clientY
       this.velocityX = 0
@@ -218,7 +227,14 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     }
 
     this.onPointerMove = (e: PointerEvent) => {
-      if (this.isPinching || !this.isDragging) return
+      if (this.isPinching) return
+      if (this.isPanning) {
+        this.applyPan(e.clientX - this.lastX, e.clientY - this.lastY)
+        this.lastX = e.clientX
+        this.lastY = e.clientY
+        return
+      }
+      if (!this.isDragging) return
       const dx = e.clientX - this.lastX
       const dy = e.clientY - this.lastY
       this.velocityX = dx * 0.005
@@ -230,11 +246,13 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     this.onPointerUp = () => {
       this.isDragging = false
+      this.isPanning = false
     }
 
     this.onPointerCancel = () => {
       this.isDragging = false
       this.isPinching = false
+      this.isPanning = false
     }
 
     this.onWheel = (e: WheelEvent) => {
@@ -273,7 +291,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     }
 
     // Mouse interaction for particle repulsion
-    this.onMouseDown = () => { this.mousePressed = true }
+    this.onMouseDown = (e: MouseEvent) => { if (e.button !== 2) this.mousePressed = true }
     this.onMouseUp = () => { this.mousePressed = false }
     this.onMouseMove = (e: MouseEvent) => {
       _mouseNDC.set(
@@ -283,6 +301,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       this.raycaster.setFromCamera(_mouseNDC, this.camera)
       this.raycaster.ray.intersectPlane(this.intersectionPlane, this.mouse3D)
     }
+
+    // Suppress the browser context menu so right-drag can pan.
+    this.onContextMenu = (e: Event) => e.preventDefault()
 
     canvas.addEventListener('pointerdown', this.onPointerDown)
     canvas.addEventListener('pointermove', this.onPointerMove)
@@ -296,6 +317,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     canvas.addEventListener('mousedown', this.onMouseDown)
     canvas.addEventListener('mouseup', this.onMouseUp)
     canvas.addEventListener('mousemove', this.onMouseMove)
+    canvas.addEventListener('contextmenu', this.onContextMenu)
 
     // ─── Resize handling ───────────────────────────────────────────────
     this.resizeObserver = new ResizeObserver(() => {
@@ -310,6 +332,20 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   }
 
   // ─── Quaternion orbit helpers ──────────────────────────────────────────
+
+  /** Right-drag pan: shift the look-at pivot in the camera's screen plane. */
+  private applyPan(dxPix: number, dyPix: number): void {
+    const distance = this.baseDistance / this.zoom
+    const fov = (this.camera.fov * Math.PI) / 180
+    const worldPerPx =
+      (2 * distance * Math.tan(fov / 2)) / Math.max(this.canvas.clientHeight, 1)
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.orbitQuat)
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.orbitQuat)
+    this.pivot.addScaledVector(right, -dxPix * worldPerPx)
+    this.pivot.addScaledVector(up, dyPix * worldPerPx)
+    const maxPan = this.baseDistance * 8
+    if (this.pivot.length() > maxPan) this.pivot.setLength(maxPan)
+  }
 
   private applyOrbitDelta(dx: number, dy: number): void {
     _qDrag.setFromAxisAngle(_yAxis, -dx)
@@ -405,9 +441,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Camera orbit position ───────────────────────────────────────
     const distance = this.baseDistance / this.zoom
-    _camPos.set(0, 0, distance).applyQuaternion(this.orbitQuat)
+    _camPos.set(0, 0, distance).applyQuaternion(this.orbitQuat).add(this.pivot)
     this.camera.position.copy(_camPos)
-    this.camera.lookAt(0, 0, 0)
+    this.camera.lookAt(this.pivot)
     this.camera.updateMatrixWorld(true)
 
     // ─── Galaxy rotation (faster as we zoom in) ─────────────────────
@@ -528,6 +564,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     canvas.removeEventListener('mousedown', this.onMouseDown)
     canvas.removeEventListener('mouseup', this.onMouseUp)
     canvas.removeEventListener('mousemove', this.onMouseMove)
+    canvas.removeEventListener('contextmenu', this.onContextMenu)
     this.resizeObserver.disconnect()
 
     this.backdrop.dispose()
