@@ -248,4 +248,20 @@ describe('layer assignment (no dust)', () => {
     // Halo reaches well out vertically.
     expect(Math.max(...stars.map(s => Math.abs(s.y)))).toBeGreaterThan(R * 0.6)
   })
+
+  it('gives disk stars a long off-plane vertical tail', () => {
+    const params: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      bandProfile: null,
+      galaxyRadius: 300,
+      starCount: 10000,
+      diameterKpc: 25,
+      sizeSource: 'random' as const,
+    }
+    const R = 300
+    const disk = generateGalaxy(params).filter(s => Math.abs(s.y) <= R * 0.25)
+    // Uniform slab would cap disk |y| near 0.03R (~9). The tail must exceed that.
+    const tail = disk.filter(s => Math.abs(s.y) > R * 0.05)
+    expect(tail.length).toBeGreaterThan(0)
+  })
 })

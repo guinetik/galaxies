@@ -292,6 +292,12 @@ function computeRotationSpeed(r: number): number {
   return baseSpeed / Math.pow(Math.max(r, referenceRadius) / referenceRadius, falloff)
 }
 
+/** Clamped-logistic vertical draw: most stars near the midplane, some far off it. */
+function longTailY(thickness: number): number {
+  const u = Math.min(0.98, Math.max(0.02, Math.random()))
+  return Math.log(u / (1 - u)) * thickness * 0.30
+}
+
 // ─── Central clear zone ──────────────────────────────────────────────────────
 
 function getCentralClearRadius(params: GalaxyRenderParams): number {
@@ -317,7 +323,7 @@ function generateFieldStar(
 ): Star {
   const angle = Math.random() * TAU
   const radius = Math.sqrt(Math.random()) * galaxyRadius
-  let y = (Math.random() - 0.5) * galaxyRadius * 0.08
+  let y = longTailY(galaxyRadius * 0.08)
   const layer = assignLayer(Math.random(), influence)
   const props = layerProperties(layer, influence)
   const distFactor = radius / galaxyRadius
@@ -410,7 +416,7 @@ function generateArmStars(
       const radialT = armRadius / galaxyRadius
       const baseThickness = galaxyRadius * CONFIG.visual.diskThicknessRatio * (1 - radialT * 0.7)
       const thickness = baseThickness * diskThicknessScale
-      let y = (Math.random() - 0.5) * thickness
+      let y = longTailY(thickness)
 
       // Apply projected silhouette
       const silhouetted = applyProjectedSilhouette({ x, y, z }, influence)
@@ -620,7 +626,7 @@ function generateLenticularStars(
     // quadratically toward the disk edge.
     const baseThickness = galaxyRadius * 0.06 * Math.pow(Math.max(1 - distFactor, 0), 2)
     const thickness = baseThickness * diskThicknessScale
-    let y = (Math.random() - 0.5) * thickness
+    let y = longTailY(thickness)
 
     // Match the WebGPU continuous bulge weighting instead of a hard in/out split.
     const bulgeBlend = Math.max(0, Math.min(1, 1 - r / Math.max(bulgeRadius, 1)))

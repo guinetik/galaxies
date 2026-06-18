@@ -225,6 +225,12 @@ export function syncGalaxyUniforms(
 
 const TAU = 6.28318530718
 
+/** Clamped-logistic vertical draw (GPU/TSL): most stars near the midplane, some far off it. */
+const longTailY = (thickness: any, h: any) => {
+  const u = clamp(h, float(0.02), float(0.98))
+  return u.div(float(1).sub(u)).log().mul(thickness).mul(0.30)
+}
+
 /**
  * Samples the coarse radial density guidance extracted from the band profile.
  */
@@ -350,7 +356,7 @@ export function createComputeInit(
         // ─── Field star ───────────────────────────────────────────
         const r = sqrt(hash(seed.add(20))).mul(R)
         const theta = hash(seed.add(21)).mul(TAU)
-        const y = hash(seed.add(22)).sub(0.5).mul(R).mul(0.08)
+        const y = longTailY(R.mul(0.08), hash(seed.add(22)))
         posX.assign(cos(theta).mul(r))
         posY.assign(y)
         posZ.assign(sin(theta).mul(r))
@@ -430,7 +436,7 @@ export function createComputeInit(
           .add(sin(scatterAngle).mul(guidedScatter))
         const t = guidedArmR.div(R)
         const thickness = R.mul(0.06).mul(float(1).sub(t.mul(0.7))).mul(uniforms.bandDiskThicknessScale)
-        const y = hash(seed.add(36)).sub(0.5).mul(thickness)
+        const y = longTailY(thickness, hash(seed.add(36)))
 
         posX.assign(x)
         posY.assign(y)
@@ -474,7 +480,7 @@ export function createComputeInit(
 
       // Lens-shaped vertical profile: thick at center, thin at edge
       const thickness = R.mul(0.06).mul(pow(max(float(1).sub(df), float(0)), float(2))).mul(uniforms.bandDiskThicknessScale)
-      const y = hash(seed.add(12)).sub(0.5).mul(thickness)
+      const y = longTailY(thickness, hash(seed.add(12)))
 
       posX.assign(cos(theta).mul(r))
       posY.assign(y)
