@@ -17,6 +17,8 @@ import {
   mix,
   uv,
   texture,
+  uniform,
+  cameraPosition,
 } from 'three/tsl'
 import { createGlowTexture } from '../createGlowTexture'
 import type { GalaxyBuffers } from './GalaxyComputeInit'
@@ -27,6 +29,9 @@ export class GalaxyParticlesWebGPU {
   private material: THREE.SpriteNodeMaterial
   private foregroundMaterial: THREE.SpriteNodeMaterial
   private glowTexture: THREE.DataTexture
+  // Screen-space size uniforms — typed via inference from module-scope helpers
+  private readonly uScreenH = uniform(800)
+  private readonly uTanHalfFov = uniform(Math.tan((60 * Math.PI) / 180 / 2))
 
   constructor(count: number, buffers: GalaxyBuffers, baseDistance: number) {
     // Shared buffer attributes
@@ -35,8 +40,17 @@ export class GalaxyParticlesWebGPU {
     const starSize = buffers.sizeBuffer.toAttribute()
     const fgAlpha = buffers.foregroundAlphaBuffer.toAttribute()
 
-    const densityScale = Math.sqrt(60000 / count)
-    const worldScale = baseDistance * 0.003 * densityScale
+    // Screen-space size uniforms (updated each frame by the scene)
+    const uBaseDist = uniform(baseDistance)
+    const uScreenH = this.uScreenH
+    const uTanHalfFov = this.uTanHalfFov
+    const MIN_PX = 0.0, MAX_PX = 5.0      // device px (uScreenH already includes dpr)
+
+    const screenScale = (sz: any) => {
+      const dist = cameraPosition.sub(starPos).length().max(float(0.001))
+      const targetPx = sz.mul(uBaseDist.mul(1.28)).div(dist).clamp(float(MIN_PX), float(MAX_PX))
+      return targetPx.mul(dist).mul(uTanHalfFov.mul(2)).div(uScreenH)
+    }
 
     // ─── Baked glow texture ───────────────────────────────────────────────
     const glowDataTexture = createGlowTexture()
@@ -65,7 +79,7 @@ export class GalaxyParticlesWebGPU {
     this.material.blending = THREE.AdditiveBlending
 
     this.material.positionNode = starPos
-    this.material.scaleNode = starSize.mul(worldScale)
+    this.material.scaleNode = screenScale(starSize)
     this.material.colorNode = glowFragment(float(1.0).sub(fgAlpha))
 
     this.sprite = new THREE.Sprite(this.material)
@@ -79,13 +93,18 @@ export class GalaxyParticlesWebGPU {
     this.foregroundMaterial.blending = THREE.AdditiveBlending
 
     this.foregroundMaterial.positionNode = starPos
-    this.foregroundMaterial.scaleNode = starSize.mul(worldScale)
+    this.foregroundMaterial.scaleNode = screenScale(starSize)
     this.foregroundMaterial.colorNode = glowFragment(fgAlpha)
 
     this.foregroundSprite = new THREE.Sprite(this.foregroundMaterial)
     this.foregroundSprite.count = count
     this.foregroundSprite.frustumCulled = false
     this.foregroundSprite.renderOrder = 2
+  }
+
+  updateSizeUniforms(screenHpx: number, tanHalfFov: number): void {
+    this.uScreenH.value = Math.max(screenHpx, 1)
+    this.uTanHalfFov.value = tanHalfFov
   }
 
   dispose(): void {

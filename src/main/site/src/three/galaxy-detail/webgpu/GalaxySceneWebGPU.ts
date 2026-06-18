@@ -453,7 +453,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       const bhQuadSize = this.params.galaxyRadius * 0.08
       const fov = (this.camera.fov * Math.PI) / 180
       const screenH = this.rendererSize.y * this.dpr
-      const bhRadiusPx = (bhQuadSize / cameraDistance) * (screenH / (2 * Math.tan(fov / 2)))
+      const tanHalfFov = Math.tan(fov / 2)
+      const bhRadiusPx = (bhQuadSize / cameraDistance) * (screenH / (2 * tanHalfFov))
+
+      // Screen-space star sizing
+      this.particles.updateSizeUniforms(screenH, tanHalfFov)
       const overlapScale = THREE.MathUtils.lerp(0.75, 1.2, edgeOnMix)
       const vpW = this.canvas.clientWidth
       const vpH = this.canvas.clientHeight
