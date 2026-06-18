@@ -259,9 +259,18 @@ describe('layer assignment (no dust)', () => {
       sizeSource: 'random' as const,
     }
     const R = 300
-    const disk = generateGalaxy(params).filter(s => Math.abs(s.y) <= R * 0.25)
-    // Uniform slab would cap disk |y| near 0.03R (~9). The tail must exceed that.
+    const stars = generateGalaxy(params)
+    // Isolate genuine DISK stars: exclude halo (radius >= ~R) and any residual
+    // high-Y outliers from other populations. Halo stars have radius >= R*1.0,
+    // so radius < R*0.9 drops them cleanly.
+    const disk = stars.filter(s => s.radius < R * 0.9 && Math.abs(s.y) <= R * 0.25)
+    // A uniform slab caps |y| at ~thickness/2 = 0.08R*0.5 = 0.04R (= 12 units).
+    // The logit long-tail draws logit(u)*thickness*0.30, which sends the 10th
+    // percentile of u (u=0.1) to |y| ≈ 0.053R (= 16 units).
+    // Threshold R*0.05 (= 15) is therefore:
+    //   - IMPOSSIBLE for a uniform slab (max ~12),
+    //   - EASILY exceeded by longTailY (many stars past 15).
     const tail = disk.filter(s => Math.abs(s.y) > R * 0.05)
-    expect(tail.length).toBeGreaterThan(0)
+    expect(tail.length).toBeGreaterThan(20)
   })
 })
