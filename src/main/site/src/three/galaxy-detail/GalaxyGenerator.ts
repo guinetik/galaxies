@@ -287,9 +287,8 @@ function pickHueAndSat(
   return { hue, sat }
 }
 
-function computeRotationSpeed(r: number): number {
-  const { baseSpeed, falloff, referenceRadius } = CONFIG.rotation
-  return baseSpeed / Math.pow(Math.max(r, referenceRadius) / referenceRadius, falloff)
+function computeRotationSpeed(r: number, omega0: number, falloff: number, turnover: number): number {
+  return omega0 / Math.pow(Math.max(r, turnover) / turnover, falloff)
 }
 
 /** Clamped-logistic vertical draw: most stars near the midplane, some far off it. */
@@ -319,6 +318,9 @@ function applyCentralClearZone(stars: Star[], params: GalaxyRenderParams): Star[
  */
 function generateFieldStar(
   galaxyRadius: number,
+  omega0: number,
+  falloff: number,
+  turnover: number,
   influence: BandInfluenceConfig | null = null,
 ): Star {
   const angle = Math.random() * TAU
@@ -341,7 +343,7 @@ function generateFieldStar(
     radius: silhouettedRadius,
     angle: silhouettedAngle,
     y: silhouetted.y,
-    rotationSpeed: computeRotationSpeed(silhouettedRadius),
+    rotationSpeed: computeRotationSpeed(silhouettedRadius, omega0, falloff, turnover),
     hue: spec.hue,
     sat: spec.sat,
     brightness: props.brightness,
@@ -427,7 +429,7 @@ function generateArmStars(
       const actualRadius = Math.sqrt(xSilhouetted * xSilhouetted + zSilhouetted * zSilhouetted)
       const actualAngle = Math.atan2(zSilhouetted, xSilhouetted)
       const distFactor = actualRadius / galaxyRadius
-      const rotationSpeed = computeRotationSpeed(actualRadius)
+      const rotationSpeed = computeRotationSpeed(actualRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover)
 
       const layer = assignLayer(Math.random(), influence)
 
@@ -489,7 +491,7 @@ function generateBarStars(
       radius: silhouettedRadius,
       angle: silhouettedAngle,
       y: finalY,
-      rotationSpeed: computeRotationSpeed(silhouettedRadius),
+      rotationSpeed: computeRotationSpeed(silhouettedRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover),
       hue: spec.hue,
       sat: spec.sat,
       brightness: props.brightness,
@@ -537,7 +539,7 @@ function generateBulgeStars(
       radius: silhouettedRadius,
       angle: silhouettedAngle,
       y: silhouetted.y,
-      rotationSpeed: computeRotationSpeed(silhouettedRadius) * 0.5,
+      rotationSpeed: computeRotationSpeed(silhouettedRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover),
       hue: spec.hue,
       sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
@@ -586,7 +588,7 @@ function generateEllipticalStars(
       radius: actualRadius,
       angle: actualAngle,
       y: silhouetted.y,
-      rotationSpeed: computeRotationSpeed(actualRadius) * 0.3,
+      rotationSpeed: computeRotationSpeed(actualRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover),
       hue: spec.hue,
       sat: spec.sat,
       brightness: props.brightness,
@@ -647,7 +649,7 @@ function generateLenticularStars(
       radius: silhouettedRadius,
       angle: silhouettedAngle,
       y: silhouetted.y,
-      rotationSpeed: computeRotationSpeed(silhouettedRadius) * (bulgeBlend > 0 ? 0.5 : 1.0),
+      rotationSpeed: computeRotationSpeed(silhouettedRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover),
       hue: spec.hue,
       sat: spec.sat,
       brightness: Math.min(props.brightness * coreBrightBoost, 0.95),
@@ -728,7 +730,7 @@ function generateClumpStars(
       radius: actualRadius,
       angle: actualAngle,
       y: silhouetted.y,
-      rotationSpeed: computeRotationSpeed(actualRadius) * (0.5 + Math.random() * 0.5),
+      rotationSpeed: computeRotationSpeed(actualRadius, p.rotationOmega0, p.rotationFalloff, p.rotationTurnover),
       hue: spec.hue,
       sat: spec.sat,
       brightness: props.brightness,
@@ -775,7 +777,7 @@ function generateHaloStars(
       radius,
       angle,
       y,
-      rotationSpeed: computeRotationSpeed(radius),
+      rotationSpeed: computeRotationSpeed(radius, params.rotationOmega0, params.rotationFalloff, params.rotationTurnover),
       hue,
       sat,
       size: props.size,
@@ -823,7 +825,7 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     const clumpStarCount = bodyStars - fieldCount
     stars.push(...generateClumpStars(params, clumpStarCount, influence))
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius, influence))
+      stars.push(generateFieldStar(galaxyRadius, params.rotationOmega0, params.rotationFalloff, params.rotationTurnover, influence))
     }
 
   } else if (hasBar && hasArms) {
@@ -848,7 +850,7 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     // Field stars: 10% of remaining
     const fieldCount = Math.floor(remainingAfterBar * 0.1)
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius, influence))
+      stars.push(generateFieldStar(galaxyRadius, params.rotationOmega0, params.rotationFalloff, params.rotationTurnover, influence))
     }
 
   } else if (hasArms) {
@@ -868,7 +870,7 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     // Field stars
     const fieldCount = Math.floor(bodyStars * fieldStarFraction)
     for (let i = 0; i < fieldCount; i++) {
-      stars.push(generateFieldStar(galaxyRadius, influence))
+      stars.push(generateFieldStar(galaxyRadius, params.rotationOmega0, params.rotationFalloff, params.rotationTurnover, influence))
     }
   }
 

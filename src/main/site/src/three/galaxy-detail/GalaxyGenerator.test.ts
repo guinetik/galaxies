@@ -294,4 +294,18 @@ describe('layer assignment (no dust)', () => {
     const tail = disk.filter(s => Math.abs(s.y) > R * 0.05)
     expect(tail.length).toBeGreaterThan(20)
   })
+
+  it('rotates inner disk stars faster than outer (differential)', () => {
+    const params: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral, bandProfile: null,
+      galaxyRadius: 300, starCount: 4000, diameterKpc: 25, sizeSource: 'random' as const,
+      rotationOmega0: 0.18, rotationFalloff: 1.0, rotationTurnover: 45,
+    }
+    const stars = generateGalaxy(params).filter(s => s.radius > 45)
+    // Pearson-ish check: larger radius → smaller rotationSpeed
+    const sorted = [...stars].sort((a, b) => a.radius - b.radius)
+    const inner = sorted.slice(0, 50).reduce((s, x) => s + x.rotationSpeed, 0) / 50
+    const outer = sorted.slice(-50).reduce((s, x) => s + x.rotationSpeed, 0) / 50
+    expect(inner).toBeGreaterThan(outer)
+  })
 })
