@@ -339,9 +339,9 @@ export function mapGalaxyToRenderParams(
   let starCount: number
   if (galaxy.log_ms_t != null && galaxy.log_ms_t > 10.8) {
     const massScale = Math.pow(10, 0.15 * (galaxy.log_ms_t - 10.8))
-    starCount = clamp(Math.round(60000 * massScale), 60000, 120000)
+    starCount = clamp(Math.round(75000 * massScale), 75000, 150000)
   } else {
-    starCount = clamp(Math.round(60000 * (0.7 + rand() * 0.6)), 42000, 78000)
+    starCount = clamp(Math.round(75000 * (0.7 + rand() * 0.6)), 50000, 100000)
   }
 
   return {

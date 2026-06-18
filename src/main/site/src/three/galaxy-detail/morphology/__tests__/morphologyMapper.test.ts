@@ -85,7 +85,8 @@ describe('mapGalaxyToRenderParams', () => {
     const g = makeGalaxy()
     const params = mapGalaxyToRenderParams(g)
     expect(params.galaxyRadius).toBeGreaterThan(0)
-    expect(params.starCount).toBeGreaterThanOrEqual(42000)
+    expect(params.starCount).toBeGreaterThanOrEqual(50000)
+    expect(params.starCount).toBeLessThanOrEqual(150000)
     expect(params.diameterKpc).toBeGreaterThan(0)
   })
 
