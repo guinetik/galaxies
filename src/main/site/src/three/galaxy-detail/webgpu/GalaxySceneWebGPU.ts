@@ -30,6 +30,9 @@ import { GalaxyPostProcessing } from './GalaxyPostProcessing'
 import { GalaxyClouds } from './GalaxyClouds'
 import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
+import { GalaxyNeighborsWebGPU } from './GalaxyNeighborsWebGPU'
+import { computeNeighborSprites } from '../neighborField'
+import { generateGalaxyTextureAtlas } from '../../GalaxyTextures'
 import type { IGalaxyScene } from '../IGalaxyScene'
 import { getInitialOrbitAngles } from '../initialOrbit'
 import { detectQuality, dprCap, rtScale, type Quality } from '../qualityDetect'
@@ -75,6 +78,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private clouds: GalaxyClouds
   private blackHole!: GalaxyBlackHoleWebGPU
   private postProcessing!: GalaxyPostProcessing
+  private neighborsLayer: GalaxyNeighborsWebGPU | null = null
+  private neighborAtlas: THREE.Texture | null = null
 
   // Reusable vector for BH screen projection
   private _bhScreenVec = new THREE.Vector3()
@@ -124,7 +129,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private onMouseMove: (e: MouseEvent) => void
   private resizeObserver: ResizeObserver
 
-  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy, _neighbors: Galaxy[] = []) {
+  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy, neighbors: Galaxy[] = []) {
     this.canvas = canvas
     this.galaxy = galaxy
 
@@ -175,6 +180,18 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Foreground stars (separate scene — additive on top of BH composite)
     this.fgScene.add(this.particles.foregroundSprite)
+
+    // ─── Neighbor galaxies (distant sprites, additive, behind galaxy) ──
+    const neighborSprites = computeNeighborSprites(galaxy, neighbors, this.baseDistance)
+    if (neighborSprites.length > 0) {
+      this.neighborAtlas = generateGalaxyTextureAtlas()
+      this.neighborsLayer = new GalaxyNeighborsWebGPU(
+        neighborSprites,
+        this.neighborAtlas,
+        this.baseDistance,
+      )
+      this.scene.add(this.neighborsLayer.sprite)
+    }
 
     // ─── Mobile: start more zoomed out ─────────────────────────────────
     const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768
@@ -458,6 +475,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
       // Screen-space star sizing
       this.particles.updateSizeUniforms(screenH, tanHalfFov)
+      this.neighborsLayer?.updateSizeUniforms(screenH, tanHalfFov)
       const overlapScale = THREE.MathUtils.lerp(0.75, 1.2, edgeOnMix)
       const vpW = this.canvas.clientWidth
       const vpH = this.canvas.clientHeight
@@ -517,6 +535,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.clouds.dispose()
     this.blackHole.dispose()
     this.postProcessing.dispose()
+    this.neighborsLayer?.dispose()
+    this.neighborAtlas?.dispose()
     this.renderer.dispose()
   }
 }
