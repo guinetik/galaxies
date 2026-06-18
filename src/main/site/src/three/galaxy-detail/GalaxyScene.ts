@@ -8,6 +8,9 @@ import { GalaxyHaze } from './GalaxyHaze'
 import { GalaxyBackdrop } from './GalaxyBackdrop'
 import { GalaxyNebula } from './GalaxyNebula'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
+import { GalaxyNeighbors } from './GalaxyNeighbors'
+import { computeNeighborSprites } from './neighborField'
+import { generateGalaxyTextureAtlas } from '../GalaxyTextures'
 import { getInitialOrbitAngles } from './initialOrbit'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
@@ -31,6 +34,8 @@ export class GalaxyScene implements IGalaxyScene {
   private haze: GalaxyHaze
   private nebula: GalaxyNebula
   private blackHole: GalaxyBlackHole
+  private neighbors: GalaxyNeighbors | null = null
+  private neighborAtlas: THREE.Texture | null = null
   private animationId = 0
   private clock = new THREE.Clock()
   private galaxyRotation = 0
@@ -72,7 +77,7 @@ export class GalaxyScene implements IGalaxyScene {
   private onTouchEnd: () => void
   private resizeObserver: ResizeObserver
 
-  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
+  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy, neighbors: Galaxy[] = []) {
     // ─── Renderer ──────────────────────────────────────────────────────
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
@@ -125,6 +130,16 @@ export class GalaxyScene implements IGalaxyScene {
     this.haze.mesh.layers.set(1)
     this.nebula.mesh.layers.set(1)
     // Black hole layers are set in GalaxyBlackHole constructor (layer 2)
+
+    // ─── Distant neighbor galaxies (background layer, behind main galaxy) ─
+    const sprites = computeNeighborSprites(galaxy, neighbors, this.baseDistance)
+    if (sprites.length > 0) {
+      this.neighborAtlas = generateGalaxyTextureAtlas()
+      this.neighbors = new GalaxyNeighbors(sprites, this.neighborAtlas, this.baseDistance)
+      this.neighbors.points.layers.set(1)
+      this.neighbors.points.renderOrder = -9
+      this.scene.add(this.neighbors.points)
+    }
 
     // ─── Lensing render target & fullscreen quad ─────────────────────
 
@@ -433,6 +448,8 @@ export class GalaxyScene implements IGalaxyScene {
     this.haze.dispose()
     this.nebula.dispose()
     this.blackHole.dispose()
+    this.neighbors?.dispose()
+    this.neighborAtlas?.dispose()
     this.galaxyRT.dispose()
     this.lensingMaterial.dispose()
     this.renderer.dispose()

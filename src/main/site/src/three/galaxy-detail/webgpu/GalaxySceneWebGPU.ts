@@ -124,7 +124,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private onMouseMove: (e: MouseEvent) => void
   private resizeObserver: ResizeObserver
 
-  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy) {
+  constructor(canvas: HTMLCanvasElement, galaxy: Galaxy, _neighbors: Galaxy[] = []) {
     this.canvas = canvas
     this.galaxy = galaxy
 

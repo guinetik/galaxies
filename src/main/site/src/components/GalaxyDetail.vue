@@ -6,6 +6,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { Galaxy } from '@/types/galaxy'
 import type { IGalaxyScene } from '@/three/galaxy-detail/IGalaxyScene'
+import { useGalaxyData } from '@/composables/useGalaxyData'
 
 const props = withDefaults(defineProps<{
   galaxy: Galaxy
@@ -21,15 +22,21 @@ const emit = defineEmits<{
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let scene: IGalaxyScene | null = null
 
+const { ready: dbReady, getNearbyGalaxies } = useGalaxyData()
+
 onMounted(async () => {
   if (!canvasRef.value) return
+
+  // Fetch neighbor galaxies from the DB (non-blocking — DB may still be loading)
+  await dbReady
+  const neighbors: Galaxy[] = getNearbyGalaxies(props.galaxy)
 
   if (props.renderer === 'webgpu' && navigator.gpu) {
     try {
       const { GalaxySceneWebGPU } = await import(
         '@/three/galaxy-detail/webgpu/GalaxySceneWebGPU'
       )
-      scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy)
+      scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy, neighbors)
       await scene.start()
       emit('activeRenderer', 'webgpu')
       emit('ready')
@@ -41,7 +48,7 @@ onMounted(async () => {
 
   // WebGL fallback
   const { GalaxyScene } = await import('@/three/galaxy-detail/GalaxyScene')
-  scene = new GalaxyScene(canvasRef.value, props.galaxy)
+  scene = new GalaxyScene(canvasRef.value, props.galaxy, neighbors)
   scene.start()
   emit('activeRenderer', 'webgl')
   emit('ready')
