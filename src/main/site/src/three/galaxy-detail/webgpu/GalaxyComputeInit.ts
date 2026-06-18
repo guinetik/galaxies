@@ -93,6 +93,8 @@ export interface GalaxyUniforms {
   time: any
   deltaTime: any
   rotationSpeed: any
+  rotationFalloff: any
+  rotationTurnover: any
   // Mouse interaction
   mouse: any
   mouseActive: any
@@ -160,6 +162,8 @@ export function createGalaxyUniforms(params: GalaxyRenderParams): GalaxyUniforms
     time: uniform(0),
     deltaTime: uniform(0.016),
     rotationSpeed: uniform(0.033),
+    rotationFalloff: uniform(1.0),
+    rotationTurnover: uniform(45),
     mouse: uniform(new THREE.Vector3(0, 0, 0)),
     mouseActive: uniform(0.0),
     mouseForce: uniform(7.0),
@@ -219,6 +223,8 @@ export function syncGalaxyUniforms(
   uniforms.dustStrength.value = m.dustStrength
   uniforms.dustArmBoost.value = m.dustArmBoost
   uniforms.mouseRadius.value = params.galaxyRadius * 0.3
+  uniforms.rotationFalloff.value = params.rotationFalloff
+  uniforms.rotationTurnover.value = params.rotationTurnover
 }
 
 // ─── Compute init shader ───────────────────────────────────────────────────

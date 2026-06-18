@@ -138,17 +138,16 @@ export const rotateXZ = Fn(([position, angle]: [any, any]) => {
 })
 
 /**
- * Applies differential rotation based on distance from center.
- * Uses the project's Keplerian-like formula:
- *   baseSpeed / pow(max(r, refRadius) / refRadius, 0.35)
+ * Applies data-driven differential rotation based on distance from center.
+ * Matches CPU curve exactly: omega(r) = omega0 / pow(max(r, turnover)/turnover, falloff)
+ * i.e. omega0 / max(r/turnover, 1)^falloff
  */
 export const applyDifferentialRotation = Fn(
-  ([position, rotationSpeed, deltaTime]: [any, any, any]) => {
+  ([position, omega0, falloff, turnover, deltaTime]: [any, any, any, any, any]) => {
     const distFromCenter = length(vec3(position.x, float(0), position.z))
-    const refRadius = float(20.0)
-    const normalizedR = max(distFromCenter, refRadius).div(refRadius)
-    const rotationFactor = float(1.0).div(pow(normalizedR, float(0.35)))
-    const angularSpeed = rotationSpeed.mul(rotationFactor).mul(deltaTime).negate()
+    const normalizedR = max(distFromCenter, turnover).div(turnover)
+    const rotationFactor = float(1.0).div(pow(normalizedR, falloff))
+    const angularSpeed = omega0.mul(rotationFactor).mul(deltaTime).negate()
     return rotateXZ(position, angularSpeed)
   },
 )

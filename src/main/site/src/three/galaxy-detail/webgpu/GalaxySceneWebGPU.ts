@@ -446,13 +446,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.camera.lookAt(this.pivot)
     this.camera.updateMatrixWorld(true)
 
-    // ─── Galaxy rotation (faster as we zoom in) ─────────────────────
-    const zoomNorm = Math.min(this.zoom / 20, 1)
-    // Elliptical & irregular galaxies: no differential rotation
-    const m = this.params.morphology
-    const rotSpeed = (m.ellipticity > 0 || m.clumpCount > 0)
-      ? 0
-      : 0.02 + 0.18 * zoomNorm * zoomNorm
+    // ─── Galaxy rotation (data-driven differential rotation) ────────
+    // omega0 from params; curve handled per-star in compute shader.
+    // Ellipticals/irregulars now rotate via their reduced omega0 from params.
+    const rotSpeed = this.params.rotationOmega0
     this.galaxyRotation += dt * rotSpeed
     const time = this.uniforms.time.value + dt
 

@@ -52,24 +52,24 @@ export function createComputeUpdate(
       }).Else(() => {
         // Outside bar: differential rotation for spiral arms
         position.assign(applyDifferentialRotation(
-          position, uniforms.rotationSpeed, uniforms.deltaTime,
+          position, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
         ))
         buffers.originalPositionBuffer.element(idx).assign(
           applyDifferentialRotation(
-            originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+            originalPos, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
           ),
         )
       })
     }).Else(() => {
-      // Non-barred: differential rotation (spirals/lenticular)
-      // Elliptical/irregular have rotationSpeed=0, so this is a no-op
+      // Non-barred: differential rotation (spirals/lenticular/elliptical/irregular)
+      // Elliptical/irregular now use reduced omega0 from params (data-driven)
       const rotatedPos = applyDifferentialRotation(
-        position, uniforms.rotationSpeed, uniforms.deltaTime,
+        position, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
       )
       position.assign(rotatedPos)
       buffers.originalPositionBuffer.element(idx).assign(
         applyDifferentialRotation(
-          originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+          originalPos, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
         ),
       )
     })
