@@ -35,11 +35,6 @@ export interface Star {
 const TAU = Math.PI * 2
 
 const CONFIG = {
-  rotation: {
-    baseSpeed: 0.033,
-    falloff: 0.35,
-    referenceRadius: 20,
-  },
   blackHole: {
     exclusionRadius: 25,
   },
