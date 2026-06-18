@@ -110,6 +110,12 @@ export interface GalaxyRenderParams {
   diameterKpc: number
   /** How the size was determined. */
   sizeSource: 'observed' | 'mass' | 'random'
+  /** Peak angular velocity (rad/s in renderer units) from stellar-mass Tully-Fisher. */
+  rotationOmega0: number
+  /** Rotation curve falloff exponent (1.0 = full differential, 0.15 = near-rigid). */
+  rotationFalloff: number
+  /** Turnover radius where rotation peaks, in renderer units. */
+  rotationTurnover: number
 }
 
 // ─── Category mapping ────────────────────────────────────────────────────────

@@ -102,4 +102,24 @@ describe('mapGalaxyToRenderParams', () => {
     const params = mapGalaxyToRenderParams(g)
     expect(['observed', 'mass', 'random']).toContain(params.sizeSource)
   })
+
+  it('derives faster rotation for more massive galaxies (Tully-Fisher)', () => {
+    const big = mapGalaxyToRenderParams(makeGalaxy({ morphology: 'Sb', log_ms_t: 11.5 }))
+    const small = mapGalaxyToRenderParams(makeGalaxy({ morphology: 'Sb', log_ms_t: 9.0 }))
+    expect(big.rotationOmega0).toBeGreaterThan(small.rotationOmega0)
+    expect(big.rotationFalloff).toBeCloseTo(1.0)
+    expect(big.rotationTurnover).toBeGreaterThan(0)
+  })
+
+  it('gives ellipticals a reduced, near-rigid rotation', () => {
+    const e = mapGalaxyToRenderParams(makeGalaxy({ morphology: 'E2', log_ms_t: 11.0 }))
+    const s = mapGalaxyToRenderParams(makeGalaxy({ morphology: 'Sb', log_ms_t: 11.0 }))
+    expect(e.rotationFalloff).toBeLessThan(0.5)        // near-rigid
+    expect(e.rotationOmega0).toBeLessThan(s.rotationOmega0) // reduced
+  })
+
+  it('uses a sane default rotation when stellar mass is missing', () => {
+    const p = mapGalaxyToRenderParams(makeGalaxy({ morphology: 'Sb', log_ms_t: null }))
+    expect(p.rotationOmega0).toBeGreaterThan(0)
+  })
 })

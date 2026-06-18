@@ -344,6 +344,17 @@ export function mapGalaxyToRenderParams(
     starCount = clamp(Math.round(75000 * (0.7 + rand() * 0.6)), 50000, 100000)
   }
 
+  // 9. Rotation params from stellar-mass Tully-Fisher
+  const BASE_OMEGA = 0.18
+  const vmax = galaxy.log_ms_t != null
+    ? clamp(Math.pow(10, (galaxy.log_ms_t - 1.5) / 4), 40, 350)
+    : 150
+  const speedFactor = clamp(vmax / 180, 0.4, 2.2)
+  const isEllipticalOrIrregular = category === 'elliptical' || category === 'irregular'
+  const rotationOmega0 = BASE_OMEGA * speedFactor * (isEllipticalOrIrregular ? 0.3 : 1.0)
+  const rotationFalloff = isEllipticalOrIrregular ? 0.15 : 1.0
+  const rotationTurnover = galaxyRadius * 0.15
+
   return {
     morphology,
     bandProfile: bandProfile ?? null,
@@ -351,5 +362,8 @@ export function mapGalaxyToRenderParams(
     starCount,
     diameterKpc,
     sizeSource,
+    rotationOmega0,
+    rotationFalloff,
+    rotationTurnover,
   }
 }

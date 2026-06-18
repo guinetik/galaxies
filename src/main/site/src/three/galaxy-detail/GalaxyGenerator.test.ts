@@ -116,6 +116,9 @@ describe('generateGalaxy', () => {
       starCount: 100,
       diameterKpc: 10,
       sizeSource: 'observed',
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 3.0,
     }
 
     const starsWithoutBand = generateGalaxy(testParams)
@@ -150,6 +153,9 @@ describe('generateGalaxy', () => {
       starCount: 100,
       diameterKpc: 10,
       sizeSource: 'observed',
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 3.0,
     }
 
     const starsWithBand = generateGalaxy(testParams)
@@ -165,6 +171,9 @@ describe('generateGalaxy', () => {
       starCount: 50,
       diameterKpc: 10,
       sizeSource: 'observed',
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 3.0,
     }
 
     const starsBase = generateGalaxy(paramsBase)
@@ -205,6 +214,9 @@ describe('layer assignment (no dust)', () => {
       starCount: 1000,
       diameterKpc: 25,
       sizeSource: 'random' as const,
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 52.5,
     }
     const stars = generateGalaxy(params)
     const layers = new Set(stars.map(s => s.layer))
@@ -219,6 +231,9 @@ describe('layer assignment (no dust)', () => {
       starCount: 5000,
       diameterKpc: 25,
       sizeSource: 'random' as const,
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 52.5,
     }
     const stars = generateGalaxy(params)
     const regular = stars.filter(s => s.layer === 'star')
@@ -239,6 +254,9 @@ describe('layer assignment (no dust)', () => {
       starCount: 10000,
       diameterKpc: 25,
       sizeSource: 'random' as const,
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 45.0,
     }
     const stars = generateGalaxy(params)
     const R = 300
@@ -257,6 +275,9 @@ describe('layer assignment (no dust)', () => {
       starCount: 10000,
       diameterKpc: 25,
       sizeSource: 'random' as const,
+      rotationOmega0: 0.18,
+      rotationFalloff: 1.0,
+      rotationTurnover: 45.0,
     }
     const R = 300
     const stars = generateGalaxy(params)
