@@ -20,21 +20,24 @@ const NEIGHBOR_VERT = /* glsl */ `
 attribute float aSize;
 attribute vec3  aColor;
 attribute float aTexIndex;
+attribute float aBrightness;
 
 uniform float uPixelRatio;
 uniform float uBaseDistance;
 
 varying vec3  vColor;
 varying float vTexIndex;
+varying float vBrightness;
 
 void main() {
-  vColor    = aColor;
-  vTexIndex = aTexIndex;
+  vColor      = aColor;
+  vTexIndex   = aTexIndex;
+  vBrightness = aBrightness;
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 
   // Screen-space size: same formula as particle.vert.glsl, clamped smaller.
   float pointSize = aSize * uPixelRatio * (uBaseDistance * 1.28 / -mvPosition.z);
-  gl_PointSize = clamp(pointSize, 1.0 * uPixelRatio, 6.0 * uPixelRatio);
+  gl_PointSize = clamp(pointSize, 1.0 * uPixelRatio, 5.0 * uPixelRatio);
   gl_Position  = projectionMatrix * mvPosition;
 }
 `
@@ -43,10 +46,11 @@ const NEIGHBOR_FRAG = /* glsl */ `
 precision highp float;
 
 uniform sampler2D uAtlas;
-uniform float     uBrightness;  // per-batch dim factor (set to ~0.35)
+uniform float     uBrightness;  // global master dim (0.7)
 
 varying vec3  vColor;
 varying float vTexIndex;
+varying float vBrightness;  // per-sprite distance fade from aBrightness
 
 void main() {
   // Atlas layout: 4 cols x 2 rows
@@ -64,11 +68,12 @@ void main() {
 
   vec4 tex = texture2D(uAtlas, tileUV);
 
-  // Multiply atlas colour by tint and global dim; discard fully transparent.
-  float alpha = tex.a * uBrightness;
+  // Apply brightness once: per-sprite distance fade × global master dim.
+  float dim   = vBrightness * uBrightness;
+  float alpha = tex.a;
   if (alpha < 0.005) discard;
 
-  gl_FragColor = vec4(tex.rgb * vColor * uBrightness, alpha);
+  gl_FragColor = vec4(tex.rgb * vColor * dim, alpha * dim);
 }
 `
 
@@ -88,10 +93,11 @@ export class GalaxyNeighbors {
 
     // ─── Build attribute buffers ─────────────────────────────────────────
 
-    const positions  = new Float32Array(count * 3)
-    const colors     = new Float32Array(count * 3)
-    const sizes      = new Float32Array(count)
-    const texIndices = new Float32Array(count)
+    const positions   = new Float32Array(count * 3)
+    const colors      = new Float32Array(count * 3)
+    const sizes       = new Float32Array(count)
+    const texIndices  = new Float32Array(count)
+    const brightnesses = new Float32Array(count)
 
     for (let i = 0; i < count; i++) {
       const s = sprites[i]
@@ -104,17 +110,19 @@ export class GalaxyNeighbors {
       colors[i * 3 + 1] = s.color[1]
       colors[i * 3 + 2] = s.color[2]
 
-      sizes[i]      = s.size
-      texIndices[i] = s.texIndex
+      sizes[i]        = s.size
+      texIndices[i]   = s.texIndex
+      brightnesses[i] = s.brightness
     }
 
     // ─── Geometry ─────────────────────────────────────────────────────────
 
     this.geometry = new THREE.BufferGeometry()
-    this.geometry.setAttribute('position',   new THREE.BufferAttribute(positions,  3))
-    this.geometry.setAttribute('aColor',     new THREE.BufferAttribute(colors,     3))
-    this.geometry.setAttribute('aSize',      new THREE.BufferAttribute(sizes,      1))
-    this.geometry.setAttribute('aTexIndex',  new THREE.BufferAttribute(texIndices, 1))
+    this.geometry.setAttribute('position',    new THREE.BufferAttribute(positions,    3))
+    this.geometry.setAttribute('aColor',      new THREE.BufferAttribute(colors,       3))
+    this.geometry.setAttribute('aSize',       new THREE.BufferAttribute(sizes,        1))
+    this.geometry.setAttribute('aTexIndex',   new THREE.BufferAttribute(texIndices,   1))
+    this.geometry.setAttribute('aBrightness', new THREE.BufferAttribute(brightnesses, 1))
 
     // ─── Material ─────────────────────────────────────────────────────────
 
@@ -125,7 +133,7 @@ export class GalaxyNeighbors {
         uPixelRatio:   { value: Math.min(window.devicePixelRatio, 2) },
         uBaseDistance: { value: baseDistance },
         uAtlas:        { value: atlas },
-        uBrightness:   { value: 0.35 },
+        uBrightness:   { value: 0.7 },
       },
       transparent: true,
       depthWrite:  false,
