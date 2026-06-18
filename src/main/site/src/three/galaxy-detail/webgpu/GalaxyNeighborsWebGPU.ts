@@ -1,5 +1,5 @@
 // @ts-nocheck — TSL node types have complex overloads that don't resolve correctly
-// with generic attribute/uniform node types. Runtime behavior is correct.
+// with generic UniformNode/StorageBufferNode types. Runtime behavior is correct.
 /**
  * WebGPU Neighbor Galaxy Sprite Layer
  *
@@ -8,12 +8,14 @@
  * GalaxyNeighbors layer in appearance: additive, dim, per-sprite
  * brightness distance-fade, small screen-space clamped sizing (~5px max).
  *
- * Uses SpriteNodeMaterial with per-sprite instanced buffer attributes
- * (no GPU compute needed — data is small, ~40 sprites max).
+ * Uses SpriteNodeMaterial with per-sprite instancedArray buffers
+ * (CPU-filled static data, no GPU compute needed — data is small, ~40 sprites max).
+ * Pattern mirrors GalaxyClouds.ts: instancedArray(count, type) → fill .value.array → .toAttribute().
  */
 
 import * as THREE from 'three/webgpu'
 import {
+  instancedArray,
   vec2,
   vec4,
   float,
@@ -21,7 +23,6 @@ import {
   texture,
   uniform,
   cameraPosition,
-  attribute,
   floor as tslFloor,
   mod,
 } from 'three/tsl'
@@ -49,43 +50,46 @@ export class GalaxyNeighborsWebGPU {
   ) {
     const count = sprites.length
 
-    // ─── Build flat attribute buffers from NeighborSprite[] ──────────────
+    // ─── Create instancedArray storage buffers (proven pattern: GalaxyClouds.ts) ──
 
-    const positions   = new Float32Array(count * 3)
-    const colors      = new Float32Array(count * 3)
-    const sizes       = new Float32Array(count)
-    const brightnesses = new Float32Array(count)
-    const texIndices  = new Float32Array(count)
+    const positionBuffer   = instancedArray(count, 'vec3')
+    const colorBuffer      = instancedArray(count, 'vec3')
+    const sizeBuffer       = instancedArray(count, 'float')
+    const brightnessBuffer = instancedArray(count, 'float')
+    const texIndexBuffer   = instancedArray(count, 'float')
+
+    // ─── CPU-fill the buffer arrays from NeighborSprite[] ────────────────
+    // Each .value is a StorageInstancedBufferAttribute whose .array is
+    // the underlying Float32Array — fill it once at construction time.
+
+    const posArr = positionBuffer.value.array
+    const colArr = colorBuffer.value.array
+    const szArr  = sizeBuffer.value.array
+    const brtArr = brightnessBuffer.value.array
+    const idxArr = texIndexBuffer.value.array
 
     for (let i = 0; i < count; i++) {
       const s = sprites[i]
-      positions[i * 3]     = s.position[0]
-      positions[i * 3 + 1] = s.position[1]
-      positions[i * 3 + 2] = s.position[2]
-      colors[i * 3]        = s.color[0]
-      colors[i * 3 + 1]    = s.color[1]
-      colors[i * 3 + 2]    = s.color[2]
-      sizes[i]             = s.size
-      brightnesses[i]      = s.brightness
-      texIndices[i]        = s.texIndex
+      posArr[i * 3]     = s.position[0]
+      posArr[i * 3 + 1] = s.position[1]
+      posArr[i * 3 + 2] = s.position[2]
+      colArr[i * 3]     = s.color[0]
+      colArr[i * 3 + 1] = s.color[1]
+      colArr[i * 3 + 2] = s.color[2]
+      szArr[i]          = s.size
+      brtArr[i]         = s.brightness
+      idxArr[i]         = s.texIndex
     }
 
-    // ─── Instanced buffer attributes ─────────────────────────────────────
+    // ─── Convert storage buffers to attribute nodes for rendering ─────────
+    // .toAttribute() is the proven pattern used throughout this codebase
+    // (GalaxyClouds.ts, GalaxyParticlesWebGPU.ts).
 
-    const posAttr   = new THREE.InstancedBufferAttribute(positions,   3)
-    const colAttr   = new THREE.InstancedBufferAttribute(colors,       3)
-    const sizeAttr  = new THREE.InstancedBufferAttribute(sizes,        1)
-    const brtAttr   = new THREE.InstancedBufferAttribute(brightnesses, 1)
-    const idxAttr   = new THREE.InstancedBufferAttribute(texIndices,   1)
-
-    // ─── TSL attribute nodes ──────────────────────────────────────────────
-    // attribute() reads per-instance data from the instanced buffer.
-
-    const spritePos    = attribute('aNeighborPos',        'vec3')
-    const spriteColor  = attribute('aNeighborColor',      'vec3')
-    const spriteSize   = attribute('aNeighborSize',       'float')
-    const spriteBright = attribute('aNeighborBrightness', 'float')
-    const spriteTexIdx = attribute('aNeighborTexIndex',   'float')
+    const spritePos    = positionBuffer.toAttribute()
+    const spriteColor  = colorBuffer.toAttribute()
+    const spriteSize   = sizeBuffer.toAttribute()
+    const spriteBright = brightnessBuffer.toAttribute()
+    const spriteTexIdx = texIndexBuffer.toAttribute()
 
     // ─── Screen-space clamped sizing (mirrors GalaxyParticlesWebGPU) ─────
     //
@@ -148,14 +152,6 @@ export class GalaxyNeighborsWebGPU {
     this.sprite.count = count
     this.sprite.frustumCulled = false
     this.sprite.renderOrder = -2  // behind galaxy particles
-
-    // Attach instanced buffer attributes to the sprite geometry so TSL
-    // attribute() nodes can read per-instance data.
-    this.sprite.geometry.setAttribute('aNeighborPos',        posAttr)
-    this.sprite.geometry.setAttribute('aNeighborColor',      colAttr)
-    this.sprite.geometry.setAttribute('aNeighborSize',       sizeAttr)
-    this.sprite.geometry.setAttribute('aNeighborBrightness', brtAttr)
-    this.sprite.geometry.setAttribute('aNeighborTexIndex',   idxAttr)
   }
 
   updateSizeUniforms(screenHpx: number, tanHalfFov: number): void {
