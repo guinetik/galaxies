@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import type { Galaxy, GalaxyGroup } from '@/types/galaxy'
 import initSqlJs from 'sql.js'
 import type { Database } from 'sql.js'
+import { sphericalToCartesian } from '@/three/galaxy-detail/neighborField'
 
 const isLoading = ref(true)
 const galaxyCount = ref(0)
@@ -179,6 +180,44 @@ export function useGalaxyData() {
   }
 
   /**
+   * Find the nearest real neighbors to a galaxy in 3D supergalactic space.
+   *
+   * Pre-filters by distance_mpc band in SQL, then computes true 3D separations
+   * in JavaScript using spherical→Cartesian conversion, and returns the closest
+   * `limit` galaxies sorted by 3D distance (ascending).
+   *
+   * Returns [] when the DB is not loaded or the galaxy lacks SG coordinates.
+   */
+  function getNearbyGalaxies(
+    galaxy: Galaxy,
+    opts?: { maxMpc?: number; limit?: number },
+  ): Galaxy[] {
+    if (!db || galaxy.sgl == null || galaxy.sgb == null || galaxy.distance_mpc == null) return []
+    const maxMpc = opts?.maxMpc ?? 15
+    const limit = opts?.limit ?? 40
+    const dlo = galaxy.distance_mpc - maxMpc
+    const dhi = galaxy.distance_mpc + maxMpc
+    const stmt = db.prepare(
+      'SELECT * FROM galaxies WHERE sgl IS NOT NULL AND sgb IS NOT NULL AND distance_mpc IS NOT NULL AND distance_mpc BETWEEN ? AND ? AND pgc != ?'
+    )
+    stmt.bind([dlo, dhi, galaxy.pgc])
+    const cols = stmt.getColumnNames()
+    const cand: Galaxy[] = []
+    while (stmt.step()) cand.push(rowToGalaxy(cols, stmt.get() as any[]))
+    stmt.free()
+    const o = sphericalToCartesian(galaxy.sgl, galaxy.sgb, galaxy.distance_mpc)
+    return cand
+      .map(g => {
+        const p = sphericalToCartesian(g.sgl as number, g.sgb as number, g.distance_mpc)
+        return { g, d: Math.hypot(p[0] - o[0], p[1] - o[1], p[2] - o[2]) }
+      })
+      .filter(x => x.d <= maxMpc)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, limit)
+      .map(x => x.g)
+  }
+
+  /**
    * Execute an arbitrary read-only SQL query against the database.
    * Returns column names and row data. Rejects non-SELECT statements.
    */
@@ -210,5 +249,6 @@ export function useGalaxyData() {
     getGalaxiesByPgcList,
     getAllGroups,
     executeRawQuery,
+    getNearbyGalaxies,
   }
 }
