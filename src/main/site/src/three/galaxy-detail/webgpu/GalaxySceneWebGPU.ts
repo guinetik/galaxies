@@ -537,7 +537,9 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     const lensStrength = lod * lod * 0.03
     _lensingUV.set(
       this._bhScreenVec.x * 0.5 + 0.5,
-      this._bhScreenVec.y * 0.5 + 0.5,
+      // TSL screenUV is top-left origin (y-down); projected NDC is y-up.
+      // Flip Y so the lens tracks the BH vertically when panned off-center.
+      0.5 - this._bhScreenVec.y * 0.5,
     )
     this.postProcessing.updateLensing(_lensingUV, lensStrength, this.camera.aspect)
 
