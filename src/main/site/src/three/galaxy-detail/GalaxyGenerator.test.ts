@@ -211,4 +211,23 @@ describe('layer assignment (no dust)', () => {
     expect(layers.has('star')).toBe(true)
     expect(layers.has('bright')).toBe(true)
   })
+
+  it('keeps regular stars small and bright stars clearly larger', () => {
+    const params: GalaxyRenderParams = {
+      morphology: MORPHOLOGY_PRESETS.spiral,
+      galaxyRadius: 350,
+      starCount: 5000,
+      diameterKpc: 25,
+      sizeSource: 'random' as const,
+    }
+    const stars = generateGalaxy(params)
+    const regular = stars.filter(s => s.layer === 'star')
+    const bright = stars.filter(s => s.layer === 'bright')
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
+
+    // Regular masses are tiny pinpoints (mean well under the old 1.5-4.5 range).
+    expect(mean(regular.map(s => s.size))).toBeLessThan(2.5)
+    // Bright stars still pop: their mean size dwarfs the regular masses.
+    expect(mean(bright.map(s => s.size))).toBeGreaterThan(mean(regular.map(s => s.size)) * 1.8)
+  })
 })

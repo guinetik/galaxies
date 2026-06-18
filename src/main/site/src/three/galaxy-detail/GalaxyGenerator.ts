@@ -228,14 +228,14 @@ function layerProperties(
     case 'bright': {
       const hotBoost = mix(0.9, 1.4, influence?.hotMix ?? 0.5)
       return {
-        size: (4 + Math.random() * 6) * hotBoost,
+        size: (3.0 + Math.random() * 5.0) * hotBoost,
         brightness: (0.64 + Math.random() * 0.16) * hotBoost,
         alpha: (0.56 + Math.random() * 0.24) * mix(0.95, 1.2, influence?.clumpBoost ?? 0),
       }
     }
     default: // 'star'
       return {
-        size: 1.5 + Math.random() * 3.0,
+        size: 0.6 + Math.random() * 1.4,
         brightness: 0.32 + Math.random() * 0.4,
         alpha: 0.4 + Math.random() * 0.4,
       }
