@@ -90,6 +90,13 @@ describe('mapGalaxyToRenderParams', () => {
     expect(params.diameterKpc).toBeGreaterThan(0)
   })
 
+  it('caps starCount at 150000 for massive galaxies', () => {
+    const g = makeGalaxy({ log_ms_t: 14.0 })
+    const params = mapGalaxyToRenderParams(g)
+    expect(params.starCount).toBeGreaterThanOrEqual(75000)
+    expect(params.starCount).toBeLessThanOrEqual(150000)
+  })
+
   it('includes sizeSource field', () => {
     const g = makeGalaxy()
     const params = mapGalaxyToRenderParams(g)
