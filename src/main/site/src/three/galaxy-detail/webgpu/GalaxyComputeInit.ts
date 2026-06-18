@@ -295,9 +295,9 @@ export function createComputeInit(
     const sizeRand = hash(seed.add(200))
     const starSize = float(0).toVar()
     If(layerVal.equal(0), () => {
-      starSize.assign(sizeRand.mul(3.0).add(1.5)) // star: 1.5-4.5
+      starSize.assign(sizeRand.mul(1.4).add(0.6)) // star: 0.6-2.0
     }).Else(() => {
-      starSize.assign(sizeRand.mul(6.0).add(4.0).mul(mix(float(0.9), float(1.4), uniforms.bandHotMix))) // bright: 4-10
+      starSize.assign(sizeRand.mul(5.0).add(3.0).mul(mix(float(0.9), float(1.4), uniforms.bandHotMix))) // bright: 3.0-8.0
     })
     buffers.sizeBuffer.element(idx).assign(starSize)
 
