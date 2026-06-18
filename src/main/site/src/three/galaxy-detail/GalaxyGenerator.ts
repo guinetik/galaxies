@@ -289,7 +289,7 @@ function computeRotationSpeed(r: number, omega0: number, falloff: number, turnov
 /** Clamped-logistic vertical draw: most stars near the midplane, some far off it. */
 function longTailY(thickness: number): number {
   const u = Math.min(0.98, Math.max(0.02, Math.random()))
-  return Math.log(u / (1 - u)) * thickness * 0.30
+  return Math.log(u / (1 - u)) * thickness * 0.45
 }
 
 // ─── Central clear zone ──────────────────────────────────────────────────────

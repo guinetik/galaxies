@@ -345,7 +345,7 @@ export function mapGalaxyToRenderParams(
   }
 
   // 9. Rotation params from stellar-mass Tully-Fisher
-  const BASE_OMEGA = 0.18
+  const BASE_OMEGA = 0.12
   const vmax = galaxy.log_ms_t != null
     ? clamp(Math.pow(10, (galaxy.log_ms_t - 1.5) / 4), 40, 350)
     : 150

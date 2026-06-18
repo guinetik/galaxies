@@ -234,7 +234,7 @@ const TAU = 6.28318530718
 /** Clamped-logistic vertical draw (GPU/TSL): most stars near the midplane, some far off it. */
 const longTailY = (thickness: any, h: any) => {
   const u = clamp(h, float(0.02), float(0.98))
-  return u.div(float(1).sub(u)).log().mul(thickness).mul(0.30)
+  return u.div(float(1).sub(u)).log().mul(thickness).mul(0.45)
 }
 
 /**
