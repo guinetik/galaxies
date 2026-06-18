@@ -297,19 +297,19 @@ export class GalaxyClouds {
           origBuffer.element(idx).assign(rotateXZ(originalPos, rigidAngle))
         }).Else(() => {
           position.assign(applyDifferentialRotation(
-            position, uniforms.rotationSpeed, uniforms.deltaTime,
+            position, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
           ))
           origBuffer.element(idx).assign(applyDifferentialRotation(
-            originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+            originalPos, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
           ))
         })
       }).Else(() => {
         // Non-barred: differential rotation (no-op when rotationSpeed=0)
         position.assign(applyDifferentialRotation(
-          position, uniforms.rotationSpeed, uniforms.deltaTime,
+          position, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
         ))
         origBuffer.element(idx).assign(applyDifferentialRotation(
-          originalPos, uniforms.rotationSpeed, uniforms.deltaTime,
+          originalPos, uniforms.rotationSpeed, uniforms.rotationFalloff, uniforms.rotationTurnover, uniforms.deltaTime,
         ))
       })
 

@@ -87,7 +87,9 @@ export function createComputeUpdate(
     const phase = fract(uniforms.time.div(max(cycleDuration, float(0.1))).add(starPhaseOffset))
     const fadeIn = smoothstep(float(0), fadeInFrac, phase)
     const fadeOut = float(1).sub(smoothstep(float(1).sub(fadeOutFrac), float(1), phase))
-    const fadeAlpha = min(fadeIn, fadeOut)
+    // Floor the fade so stars never blink fully out — reduces scintillation
+    // (especially zoomed out, where many sub-pixel stars overlap).
+    const fadeAlpha = min(fadeIn, fadeOut).mul(0.3).add(0.7)
 
     // Read base alpha from velocity buffer (stored during init)
     const baseAlpha = buffers.velocityBuffer.element(idx).x
@@ -96,7 +98,7 @@ export function createComputeUpdate(
     // ─── Twinkle for bright layer (layer == 1) ────────────────────────
     If(layer.equal(1), () => {
       const twinklePhase = idx.toFloat().mul(0.7831)
-      const twinkle = sin(uniforms.time.mul(2).add(twinklePhase)).mul(0.15).add(0.85)
+      const twinkle = sin(uniforms.time.mul(2).add(twinklePhase)).mul(0.08).add(0.92)
       buffers.colorBuffer.element(idx).w.assign(baseAlpha.mul(fadeAlpha).mul(twinkle))
     })
   })().compute(count)
