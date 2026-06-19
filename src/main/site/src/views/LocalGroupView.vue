@@ -560,6 +560,7 @@ onUnmounted(() => {
     top: calc(var(--header-height) + 6px);
     left: 50%;
     transform: translateX(-50%);
+    align-items: center;
   }
 
   .info-panel {

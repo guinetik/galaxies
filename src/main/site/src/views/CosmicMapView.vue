@@ -142,7 +142,7 @@
 
     <!-- Mobile HUD toggle (controls structures + legend) -->
     <button
-      v-if="!loading"
+      v-if="!loading && !showInfo"
       class="hud-toggle"
       :aria-label="hudOpen ? 'Hide map controls' : 'Show map controls'"
       @click="hudOpen = !hudOpen"
