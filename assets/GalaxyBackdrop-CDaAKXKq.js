@@ -1,4 +1,4 @@
-import{d as r,a as l,aG as d,M as c}from"./three-CWiM2Iz1.js";const f=`precision highp float;
+import{d as r,a as l,aI as d,M as c}from"./three-Dw_gp1Fk.js";const f=`precision highp float;
 
 varying vec3 vDirection;
 
