@@ -37,6 +37,7 @@
     <div
       v-if="!loading"
       class="structures-nav"
+      :class="{ 'hud-open': hudOpen }"
     >
       <div class="structures-nav-title">{{ t('pages.localGroup.waypointsTitle') }}</div>
       <button
@@ -49,6 +50,16 @@
         {{ landmark.label }}
       </button>
     </div>
+
+    <!-- Mobile HUD toggle (controls waypoints) -->
+    <button
+      v-if="!loading"
+      class="hud-toggle"
+      :aria-label="hudOpen ? 'Hide waypoints' : 'Show waypoints'"
+      @click="hudOpen = !hudOpen"
+    >
+      {{ hudOpen ? '×' : '≡' }}
+    </button>
 
     <GalaxyTooltip
       :galaxy="selectedGalaxy"
@@ -81,6 +92,7 @@ const { ready, getAllGroups, getAllGalaxies } = useGalaxyData()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
 const showInfo = ref(false)
+const hudOpen = ref(false)
 const groupCount = ref(0)
 const activeLandmarkId = ref<string | null>(null)
 const selectedGalaxy = ref<Galaxy | null>(null)
@@ -486,6 +498,25 @@ onUnmounted(() => {
   background: rgba(34, 211, 238, 0.1);
 }
 
+/* ── Mobile HUD toggle (hidden on desktop) ── */
+.hud-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  z-index: 22;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
 @media (max-width: 900px) {
   .map-controls {
     top: calc(var(--header-height) + 12px);
@@ -506,6 +537,54 @@ onUnmounted(() => {
   .local-group-title {
     padding-left: 12px;
     padding-right: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .local-group-title {
+    padding: calc(var(--header-height) + 44px) 12px 14px;
+  }
+
+  .local-group-title-text {
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    margin-bottom: 0;
+  }
+
+  .local-group-subtitle {
+    display: none;
+  }
+
+  /* Frame/Info tabs become a centered bar under the app header */
+  .map-controls {
+    top: calc(var(--header-height) + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .info-panel {
+    top: calc(var(--header-height) + 44px);
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+
+  /* Waypoints hidden until the HUD toggle opens them */
+  .structures-nav:not(.hud-open) {
+    display: none;
+  }
+
+  .structures-nav {
+    left: 12px;
+    bottom: 80px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .hud-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 </style>
