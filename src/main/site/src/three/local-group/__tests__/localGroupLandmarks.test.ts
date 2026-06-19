@@ -11,8 +11,14 @@ describe('LOCAL_GROUP_LANDMARKS', () => {
       'milky-way',
       'andromeda',
       'antlia-sextans',
-      'virgo-cluster',
-      'great-attractor',
+      'maffei-group',
+      'ic342-group',
+      'sculptor-group',
+      'm81-group',
+      'cena-group',
+      'm101-group',
+      'ngc253',
+      'canes-venatici-cloud',
     ])
   })
 
@@ -28,10 +34,12 @@ describe('LOCAL_GROUP_LANDMARKS', () => {
 
   it('keeps the M31 landmark tied to its catalog PGC and scaled coordinates', () => {
     const andromeda = getLocalGroupLandmarkById('andromeda')
-    const greatAttractor = getLocalGroupLandmarkById('great-attractor')
+    const m101 = getLocalGroupLandmarkById('m101-group')
 
     expect(andromeda?.groupPgc).toBe(2557)
-    expect(andromeda?.coordinates.sgx).toBeGreaterThan(0)
-    expect(greatAttractor?.coordinates.sgx).toBeLessThan(-1000)
+    // 0.8 Mpc × 70 scene units/Mpc = 56
+    expect(andromeda?.coordinates.sgx).toBeCloseTo(56)
+    // A further group sits well out along the negative supergalactic X axis.
+    expect(m101?.coordinates.sgx).toBeLessThan(-100)
   })
 })

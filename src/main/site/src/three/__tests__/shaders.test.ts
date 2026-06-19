@@ -26,6 +26,16 @@ for (const name of planetFragShaders) {
   shaderDeps[name] = ['../noise.glsl', '../color.glsl', '../lighting.glsl', '../seed.glsl']
 }
 
+// Star shaders — library prepend order mirrors StarScene.ts shader assembly.
+// seed.glsl is itself a library (no main()); it depends on noise/color helpers.
+shaderDeps['seed.glsl'] = ['noise.glsl', 'color.glsl']
+shaderDeps['surface.vert.glsl'] = ['noise.glsl', 'color.glsl', 'seed.glsl']
+shaderDeps['surface.frag.glsl'] = ['noise.glsl', 'color.glsl', 'lighting.glsl', 'seed.glsl']
+shaderDeps['corona.frag.glsl'] = ['noise.glsl', 'color.glsl', 'seed.glsl']
+shaderDeps['flameTongues.frag.glsl'] = ['noise.glsl', 'color.glsl', 'seed.glsl']
+shaderDeps['flare.frag.glsl'] = ['noise.glsl', 'color.glsl', 'seed.glsl']
+shaderDeps['rays.frag.glsl'] = ['color.glsl', 'seed.glsl']
+
 const shaderDirs = [
   'src/three/shaders',
   'src/three/galaxy-detail/shaders',
