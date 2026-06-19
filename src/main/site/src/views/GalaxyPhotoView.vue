@@ -2089,4 +2089,85 @@ onBeforeUnmount(() => {
   border-color: #22d3ee;
   color: #22d3ee;
 }
+
+/* ── Mobile (≤640px): scrolling page, fixed-height canvas, thumbnail bands ── */
+@media (max-width: 640px) {
+  /* Let the page scroll instead of clipping to one screen */
+  .photo-scroll {
+    overflow-y: auto;
+  }
+
+  .photo-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    padding: calc(var(--header-height, 52px) + 0.5rem) 1rem 1.5rem;
+  }
+
+  /* Shrink the hero so it does not eat the canvas height */
+  .photo-hero-title {
+    font-size: 2rem;
+  }
+
+  .photo-hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-links {
+    margin-bottom: 1rem;
+  }
+
+  .back-link,
+  .shuffle-link {
+    font-size: 0.8rem;
+  }
+
+  /* Stack canvas + bands; canvas gets a real, non-collapsing height */
+  .content-grid {
+    display: block;
+  }
+
+  .canvas-card {
+    flex: none;
+    margin-bottom: 1rem;
+  }
+
+  .canvas-wrapper {
+    flex: none;
+    height: 55dvh;
+    min-height: 280px;
+  }
+
+  /* Stack the card header so the shader select stops crowding the title */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  /* Spectral bands as a real thumbnail grid (kills the 1px-strip distortion) */
+  .bands-card {
+    height: auto;
+  }
+
+  .bands-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    height: auto;
+  }
+
+  .band-item {
+    flex: none;
+    aspect-ratio: 1;
+  }
+
+  .band-img-wrap {
+    height: 100%;
+  }
+}
 </style>
