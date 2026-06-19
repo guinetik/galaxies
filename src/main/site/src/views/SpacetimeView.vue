@@ -30,7 +30,7 @@
     </div>
 
     <!-- Velocity legend -->
-    <div v-if="!loading" class="map-legend">
+    <div v-if="!loading" class="map-legend" :class="{ 'hud-open': hudOpen }">
       <div class="map-legend-title">{{ t('pages.spacetime.velocityLabel') }}</div>
       <div class="map-legend-items">
         <div v-for="bin in velocityBins" :key="bin.label" class="map-legend-item">
@@ -57,7 +57,12 @@
     </div>
 
     <!-- Structures nav -->
-    <div v-if="!loading" class="structures-nav" :style="{ top: showInfo ? '420px' : 'calc(var(--header-height) + 130px)' }">
+    <div
+      v-if="!loading"
+      class="structures-nav"
+      :class="{ 'hud-open': hudOpen }"
+      :style="{ top: showInfo ? '420px' : 'calc(var(--header-height) + 130px)' }"
+    >
       <div class="structures-nav-title">{{ t('pages.spacetime.structures') }}</div>
       <button
         v-for="name in structureNames"
@@ -69,6 +74,16 @@
         {{ name }}
       </button>
     </div>
+
+    <!-- Mobile HUD toggle (controls structures + legend) -->
+    <button
+      v-if="!loading"
+      class="hud-toggle"
+      :aria-label="hudOpen ? 'Hide controls' : 'Show controls'"
+      @click="hudOpen = !hudOpen"
+    >
+      {{ hudOpen ? '×' : '≡' }}
+    </button>
   </div>
 </template>
 
@@ -86,6 +101,7 @@ const { ready, getAllGroups } = useGalaxyData()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
 const showInfo = ref(false)
+const hudOpen = ref(false)
 const activeStructure = ref<string | null>(null)
 const slabCount = ref(0)
 const velocityBins = VELOCITY_COLOR_BINS
@@ -416,5 +432,74 @@ onUnmounted(() => {
   color: #22d3ee;
   border-color: rgba(34, 211, 238, 0.4);
   background: rgba(34, 211, 238, 0.1);
+}
+
+/* ── Mobile HUD toggle (hidden on desktop) ── */
+.hud-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  z-index: 22;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 640px) {
+  .spacetime-title {
+    padding: calc(var(--header-height) + 44px) 12px 14px;
+  }
+
+  .spacetime-title-text {
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    margin-bottom: 0;
+  }
+
+  .spacetime-subtitle {
+    display: none;
+  }
+
+  .info-toggle {
+    left: 12px;
+  }
+
+  .info-panel {
+    top: calc(var(--header-height) + 44px);
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+
+  /* Secondary panels hidden until the HUD toggle opens them */
+  .structures-nav:not(.hud-open),
+  .map-legend:not(.hud-open) {
+    display: none;
+  }
+
+  .structures-nav {
+    left: 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .map-legend {
+    left: 12px;
+    bottom: 80px;
+  }
+
+  .hud-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>
