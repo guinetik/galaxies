@@ -105,7 +105,7 @@
     </transition>
 
     <!-- Velocity color legend (only when sidebar closed) -->
-    <div v-if="!loading && !showInfo" class="map-legend">
+    <div v-if="!loading && !showInfo" class="map-legend" :class="{ 'hud-open': hudOpen }">
       <div class="map-legend-title">{{ t('pages.map.velocityLabel') }}</div>
       <div class="map-legend-items">
         <div v-for="bin in velocityBins" :key="bin.label" class="map-legend-item">
@@ -116,7 +116,7 @@
     </div>
 
     <!-- Structures nav -->
-    <div v-if="!loading" class="structures-nav">
+    <div v-if="!loading" class="structures-nav" :class="{ 'hud-open': hudOpen }">
       <div class="structures-nav-title">{{ t('pages.spacetime.structures') }}</div>
       <button
         v-for="name in structureNames"
@@ -139,6 +139,16 @@
       <div class="tooltip-detail">{{ tooltip.velocity.toLocaleString() }} km/s</div>
       <div class="tooltip-detail">{{ tooltip.distance.toFixed(1) }} Mpc</div>
     </div>
+
+    <!-- Mobile HUD toggle (controls structures + legend) -->
+    <button
+      v-if="!loading"
+      class="hud-toggle"
+      :aria-label="hudOpen ? 'Hide map controls' : 'Show map controls'"
+      @click="hudOpen = !hudOpen"
+    >
+      {{ hudOpen ? '×' : '≡' }}
+    </button>
   </div>
 </template>
 
@@ -162,6 +172,7 @@ const loading = ref(true)
 const dataMode = ref<MapDataMode>('groups')
 const showAxes = ref(true)
 const showInfo = ref(false)
+const hudOpen = ref(false)
 const velocityBins = VELOCITY_COLOR_BINS
 const structureNames = STRUCTURES.map((s) => s.name)
 const activeStructure = ref<string | null>(null)
@@ -764,10 +775,77 @@ onUnmounted(() => {
   background: rgba(34, 211, 238, 0.1);
 }
 
+/* ── Mobile HUD toggle (hidden on desktop) ── */
+.hud-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  z-index: 22;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .map-sidebar {
     width: 100%;
+  }
+
+  /* Compact title that no longer reserves the controls zone */
+  .map-title {
+    padding: calc(var(--header-height) + 44px) 12px 14px;
+  }
+
+  .map-title-text {
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    margin-bottom: 0;
+  }
+
+  .map-subtitle {
+    display: none;
+  }
+
+  /* Tabs become a centered bar directly under the app header */
+  .map-controls {
+    top: calc(var(--header-height) + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+  }
+
+  /* Secondary panels hidden until the HUD toggle opens them */
+  .structures-nav:not(.hud-open),
+  .map-legend:not(.hud-open) {
+    display: none;
+  }
+
+  /* When open, keep them on-screen and scrollable */
+  .structures-nav {
+    top: calc(var(--header-height) + 96px);
+    left: 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .map-legend {
+    left: 12px;
+    bottom: 80px;
+  }
+
+  .hud-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 </style>
