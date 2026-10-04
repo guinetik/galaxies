@@ -1,4 +1,4 @@
-import{d as r,a as l,aI as d,M as c}from"./three-Dw_gp1Fk.js";const f=`precision highp float;
+import{d as f,a as i,aJ as r,M as l,aT as h,S as u,aL as v}from"./three-y20Z06rJ.js";import{C as m}from"./cinematicAppearance-WeV-O7nO.js";const d=`precision highp float;
 
 varying vec3 vDirection;
 
@@ -6,7 +6,7 @@ void main() {
   vDirection = normalize(position);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
-`,u=`precision highp float;
+`,p=`precision highp float;
 
 varying vec3 vDirection;
 
@@ -582,6 +582,12 @@ void main() {
   finalColor *= 0.45;
   finalColor = clamp(finalColor, 0.0, 1.0);
 
-  gl_FragColor = vec4(finalColor, 1.0);
+  #ifdef BACKDROP_CACHE
+    gl_FragColor = vec4(finalColor, 1.0);
+  #else
+    gl_FragColor = vec4(pow(finalColor, vec3(2.2)), 1.0);
+  #endif
 }
-`;class m{constructor(n,t,s){const a=n*12,e=s==="mobile",o=e?[48,32]:[192,128],i=new r(a,o[0],o[1]);this.material=new l({vertexShader:f,fragmentShader:u,defines:{SPIRAL_NOISE_ITER:e?3:5,MAX_GALAXIES:e?2:4,MAX_CLOUDS:e?3:6,MAX_KNOTS:e?2:5,STAR_LAYERS:e?2:4,FBM_DETAIL_OCTAVES:e?2:4},uniforms:{uTime:{value:0},uSeed:{value:t},uNebulaIntensity:{value:2.4}},side:d,depthWrite:!1,depthTest:!1}),this.mesh=new c(i,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-10}update(n,t){this.material.uniforms.uTime.value=n,this.mesh.position.copy(t.position)}dispose(){this.material.dispose(),this.mesh.geometry.dispose()}}export{m as G};
+`;class b{constructor(n,e,o){this.cachedMaterial=null,this.cache=null,this.cacheSize=o==="mobile"?512:2048;const s=n*12,t=o==="mobile",a=t?[48,32]:[192,128],c=new f(s,a[0],a[1]);this.material=new i({vertexShader:d,fragmentShader:p,defines:{BACKDROP_CACHE:1,SPIRAL_NOISE_ITER:t?3:5,MAX_GALAXIES:t?2:4,MAX_CLOUDS:t?3:6,MAX_KNOTS:t?2:5,STAR_LAYERS:t?2:4,FBM_DETAIL_OCTAVES:t?2:4},uniforms:{uTime:{value:0},uSeed:{value:e},uNebulaIntensity:{value:m.nebulaIntensity}},side:r,depthWrite:!1,depthTest:!1}),this.mesh=new l(c,this.material),this.mesh.frustumCulled=!1,this.mesh.renderOrder=-10}prepare(n){var s;if(this.cache)return;this.cache=new h(this.cacheSize,{depthBuffer:!1,generateMipmaps:!1});const e=new u;e.add(new l(this.mesh.geometry,this.material));const o=((s=this.mesh.geometry.boundingSphere)==null?void 0:s.radius)??1e6;new v(.1,o*2,this.cache).update(n,e),this.cachedMaterial=new i({vertexShader:d,fragmentShader:`uniform samplerCube uSky;
+        varying vec3 vDirection;
+        void main() { gl_FragColor = vec4(pow(textureCube(uSky, normalize(vDirection)).rgb, vec3(2.2)), 1.0); }`,uniforms:{uSky:{value:this.cache.texture}},side:r,depthWrite:!1,depthTest:!1}),this.mesh.material=this.cachedMaterial,this.material.dispose()}update(n,e){this.mesh.position.copy(e.position)}dispose(){var n,e;this.material.dispose(),(n=this.cachedMaterial)==null||n.dispose(),(e=this.cache)==null||e.dispose(),this.mesh.geometry.dispose()}}export{b as G};
