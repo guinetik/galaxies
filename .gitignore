@@ -158,3 +158,5 @@ docs
 
 *.fits
 src/main/images
+
+tmp
