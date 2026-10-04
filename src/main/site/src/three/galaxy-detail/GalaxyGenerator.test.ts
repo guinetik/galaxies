@@ -1,8 +1,46 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import type { BandInfluenceConfig } from './bandInfluence'
 import { generateGalaxy } from './GalaxyGenerator'
 import { MORPHOLOGY_PRESETS } from './morphology'
 import type { GalaxyRenderParams } from './morphology'
+
+it('keeps irregular morphology proportional when galaxy size changes', () => {
+  const random = vi.spyOn(Math, 'random')
+  const generate = (galaxyRadius: number) => {
+    let seed = 123
+    random.mockImplementation(() => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
+      return seed / 4294967296
+    })
+    return generateGalaxy({
+      morphology: { ...MORPHOLOGY_PRESETS.irregular, fieldStarFraction: 0.2 }, galaxyRadius, starCount: 2000,
+      diameterKpc: 25, sizeSource: 'observed', rotationOmega0: 0.12,
+      rotationFalloff: 1, rotationTurnover: galaxyRadius * 0.15,
+    })
+  }
+  try {
+    const dwarf = generate(30), large = generate(300)
+    expect(dwarf.length).toBe(large.length)
+    for (let i = 0; i < dwarf.length; i += 31) {
+      expect(dwarf[i].radius / 30).toBeCloseTo(large[i].radius / 300, 8)
+      expect(dwarf[i].angle).toBeCloseTo(large[i].angle, 8)
+    }
+  } finally { random.mockRestore() }
+})
+
+it('retains morphology-generated nuclear stars instead of carving out a black-hole-sized cavity', () => {
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.1)
+  try {
+    const stars = generateGalaxy({
+      morphology: MORPHOLOGY_PRESETS.spiral, galaxyRadius: 300, starCount: 1000,
+      diameterKpc: 25, sizeSource: 'observed', rotationOmega0: 0.12,
+      rotationFalloff: 1, rotationTurnover: 45,
+    })
+    expect(stars.some(star => star.radius < 300 * 0.04)).toBe(true)
+  } finally {
+    random.mockRestore()
+  }
+})
 
 // Mock influence config for testing
 const mockInfluence: BandInfluenceConfig = {

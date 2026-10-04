@@ -286,7 +286,6 @@ export function createComputeInit(
     const seed = idx.toFloat()
 
     const R = uniforms.galaxyRadius
-    const clearRadius = R.mul(0.06) // central exclusion zone
 
     // ─── Layer assignment: star ~94%, bright ~6% (no dust layer) ──────
     const brightFraction = mix(
@@ -535,6 +534,7 @@ export function createComputeInit(
         const cx = cos(clumpAngle).mul(clumpR)
         const cz = sin(clumpAngle).mul(clumpR)
         const sigma = hash(clumpIdx.add(3000)).mul(80).add(30)
+          .mul(R.div(280)) // same reference-radius scaling as CPU clumps
           .mul(mix(float(1.05), float(0.7), uniforms.bandClumpBoost))
         // Gaussian-ish scatter
         const gx = hash(seed.add(51)).sub(0.5).add(hash(seed.add(52)).sub(0.5)).mul(2)
@@ -545,8 +545,8 @@ export function createComputeInit(
         // Scattered star
         const angle = hash(seed.add(60)).mul(TAU)
         const r = sqrt(hash(seed.add(61))).mul(R)
-        posX.assign(cos(angle).mul(r).add(hash(seed.add(62)).sub(0.5).mul(60)))
-        posZ.assign(sin(angle).mul(r).add(hash(seed.add(63)).sub(0.5).mul(60)))
+        posX.assign(cos(angle).mul(r).add(hash(seed.add(62)).sub(0.5).mul(R.mul(60 / 280))))
+        posZ.assign(sin(angle).mul(r).add(hash(seed.add(63)).sub(0.5).mul(R.mul(60 / 280))))
       })
       posY.assign(hash(seed.add(70)).sub(0.5).mul(R).mul(0.12))
       distFactor.assign(sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R))
@@ -607,16 +607,6 @@ export function createComputeInit(
     posY.assign(shapedPosition.y)
     posZ.assign(shapedPosition.z)
     distFactor.assign(min(sqrt(posX.mul(posX).add(posZ.mul(posZ))).div(R), float(1)))
-
-    // ─── Central clear zone: push stars outside exclusion radius ───────
-    const actualR = sqrt(posX.mul(posX).add(posZ.mul(posZ)))
-    If(actualR.lessThan(clearRadius), () => {
-      // Redistribute to just outside clearRadius
-      const angle = atan(posZ, posX)
-      const newR = clearRadius.add(hash(seed.add(800)).mul(R.mul(0.1)))
-      posX.assign(cos(angle).mul(newR))
-      posZ.assign(sin(angle).mul(newR))
-    })
 
     const position = vec3(posX, posY, posZ)
     buffers.positionBuffer.element(idx).assign(position)

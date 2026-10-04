@@ -35,9 +35,6 @@ export interface Star {
 const TAU = Math.PI * 2
 
 const CONFIG = {
-  blackHole: {
-    exclusionRadius: 25,
-  },
   visual: {
     diskThicknessRatio: 0.06,
     hiiRegionChance: 0.15,
@@ -290,19 +287,6 @@ function computeRotationSpeed(r: number, omega0: number, falloff: number, turnov
 function longTailY(thickness: number): number {
   const u = Math.min(0.98, Math.max(0.02, Math.random()))
   return Math.log(u / (1 - u)) * thickness * 0.45
-}
-
-// ─── Central clear zone ──────────────────────────────────────────────────────
-
-function getCentralClearRadius(params: GalaxyRenderParams): number {
-  // Scale exclusion with black hole quad (20% of galaxy radius),
-  // so stars crowd right up to the visible accretion disk edge.
-  return params.galaxyRadius * 0.06
-}
-
-function applyCentralClearZone(stars: Star[], params: GalaxyRenderParams): Star[] {
-  const clearRadius = getCentralClearRadius(params)
-  return stars.filter((star) => star.radius >= clearRadius)
 }
 
 // ─── Field star generator ────────────────────────────────────────────────────
@@ -686,7 +670,8 @@ function generateClumpStars(
     clumps.push({
       x: Math.cos(angle) * r,
       z: Math.sin(angle) * r,
-      sigma: (30 + Math.random() * 80) * (1 - clumpBoost * 0.3),
+      // Preset scatter was authored at R=280; scale it with the galaxy.
+      sigma: (30 + Math.random() * 80) * (galaxyRadius / 280) * (1 - clumpBoost * 0.3),
       weight: 0.5 + Math.random(),
       isHII: Math.random() < CONFIG.visual.hiiRegionChance,
     })
@@ -704,8 +689,8 @@ function generateClumpStars(
     } else {
       const angle = Math.random() * TAU
       const r = Math.sqrt(Math.random()) * galaxyRadius
-      x = Math.cos(angle) * r + (Math.random() - 0.5) * 60
-      z = Math.sin(angle) * r + (Math.random() - 0.5) * 60
+      x = Math.cos(angle) * r + (Math.random() - 0.5) * 60 * (galaxyRadius / 280)
+      z = Math.sin(angle) * r + (Math.random() - 0.5) * 60 * (galaxyRadius / 280)
     }
 
     let y = (Math.random() - 0.5) * galaxyRadius * 0.12
@@ -886,5 +871,5 @@ export function generateGalaxy(params: GalaxyRenderParams): Star[] {
     }
   }
 
-  return applyCentralClearZone(stars, params)
+  return stars
 }
