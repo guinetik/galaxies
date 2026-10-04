@@ -26,8 +26,9 @@ import {
   type ForegroundUniforms,
 } from './GalaxyComputeForeground'
 import { GalaxyParticlesWebGPU } from './GalaxyParticlesWebGPU'
+import { GalaxyHaze } from '../GalaxyHaze'
 import { GalaxyPostProcessing } from './GalaxyPostProcessing'
-import { GalaxyClouds } from './GalaxyClouds'
+import { CINEMATIC, getOverviewZoom, getNucleusVisibility } from '../cinematicAppearance'
 import { GalaxyBlackHoleWebGPU } from './GalaxyBlackHoleWebGPU'
 import { GalaxyBackdropWebGPU } from './GalaxyBackdropWebGPU'
 import { GalaxyNeighborsWebGPU } from './GalaxyNeighborsWebGPU'
@@ -76,7 +77,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   // Visual layers
   private backdrop: GalaxyBackdropWebGPU
   private particles!: GalaxyParticlesWebGPU
-  private clouds: GalaxyClouds
+  private haze: GalaxyHaze
   private blackHole!: GalaxyBlackHoleWebGPU
   private postProcessing!: GalaxyPostProcessing
   private neighborsLayer: GalaxyNeighborsWebGPU | null = null
@@ -170,12 +171,11 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.scene.add(this.backdrop.mesh)
 
     // ─── Particle renderer ─────────────────────────────────────────────
-    this.particles = new GalaxyParticlesWebGPU(count, this.buffers, this.baseDistance)
+    this.particles = new GalaxyParticlesWebGPU(count, this.buffers, this.baseDistance, this.params, this.uniforms)
     this.scene.add(this.particles.sprite)
-
-    // ─── Dust clouds ─────────────────────────────────────────────────
-    this.clouds = new GalaxyClouds(this.uniforms, this.baseDistance, this.quality)
-    this.scene.add(this.clouds.sprite)
+    this.scene.add(this.particles.bodySprite)
+    this.haze = new GalaxyHaze(this.params)
+    this.scene.add(this.haze.mesh)
 
     // ─── Black hole (separate scene — composited on top after lensing+bloom)
     this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08, rtScale(this.quality))
@@ -197,9 +197,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       this.scene.add(this.neighborsLayer.sprite)
     }
 
-    // ─── Mobile: start more zoomed out ─────────────────────────────────
-    const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768
-    const initialZoom = isNarrowViewport ? 2 : 4
+    // ─── Fit the whole galaxy on both wide and narrow viewports ────────
+    const initialZoom = getOverviewZoom(aspect)
     this.zoom = initialZoom
     this.targetZoom = initialZoom
 
@@ -326,6 +325,10 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       const rh = canvas.clientHeight
       if (rw === 0 || rh === 0 || !this.renderer) return
       this.renderer.setSize(rw, rh, false)
+      this.renderer.getSize(this.rendererSize)
+      const framingScale = getOverviewZoom(rw / rh) / getOverviewZoom(this.camera.aspect)
+      this.zoom *= framingScale
+      this.targetZoom *= framingScale
       this.camera.aspect = rw / rh
       this.camera.updateProjectionMatrix()
     })
@@ -385,7 +388,6 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Run init compute (once) ────────────────────────────────────
     await this.renderer.computeAsync(this.computeInit)
-    await this.renderer.computeAsync(this.clouds.computeInit)
     if (this.disposed) return
     this.initialized = true
 
@@ -412,7 +414,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
         if (this.disposed) {
           return
         }
-        await this.renderer.computeAsync(this.clouds.computeInit)
+        this.particles.updateAppearance(this.params)
+        this.haze.updateAppearance(this.params)
       } catch (error) {
         if (!this.disposed) {
           console.warn('Band-guided WebGPU upgrade failed; keeping procedural render:', error)
@@ -449,11 +452,13 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.camera.position.copy(_camPos)
     this.camera.lookAt(this.pivot)
     this.camera.updateMatrixWorld(true)
+    const nucleusVisible = getNucleusVisibility(this.camera.position.length(), this.params.galaxyRadius) > 0
+    this.particles.updateVisibility(this.camera.position.length(), this.params.galaxyRadius, nucleusVisible)
 
     // ─── Galaxy rotation (data-driven differential rotation) ────────
     // omega0 from params; curve handled per-star in compute shader.
     // Ellipticals/irregulars now rotate via their reduced omega0 from params.
-    const rotSpeed = this.params.rotationOmega0
+    const rotSpeed = this.params.rotationOmega0 * CINEMATIC.motionScale
     this.galaxyRotation += dt * rotSpeed
     const time = this.uniforms.time.value + dt
 
@@ -466,8 +471,8 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     // ─── Run physics compute (non-blocking for better frame pacing) ──
     if (this.initialized) {
+      this.particles.advance(dt)
       this.renderer.compute(this.computeUpdate)
-      this.renderer.compute(this.clouds.computeUpdate)
 
       // ─── Foreground detection compute ─────────────────────────────
       const vm = this.camera.matrixWorldInverse.elements
@@ -519,11 +524,12 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       this.fgUniforms.ndcRadiusX.value = Math.max((bhRadiusPx * overlapScale) / Math.max(vpW * 0.5, 1), 0.04)
       this.fgUniforms.ndcRadiusY.value = Math.max((bhRadiusPx * overlapScale) / Math.max(vpH * 0.5, 1), 0.04)
 
-      this.renderer.compute(this.computeForeground)
+      if (nucleusVisible) this.renderer.compute(this.computeForeground)
     }
 
     // ─── Backdrop update ─────────────────────────────────────────────
     this.backdrop.update(time, this.camera)
+    this.haze.update(this.camera)
 
     // ─── Black hole update ────────────────────────────────────────────
     const cp = this.camera.position
@@ -574,7 +580,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     this.backdrop.dispose()
     this.particles.dispose()
-    this.clouds.dispose()
+    this.haze.dispose()
     this.blackHole.dispose()
     this.postProcessing?.dispose()
     this.neighborsLayer?.dispose()

@@ -24,7 +24,6 @@ import {
   screenUV,
   length,
   max,
-  min,
   mix,
   smoothstep,
   clamp,
@@ -34,22 +33,10 @@ import {
 import { pass } from 'three/tsl'
 import { bloom } from 'three/addons/tsl/display/BloomNode.js'
 
-const gradeIntergalacticBackdrop = Fn(([color]: [any]) => {
-  const peak = max(color.r, max(color.g, color.b))
-  const floor = min(color.r, min(color.g, color.b))
-  const saturation = peak.sub(floor)
-
-  const nebulaMask = smoothstep(float(0.06), float(0.30), saturation)
-    .mul(float(1.0).sub(smoothstep(float(0.28), float(0.95), peak)))
-
-  const graded = (pow as any)(max(color, vec3(0.0)), vec3(1.14, 1.14, 1.14))
-  const gradedBackdrop = graded.mul(mix(float(0.90), float(0.45), nebulaMask))
-  return gradedBackdrop.mul(vec3(1.06, 0.93, 0.82))
-})
-
 export class GalaxyPostProcessing {
   readonly postProcessing: THREE.PostProcessing
   private bloomPassNode: any
+  private scenePasses: ReturnType<typeof pass>[]
 
   // Lensing uniforms
   private uBHScreenPos = uniform(new THREE.Vector2(0.5, 0.5))
@@ -77,6 +64,7 @@ export class GalaxyPostProcessing {
     // ─── Pass 3: Foreground stars (additive glow on top) ───────────
     const fgPass = pass(foregroundScene, camera)
     const fgColor = fgPass.getTextureNode()
+    this.scenePasses = [galaxyPass, bhPass, fgPass]
 
     // ─── Lensing — distort galaxy UVs near the black hole ──────────
     const uBHScreenPos = this.uBHScreenPos
@@ -115,7 +103,6 @@ export class GalaxyPostProcessing {
       const distortedUV = clamp(currentUV.add(offset), float(0.0), float(1.0))
 
       const col = galaxyColor.sample(distortedUV).toVar()
-      col.rgb.assign(gradeIntergalacticBackdrop(col.rgb))
 
       // Keep the lensing glow subtle so the BH shader remains the main ring source.
       const ringRadius = mix(float(0.024), float(0.09), lensZoom)
@@ -159,7 +146,7 @@ export class GalaxyPostProcessing {
       const outRGB = bhComposite.add(fg.rgb)
 
       const outA = max(bg.a, max(bh.a, fg.a))
-      return vec4(min(outRGB, float(1.0)), outA)
+      return vec4(outRGB.div(vec3(1.0).add(outRGB)), outA)
     })
 
     this.postProcessing.outputNode = compositeFn()
@@ -186,6 +173,8 @@ export class GalaxyPostProcessing {
   }
 
   dispose(): void {
-    // PostProcessing disposes with renderer
+    this.postProcessing.dispose()
+    this.bloomPassNode.dispose()
+    this.scenePasses.forEach(scenePass => scenePass.dispose())
   }
 }

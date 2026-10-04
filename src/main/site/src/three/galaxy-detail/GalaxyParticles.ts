@@ -2,7 +2,10 @@ import * as THREE from 'three'
 import type { Star } from './GalaxyGenerator'
 import vertexShader from './shaders/particle.vert.glsl?raw'
 import fragmentShader from './shaders/particle.frag.glsl?raw'
-import { createGlowTexture } from './createGlowTexture'
+import dustShader from './shaders/dust-transmission.glsl?raw'
+import { createDustAtlas } from './dustAtlas'
+import { CINEMATIC, getStellarBodyVisibility } from './cinematicAppearance'
+import type { GalaxyRenderParams } from './morphology'
 
 // ─── HSL to RGB conversion ─────────────────────────────────────────────────
 
@@ -28,16 +31,19 @@ function layerLightness(layer: Star['layer'], brightness: number): number {
 // ─── Galaxy particle renderer ───────────────────────────────────────────────
 
 /**
- * Renders star data as THREE.Points with glow shaders and differential
- * rotation animation. Each star is a single point-sprite with additive
- * blending and a GLOW fragment shader for soft halos.
+ * Fine stellar points and a diffuse, strided sample of the same animated
+ * morphology positions. Dust transmission is evaluated along the sightline.
  */
 export class GalaxyParticles {
   readonly points: THREE.Points
   readonly foregroundPoints: THREE.Points
+  readonly bodyPoints: THREE.Points
+  private bodyGeometry: THREE.BufferGeometry
+  private bodyMaterial: THREE.ShaderMaterial
+  private dustMap: THREE.DataTexture
+  private simulationTime = 0
   private backgroundGeometry: THREE.BufferGeometry
   private foregroundGeometry: THREE.BufferGeometry
-  private glowTexture: THREE.DataTexture
   private material: THREE.ShaderMaterial
   private foregroundMaterial: THREE.ShaderMaterial
   private stars: Star[]
@@ -45,7 +51,7 @@ export class GalaxyParticles {
   private baseAlphas: Float32Array
   private baseDistance: number
 
-  constructor(stars: Star[], baseDistance = 600) {
+  constructor(stars: Star[], baseDistance: number, params: GalaxyRenderParams) {
     this.stars = stars
     this.baseDistance = baseDistance
     const count = stars.length
@@ -101,15 +107,22 @@ export class GalaxyParticles {
 
     // ─── Material ─────────────────────────────────────────────────────
 
-    this.glowTexture = createGlowTexture()
 
+    this.dustMap = createDustAtlas(params)
     this.material = new THREE.ShaderMaterial({
-      vertexShader,
+      vertexShader: dustShader + '\n' + vertexShader,
       fragmentShader,
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uBaseDistance: { value: baseDistance },
-        uGlowTex: { value: this.glowTexture },
+        uBody: { value: 0 },
+        uBodyOpacity: { value: 0 },
+        uResolveFade: { value: 1 },
+        uOldPopulation: { value: params.morphology.ellipticity > 0 ? 1 : 0 },
+        uScreenHeight: { value: 800 },
+        uTanHalfFov: { value: Math.tan(Math.PI / 6) },
+        uGalaxyRadius: { value: params.galaxyRadius },
+        uDustMap: { value: this.dustMap },
+        uDustMotion: { value: new THREE.Vector4(params.rotationOmega0, params.rotationFalloff, params.rotationTurnover / params.galaxyRadius, 0) },
       },
       transparent: true,
       depthWrite: false,
@@ -117,11 +130,28 @@ export class GalaxyParticles {
     })
 
     this.foregroundMaterial = this.material.clone()
-    this.foregroundMaterial.uniforms = {
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-      uBaseDistance: { value: baseDistance },
-      uGlowTex: { value: this.glowTexture },
+    this.foregroundMaterial.uniforms = { ...this.material.uniforms }
+
+    // CPU stars are grouped by population. A strided sample preserves every
+    // group, and shares the animated positions rather than freezing a density map.
+    const stride = Math.max(1, Math.ceil(count / CINEMATIC.bodySamples))
+    const indices = []
+    for (let i = 0; i < count; i += stride) indices.push(i)
+    this.bodyGeometry = new THREE.BufferGeometry()
+    this.bodyGeometry.setAttribute('position', positionAttr)
+    this.bodyGeometry.setAttribute('aSize', sizeAttr)
+    this.bodyGeometry.setAttribute('aColor', this.backgroundGeometry.getAttribute('aColor'))
+    this.bodyGeometry.setIndex(indices)
+    this.bodyMaterial = this.material.clone()
+    this.bodyMaterial.uniforms = {
+      ...this.material.uniforms,
+      uBody: { value: CINEMATIC.bodyDiameter },
+      uBodyOpacity: { value: CINEMATIC.bodyOpacity * 30000 / indices.length },
+      uScreenHeight: { value: 800 },
     }
+    this.bodyPoints = new THREE.Points(this.bodyGeometry, this.bodyMaterial)
+    this.bodyPoints.frustumCulled = false
+    this.bodyPoints.renderOrder = -2
 
     this.points = new THREE.Points(this.backgroundGeometry, this.material)
     this.points.frustumCulled = false
@@ -148,7 +178,13 @@ export class GalaxyParticles {
     bhRadiusPx: number,
     viewportWidth: number,
     viewportHeight: number,
+    nucleusVisible = true,
   ): void {
+    this.simulationTime += dt
+    this.material.uniforms.uDustMotion.value.w = this.simulationTime
+    this.material.uniforms.uScreenHeight.value = viewportHeight
+    this.bodyMaterial.uniforms.uScreenHeight.value = viewportHeight
+    this.material.uniforms.uTanHalfFov.value = Math.tan(camera.fov * Math.PI / 360)
     const stars = this.stars
     const count = stars.length
     const posAttr = this.backgroundGeometry.getAttribute('position') as THREE.BufferAttribute
@@ -161,6 +197,9 @@ export class GalaxyParticles {
     const projMatrix = camera.projectionMatrix.elements
     const bhViewZ = viewMatrix[14]
     const cameraDistance = camera.position.length()
+    this.material.uniforms.uResolveFade.value = getStellarBodyVisibility(cameraDistance, this.material.uniforms.uGalaxyRadius.value)
+    this.bodyPoints.visible = this.material.uniforms.uResolveFade.value > 0
+    this.foregroundPoints.visible = nucleusVisible
     const edgeOnMix = THREE.MathUtils.smoothstep(
       1.0 - Math.abs(camera.position.y) / Math.max(cameraDistance, 0.0001),
       0.55,
@@ -193,8 +232,14 @@ export class GalaxyParticles {
 
       // Twinkle — bright layer only for performance
       if (star.layer === 'bright') {
-        const twinkle = Math.sin(time * 2 + star.twinklePhase) * 0.15 + 0.85
+        const twinkle = Math.sin(time * 0.5 + star.twinklePhase) * 0.025 + 0.975
         alpha *= twinkle
+      }
+
+      if (!nucleusVisible) {
+        backgroundColors[i * 4 + 3] = alpha
+        foregroundColors[i * 4 + 3] = 0
+        continue
       }
 
       const posX = positions[i * 3]
@@ -240,6 +285,8 @@ export class GalaxyParticles {
     this.foregroundGeometry.dispose()
     this.material.dispose()
     this.foregroundMaterial.dispose()
-    this.glowTexture.dispose()
+    this.bodyGeometry.dispose()
+    this.bodyMaterial.dispose()
+    this.dustMap.dispose()
   }
 }

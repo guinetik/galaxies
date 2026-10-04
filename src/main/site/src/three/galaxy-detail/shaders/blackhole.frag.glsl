@@ -6,6 +6,7 @@ uniform float uTime;
 uniform float uTiltX;
 uniform float uRotY;
 uniform float uLOD;
+uniform float uReveal;
 
 const float PI = 3.1415926;
 
@@ -156,5 +157,5 @@ void main() {
     col *= feather;
     float alpha = max(alphaAcc * feather, captured);
 
-    gl_FragColor = vec4(col, alpha);
+    gl_FragColor = vec4(col, alpha * uReveal);
 }

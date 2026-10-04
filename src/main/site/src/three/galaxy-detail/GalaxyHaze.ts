@@ -1,67 +1,57 @@
 import * as THREE from 'three'
+import type { GalaxyRenderParams } from './morphology'
+import { getStellarBodyVisibility } from './cinematicAppearance'
 
+/** Unresolved nuclear light. Size is set by the morphology bulge, not the BH. */
 export class GalaxyHaze {
-  readonly mesh: THREE.Mesh
-  private material: THREE.MeshBasicMaterial
+  readonly mesh: THREE.Sprite
+  private material: THREE.SpriteMaterial
+  private radius = 1
+  private hasBulge = true
 
-  constructor(galaxyRadius: number) {
-    const size = 512
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')!
-
-    const cx = size / 2
-    const cy = size / 2
-
-    // Layer 1: Bright, compact core glow (warm golden — billions of unresolved stars)
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cx * 0.3)
-    coreGrad.addColorStop(0, 'hsla(35, 80%, 65%, 0.45)')
-    coreGrad.addColorStop(0.3, 'hsla(30, 70%, 50%, 0.25)')
-    coreGrad.addColorStop(0.7, 'hsla(25, 60%, 40%, 0.08)')
-    coreGrad.addColorStop(1, 'hsla(20, 50%, 30%, 0)')
-    ctx.fillStyle = coreGrad
-    ctx.fillRect(0, 0, size, size)
-
-    // Layer 2: Wider warm haze (extends through disk)
-    const diskGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cx * 0.7)
-    diskGrad.addColorStop(0, 'hsla(30, 60%, 55%, 0.15)')
-    diskGrad.addColorStop(0.3, 'hsla(210, 40%, 45%, 0.08)')
-    diskGrad.addColorStop(0.6, 'hsla(220, 30%, 35%, 0.03)')
-    diskGrad.addColorStop(1, 'hsla(0, 0%, 0%, 0)')
-    ctx.fillStyle = diskGrad
-    ctx.fillRect(0, 0, size, size)
-
-    // Layer 3: Very faint outer halo
-    const outerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cx)
-    outerGrad.addColorStop(0, 'hsla(25, 40%, 40%, 0.04)')
-    outerGrad.addColorStop(0.5, 'hsla(220, 30%, 30%, 0.02)')
-    outerGrad.addColorStop(1, 'hsla(0, 0%, 0%, 0)')
-    ctx.fillStyle = outerGrad
-    ctx.fillRect(0, 0, size, size)
-
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.needsUpdate = true
-
-    const planeSize = galaxyRadius * 3
-    const geometry = new THREE.PlaneGeometry(planeSize, planeSize)
-
-    this.material = new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
+  constructor(params: GalaxyRenderParams) {
+    const size = 128
+    const data = new Uint8Array(size * size * 4)
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const r2 = ((x + 0.5) / size * 2 - 1) ** 2 + ((y + 0.5) / size * 2 - 1) ** 2
+        const alpha = Math.max(0, Math.exp(-r2 * 7) - Math.exp(-7))
+        const i = (y * size + x) * 4
+        data[i] = 255
+        data[i + 1] = 220
+        data[i + 2] = 170
+        data[i + 3] = Math.round(alpha * 255)
+      }
+    }
+    const map = new THREE.DataTexture(data, size, size)
+    map.minFilter = map.magFilter = THREE.LinearFilter
+    map.needsUpdate = true
+    this.material = new THREE.SpriteMaterial({
+      map, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, opacity: 0.85,
     })
+    this.mesh = new THREE.Sprite(this.material)
+    this.mesh.renderOrder = -3
+    this.updateAppearance(params)
+  }
 
-    this.mesh = new THREE.Mesh(geometry, this.material)
-    this.mesh.rotation.x = -Math.PI / 2
-    this.mesh.position.set(0, 0, 0)
+  updateAppearance(params: GalaxyRenderParams): void {
+    this.radius = params.galaxyRadius
+    const m = params.morphology
+    this.hasBulge = m.bulgeRadius > 0 || m.ellipticity > 0
+    this.mesh.visible = this.hasBulge
+    const diameter = params.galaxyRadius * Math.max(0.38, m.bulgeRadius * 2)
+    this.mesh.scale.set(diameter, diameter, 1)
+  }
+
+  update(camera: THREE.Camera): void {
+    // Resolve diffuse nuclear light into individual stars during an approach.
+    this.material.opacity = 0.85 * getStellarBodyVisibility(camera.position.length(), this.radius)
+    this.mesh.visible = this.hasBulge && this.material.opacity > 0
   }
 
   dispose(): void {
     this.material.map?.dispose()
     this.material.dispose()
-    ;(this.mesh.geometry as THREE.BufferGeometry).dispose()
   }
 }

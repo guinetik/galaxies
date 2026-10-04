@@ -12,6 +12,7 @@ const vertexStubs = readFileSync(stubsPath, 'utf-8')
 
 /** Fragment shader library deps — prepend these before compiling */
 const shaderDeps: Record<string, string[]> = {
+  'particle.vert.glsl': ['dust-transmission.glsl'],
   'galaxy-render.glsl': ['noise-value.glsl'],
   'galaxy.frag.glsl': ['noise-value.glsl', 'galaxy-render.glsl'],
 }

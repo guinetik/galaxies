@@ -6,7 +6,7 @@ import { generateGalaxy } from './GalaxyGenerator'
 import { GalaxyParticles } from './GalaxyParticles'
 import { GalaxyHaze } from './GalaxyHaze'
 import { GalaxyBackdrop } from './GalaxyBackdrop'
-import { GalaxyNebula } from './GalaxyNebula'
+import { CINEMATIC, getOverviewZoom } from './cinematicAppearance'
 import { GalaxyBlackHole } from './GalaxyBlackHole'
 import { GalaxyNeighbors } from './GalaxyNeighbors'
 import { computeNeighborSprites } from './neighborField'
@@ -14,6 +14,7 @@ import { generateGalaxyTextureAtlas } from '../GalaxyTextures'
 import { getInitialOrbitAngles } from './initialOrbit'
 import lensingVert from './shaders/lensing.vert.glsl?raw'
 import lensingFrag from './shaders/lensing.frag.glsl?raw'
+import outputFrag from './shaders/output.frag.glsl?raw'
 import type { IGalaxyScene } from './IGalaxyScene'
 import { detectQuality, dprCap, rtScale, type Quality } from './qualityDetect'
 
@@ -32,18 +33,19 @@ export class GalaxyScene implements IGalaxyScene {
   private backdrop: GalaxyBackdrop
   private particles: GalaxyParticles
   private haze: GalaxyHaze
-  private nebula: GalaxyNebula
   private blackHole: GalaxyBlackHole
   private neighbors: GalaxyNeighbors | null = null
   private neighborAtlas: THREE.Texture | null = null
   private animationId = 0
   private clock = new THREE.Clock()
-  private galaxyRotation = 0
   private params: GalaxyRenderParams
 
   // Lensing post-process
   private rtScaleFactor: number
   private galaxyRT: THREE.WebGLRenderTarget
+  private compositeRT: THREE.WebGLRenderTarget
+  private outputMaterial: THREE.ShaderMaterial
+  private outputScene: THREE.Scene
   private lensingMaterial: THREE.ShaderMaterial
   private lensingScene: THREE.Scene
   private lensingCamera: THREE.OrthographicCamera
@@ -110,15 +112,14 @@ export class GalaxyScene implements IGalaxyScene {
     this.backdrop = new GalaxyBackdrop(this.baseDistance, galaxy.pgc, quality)
     this.scene.add(this.backdrop.mesh)
 
-    this.particles = new GalaxyParticles(stars, this.baseDistance)
+    this.particles = new GalaxyParticles(stars, this.baseDistance, this.params)
     this.scene.add(this.particles.points)
     this.scene.add(this.particles.foregroundPoints)
+    this.scene.add(this.particles.bodyPoints)
 
-    this.haze = new GalaxyHaze(R)
+    this.haze = new GalaxyHaze(this.params)
     this.scene.add(this.haze.mesh)
 
-    this.nebula = new GalaxyNebula(stars, R, galaxy.pgc, quality)
-    this.scene.add(this.nebula.mesh)
 
     this.blackHole = new GalaxyBlackHole(null, R * 0.08)
     this.scene.add(this.blackHole.depthMesh)
@@ -131,7 +132,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.particles.points.layers.set(1)
     this.particles.foregroundPoints.layers.set(2)
     this.haze.mesh.layers.set(1)
-    this.nebula.mesh.layers.set(1)
+    this.particles.bodyPoints.layers.set(1)
     // Black hole layers are set in GalaxyBlackHole constructor (layer 2)
 
     // ─── Distant neighbor galaxies (background layer, behind main galaxy) ─
@@ -152,7 +153,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.galaxyRT = new THREE.WebGLRenderTarget(
       w * this.renderer.getPixelRatio() * this.rtScaleFactor,
       h * this.renderer.getPixelRatio() * this.rtScaleFactor,
-      { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter },
+      { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, type: THREE.HalfFloatType },
     )
 
     this.lensingMaterial = new THREE.ShaderMaterial({
@@ -177,10 +178,19 @@ export class GalaxyScene implements IGalaxyScene {
     this.lensingScene = new THREE.Scene()
     this.lensingScene.add(lensingQuad)
     this.lensingCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    this.compositeRT = this.galaxyRT.clone()
+    this.outputMaterial = new THREE.ShaderMaterial({
+      vertexShader: lensingVert,
+      fragmentShader: outputFrag,
+      uniforms: { uSceneTexture: { value: this.compositeRT.texture } },
+      depthTest: false,
+      depthWrite: false,
+    })
+    this.outputScene = new THREE.Scene()
+    this.outputScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.outputMaterial))
 
-    // ─── Mobile: start more zoomed out for better fit on narrow viewports ───
-    const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768
-    const initialZoom = isNarrowViewport ? 2 : 4
+    // ─── Fit the whole galaxy on both wide and narrow viewports ────────
+    const initialZoom = getOverviewZoom(aspect)
     this.zoom = initialZoom
     this.targetZoom = initialZoom
 
@@ -295,10 +305,14 @@ export class GalaxyScene implements IGalaxyScene {
       const rh = canvas.clientHeight
       if (rw === 0 || rh === 0) return
       this.renderer.setSize(rw, rh, false)
+      const framingScale = getOverviewZoom(rw / rh) / getOverviewZoom(this.camera.aspect)
+      this.zoom *= framingScale
+      this.targetZoom *= framingScale
       this.camera.aspect = rw / rh
       this.camera.updateProjectionMatrix()
       const dpr = this.renderer.getPixelRatio()
       this.galaxyRT.setSize(rw * dpr * this.rtScaleFactor, rh * dpr * this.rtScaleFactor)
+      this.compositeRT.setSize(rw * dpr * this.rtScaleFactor, rh * dpr * this.rtScaleFactor)
       this.lensingMaterial.uniforms.uAspectRatio.value = rw / rh
     })
     this.resizeObserver.observe(canvas)
@@ -352,7 +366,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.lensingMaterial.uniforms.uLensStrength.value = lensStrength
     this.lensingMaterial.uniforms.uLensZoom.value = lensZoom
 
-    this.renderer.setRenderTarget(null)
+    this.renderer.setRenderTarget(this.compositeRT)
     this.renderer.clear()
     this.renderer.render(this.lensingScene, this.lensingCamera)
   }
@@ -390,14 +404,8 @@ export class GalaxyScene implements IGalaxyScene {
       this.camera.position.copy(camPos)
       this.camera.lookAt(this.pivot)
 
-      // Force matrix update so nebula's inverse VP is current-frame, not stale
+      // Dust and foreground classification need current camera matrices.
       this.camera.updateMatrixWorld(true)
-
-      // ─── Galaxy rotation (faster as we zoom in) ──────────────────
-
-      const zoomNorm = Math.min(this.zoom / 20, 1)  // 0 at min zoom, 1 at max
-      const rotSpeed = 0.02 + 0.18 * zoomNorm * zoomNorm  // 0.02 far → 0.20 close
-      this.galaxyRotation += dt * rotSpeed
 
       // ─── Update visual layers ─────────────────────────────────────
 
@@ -407,6 +415,7 @@ export class GalaxyScene implements IGalaxyScene {
       const tiltX = Math.atan2(cp.y, hDist)
       const rotY = Math.atan2(cp.x, cp.z)
       this.backdrop.update(time, this.camera)
+      this.haze.update(this.camera)
       this.blackHole.update(time, tiltX, rotY, this.camera, this.renderer)
 
       // Project black hole world position (0,0,0) to screen space before
@@ -418,25 +427,17 @@ export class GalaxyScene implements IGalaxyScene {
       const dpr = this.renderer.getPixelRatio()
 
       this.particles.update(
-        dt,
+        dt * CINEMATIC.motionScale,
         time,
         this.camera,
         this._bhScreenVec.x,
         this._bhScreenVec.y,
         this.blackHole.getApparentPx(),
-        rendererSize.x * dpr,
-        rendererSize.y * dpr,
+        rendererSize.x * dpr * this.rtScaleFactor,
+        rendererSize.y * dpr * this.rtScaleFactor,
+        this.blackHole.mesh.visible,
       )
 
-      const axisRatio = this.params.morphology.ellipticity > 0 ? this.params.morphology.axisRatio : 1.0
-
-      this.nebula.update(
-        time,
-        this.camera,
-        this.galaxyRotation,
-        this.params.galaxyRadius,
-        axisRatio,
-      )
 
       // ─── Render (3-pass lensing pipeline) ─────────────────────────
 
@@ -446,17 +447,16 @@ export class GalaxyScene implements IGalaxyScene {
         const lensStrength = lod * lod * 0.045
         this.renderGalaxyPostPass(bhU, bhV, lensStrength, lod)
       } else {
-        this.camera.layers.set(1)
-        this.renderer.setRenderTarget(null)
-        this.renderer.clear()
-        this.renderer.render(this.scene, this.camera)
+        this.renderGalaxyPostPass(bhU, bhV, 0, 0)
       }
 
-      // ─── Pass 3: Black hole billboard + foreground stars → screen ─────
+      // ─── Composite nucleus and foreground in HDR, then encode once ──
       this.camera.layers.set(2)
       this.renderer.autoClear = false
       this.renderer.render(this.scene, this.camera)
       this.renderer.autoClear = true
+      this.renderer.setRenderTarget(null)
+      this.renderer.render(this.outputScene, this.lensingCamera)
     }
 
     animate()
@@ -483,11 +483,14 @@ export class GalaxyScene implements IGalaxyScene {
     this.backdrop.dispose()
     this.particles.dispose()
     this.haze.dispose()
-    this.nebula.dispose()
     this.blackHole.dispose()
     this.neighbors?.dispose()
     this.neighborAtlas?.dispose()
     this.galaxyRT.dispose()
+    this.compositeRT.dispose()
+    this.outputMaterial.dispose()
+    ;(this.outputScene.children[0] as THREE.Mesh).geometry.dispose()
+    ;(this.lensingScene.children[0] as THREE.Mesh).geometry.dispose()
     this.lensingMaterial.dispose()
     this.renderer.dispose()
   }

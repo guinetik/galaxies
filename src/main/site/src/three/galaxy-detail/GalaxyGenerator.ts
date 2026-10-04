@@ -143,7 +143,7 @@ function smoothstepCPU(edge0: number, edge1: number, x: number): number {
 /**
  * Computes wavelength-dependent dust extinction for a star position.
  */
-function computeDustExtinction(
+export function computeDustExtinction(
   x: number, y: number, z: number,
   params: GalaxyRenderParams,
 ): { r: number; g: number; b: number } {

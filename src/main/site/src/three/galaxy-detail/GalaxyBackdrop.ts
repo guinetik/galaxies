@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import vertexShader from './shaders/backdrop.vert.glsl?raw'
 import fragmentShader from './shaders/backdrop.frag.glsl?raw'
 import type { Quality } from './qualityDetect'
+import { CINEMATIC } from './cinematicAppearance'
 
 /**
  * Camera-centered procedural sky shell for the WebGL galaxy scene.
@@ -35,7 +36,7 @@ export class GalaxyBackdrop {
       uniforms: {
         uTime: { value: 0 },
         uSeed: { value: seed },
-        uNebulaIntensity: { value: 2.4 },
+        uNebulaIntensity: { value: CINEMATIC.nebulaIntensity },
       },
       side: THREE.BackSide,
       depthWrite: false,

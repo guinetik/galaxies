@@ -19,6 +19,7 @@ import {
 import { wgslFn } from 'three/tsl'
 import backdropWGSL from '../shaders/backdrop.wgsl?raw'
 import type { Quality } from '../qualityDetect'
+import { CINEMATIC } from '../cinematicAppearance'
 
 /**
  * Substitute LOD placeholder tokens in the WGSL source with concrete integer
@@ -97,7 +98,7 @@ export class GalaxyBackdropWebGPU {
 
   private uTime = uniform(0)
   private uSeed = uniform(0)
-  private uNebulaIntensity = uniform(2.4)
+  private uNebulaIntensity = uniform(CINEMATIC.nebulaIntensity)
 
   constructor(baseDistance: number, seed: number, quality: Quality) {
     this.uSeed.value = seed

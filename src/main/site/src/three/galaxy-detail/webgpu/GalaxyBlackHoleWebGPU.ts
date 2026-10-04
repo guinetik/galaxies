@@ -12,6 +12,7 @@
  */
 
 import * as THREE from 'three/webgpu'
+import { getNucleusVisibility } from '../cinematicAppearance'
 import {
   uniform,
   vec2,
@@ -49,6 +50,7 @@ export class GalaxyBlackHoleWebGPU {
   private uTiltX = uniform(0)
   private uRotY = uniform(0)
   private uLOD = uniform(0)
+  private uReveal = uniform(0)
 
   constructor(quadSize = 60, postFxScale = 1.0) {
     this.quadSize = quadSize
@@ -244,7 +246,7 @@ export class GalaxyBlackHoleWebGPU {
       col.mulAssign(feather)
       const alpha = max(alphaAcc.mul(feather), captured)
 
-      return vec4(col, alpha)
+      return vec4(col, alpha.mul(this.uReveal))
     })
 
     // Material
@@ -276,12 +278,14 @@ export class GalaxyBlackHoleWebGPU {
 
     // LOD: 0 = far away (dim), 1 = close up (full intensity)
     const camDist = camera.position.length()
+    this.uReveal.value = getNucleusVisibility(camDist, this.quadSize / 0.08)
+    this.mesh.visible = this.uReveal.value > 0
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 60
     const vFov = (fov * Math.PI) / 180
     const screenH = rendererSize.y * dpr
     const apparentPx =
       (this.quadSize / camDist) * (screenH / (2 * Math.tan(vFov / 2)))
-    this.uLOD.value = Math.min(Math.max((apparentPx - 6) / 220, 0), 1)
+    this.uLOD.value = Math.min(Math.max((apparentPx - 6) / 220, 0), 1) * this.uReveal.value
   }
 
   getLOD(): number {

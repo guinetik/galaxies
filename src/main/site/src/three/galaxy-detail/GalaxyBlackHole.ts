@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { getNucleusVisibility } from './cinematicAppearance'
 import vertexShader from './shaders/blackhole.vert.glsl?raw'
 import fragmentShader from './shaders/blackhole.frag.glsl?raw'
 
@@ -34,6 +35,7 @@ export class GalaxyBlackHole {
         uTiltX: { value: 0.0 },
         uRotY: { value: 0.0 },
         uLOD: { value: 0.0 },
+        uReveal: { value: 0.0 },
       },
       transparent: true,
       depthWrite: false,
@@ -64,12 +66,15 @@ export class GalaxyBlackHole {
 
       // LOD: 0 = far away (dim), 1 = close up (full intensity)
       const camDist = camera.position.length()
+      const reveal = getNucleusVisibility(camDist, this.quadSize / 0.08)
+      this.material.uniforms.uReveal.value = reveal
+      this.mesh.visible = reveal > 0
       const fov = (camera as THREE.PerspectiveCamera).fov ?? 60
       const vFov = fov * Math.PI / 180
       const screenH = this.material.uniforms.uResolution.value.y
       this.apparentPx = (this.quadSize / camDist) * (screenH / (2 * Math.tan(vFov / 2)))
       const lod = Math.min(Math.max((this.apparentPx - 6) / 220, 0), 1)
-      this.material.uniforms.uLOD.value = lod
+      this.material.uniforms.uLOD.value = lod * reveal
     }
   }
 
