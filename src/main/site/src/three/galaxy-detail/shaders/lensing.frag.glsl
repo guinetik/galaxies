@@ -1,6 +1,7 @@
 precision highp float;
 
 uniform sampler2D uSceneTexture;
+uniform sampler2D uBodyTexture;
 uniform vec2      uBHScreenPos;   // black hole position in UV space (0–1)
 uniform float     uLensStrength;  // 0 = no distortion, ~0.03 = max
 uniform float     uLensZoom;      // 0 = distant, 1 = close-up
@@ -33,6 +34,7 @@ void main() {
   vec2 distortedUV = clamp(vUV + offset, 0.0, 1.0);
 
   vec4 color = texture2D(uSceneTexture, distortedUV);
+  color.rgb += texture2D(uBodyTexture, distortedUV).rgb;
 
   // Subtle Einstein ring glow at characteristic radius
   float ringRadius = mix(0.024, 0.09, uLensZoom);

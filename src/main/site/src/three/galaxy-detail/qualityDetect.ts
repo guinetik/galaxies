@@ -23,10 +23,10 @@ export function dprCap(quality: Quality): number {
 }
 
 /** Render-target resolution scale. Reduces expensive passes on high-res displays. */
-export function rtScale(quality: Quality): number {
+export function rtScale(quality: Quality, physicalWidth?: number): number {
   if (quality === 'mobile') return 0.5
   // At 4K+ (screen width > 3000 CSS px with DPR ≥ 1.5), render post-FX at 75%
-  const w = typeof window !== 'undefined' ? window.screen.width * window.devicePixelRatio : 1920
+  const w = physicalWidth ?? (typeof window !== 'undefined' ? window.screen.width * window.devicePixelRatio : 1920)
   if (w > 4500) return 0.5  // 5K+
   if (w > 3000) return 0.75 // 4K
   return 1.0

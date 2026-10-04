@@ -574,5 +574,9 @@ void main() {
   finalColor *= 0.45;
   finalColor = clamp(finalColor, 0.0, 1.0);
 
-  gl_FragColor = vec4(pow(finalColor, vec3(2.2)), 1.0);
+  #ifdef BACKDROP_CACHE
+    gl_FragColor = vec4(finalColor, 1.0);
+  #else
+    gl_FragColor = vec4(pow(finalColor, vec3(2.2)), 1.0);
+  #endif
 }

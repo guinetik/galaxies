@@ -15,6 +15,9 @@ import {
   normalize,
   positionLocal,
   Fn,
+  cubeTexture,
+  vec4,
+  vec3,
 } from 'three/tsl'
 import { wgslFn } from 'three/tsl'
 import backdropWGSL from '../shaders/backdrop.wgsl?raw'
@@ -95,12 +98,16 @@ function splitWgslFunctions(source: string): string[] {
 export class GalaxyBackdropWebGPU {
   readonly mesh: THREE.Mesh
   private material: THREE.MeshBasicNodeMaterial
+  private cachedMaterial: THREE.MeshBasicNodeMaterial | null = null
+  private cache: THREE.CubeRenderTarget | null = null
+  private readonly cacheSize: number
 
   private uTime = uniform(0)
   private uSeed = uniform(0)
   private uNebulaIntensity = uniform(CINEMATIC.nebulaIntensity)
 
   constructor(baseDistance: number, seed: number, quality: Quality) {
+    this.cacheSize = quality === 'mobile' ? 512 : 2048
     this.uSeed.value = seed
 
     const radius = baseDistance * 12
@@ -128,7 +135,10 @@ export class GalaxyBackdropWebGPU {
 
     const fragmentNode = Fn(() => {
       const dir = normalize(positionLocal)
-      return backdropFn(dir, uTime, uSeed, uNebulaIntensity)
+      // Store display-encoded RGB in an RGBA8 cache so faint sky values survive
+      // quantization without the memory cost of six HDR cube faces.
+      const sky: any = backdropFn(dir, uTime, uSeed, uNebulaIntensity)
+      return vec4(sky.rgb.pow(1 / 2.2), 1)
     })
 
     this.material = new THREE.MeshBasicNodeMaterial()
@@ -142,13 +152,30 @@ export class GalaxyBackdropWebGPU {
     this.mesh.renderOrder = -10
   }
 
-  update(time: number, camera: THREE.PerspectiveCamera): void {
-    this.uTime.value = time
+  /** Bake the distant sky once; camera motion then costs one cube lookup. */
+  prepare(renderer: THREE.WebGPURenderer): void {
+    if (this.cache) return
+    this.cache = new THREE.CubeRenderTarget(this.cacheSize, { depthBuffer: false, generateMipmaps: false })
+    const bakeScene = new THREE.Scene()
+    bakeScene.add(new THREE.Mesh(this.mesh.geometry, this.material))
+    const radius = this.mesh.geometry.boundingSphere?.radius ?? 1e6
+    const cubeCamera = new THREE.CubeCamera(0.1, radius * 2, this.cache as any)
+    cubeCamera.update(renderer as any, bakeScene)
+    this.cachedMaterial = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false, depthTest: false })
+    const sampled = cubeTexture(this.cache.texture as THREE.CubeTexture, normalize(positionLocal))
+    this.cachedMaterial.fragmentNode = vec4(sampled.rgb.pow(vec3(2.2)), 1)
+    this.mesh.material = this.cachedMaterial
+    this.material.dispose()
+  }
+
+  update(_time: number, camera: THREE.PerspectiveCamera): void {
     this.mesh.position.copy(camera.position)
   }
 
   dispose(): void {
     this.material.dispose()
+    this.cachedMaterial?.dispose()
+    this.cache?.dispose()
     ;(this.mesh.geometry as THREE.BufferGeometry).dispose()
   }
 }

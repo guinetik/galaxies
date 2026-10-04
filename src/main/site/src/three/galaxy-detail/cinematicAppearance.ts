@@ -5,6 +5,7 @@ export const CINEMATIC = {
   bodySamples: 30000,
   bodyDiameter: 0.12,
   bodyOpacity: 0.012,
+  bodyResolutionScale: 0.25,
 } as const
 
 /** Shared CPU fade also determines whether the diffuse draw is needed at all. */

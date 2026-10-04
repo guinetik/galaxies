@@ -147,7 +147,7 @@ export class GalaxyParticles {
       ...this.material.uniforms,
       uBody: { value: CINEMATIC.bodyDiameter },
       uBodyOpacity: { value: CINEMATIC.bodyOpacity * 30000 / indices.length },
-      uScreenHeight: { value: 800 },
+      uScreenHeight: { value: 800 * CINEMATIC.bodyResolutionScale },
     }
     this.bodyPoints = new THREE.Points(this.bodyGeometry, this.bodyMaterial)
     this.bodyPoints.frustumCulled = false
@@ -183,7 +183,7 @@ export class GalaxyParticles {
     this.simulationTime += dt
     this.material.uniforms.uDustMotion.value.w = this.simulationTime
     this.material.uniforms.uScreenHeight.value = viewportHeight
-    this.bodyMaterial.uniforms.uScreenHeight.value = viewportHeight
+    this.bodyMaterial.uniforms.uScreenHeight.value = viewportHeight * CINEMATIC.bodyResolutionScale
     this.material.uniforms.uTanHalfFov.value = Math.tan(camera.fov * Math.PI / 360)
     const stars = this.stars
     const count = stars.length

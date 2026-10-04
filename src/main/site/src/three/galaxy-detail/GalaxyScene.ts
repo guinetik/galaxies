@@ -43,6 +43,7 @@ export class GalaxyScene implements IGalaxyScene {
   // Lensing post-process
   private rtScaleFactor: number
   private galaxyRT: THREE.WebGLRenderTarget
+  private bodyRT: THREE.WebGLRenderTarget
   private compositeRT: THREE.WebGLRenderTarget
   private outputMaterial: THREE.ShaderMaterial
   private outputScene: THREE.Scene
@@ -132,7 +133,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.particles.points.layers.set(1)
     this.particles.foregroundPoints.layers.set(2)
     this.haze.mesh.layers.set(1)
-    this.particles.bodyPoints.layers.set(1)
+    this.particles.bodyPoints.layers.set(3)
     // Black hole layers are set in GalaxyBlackHole constructor (layer 2)
 
     // ─── Distant neighbor galaxies (background layer, behind main galaxy) ─
@@ -149,18 +150,22 @@ export class GalaxyScene implements IGalaxyScene {
 
     const w = canvas.clientWidth
     const h = canvas.clientHeight
-    this.rtScaleFactor = rtScale(quality)
+    this.rtScaleFactor = rtScale(quality, canvas.clientWidth * this.renderer.getPixelRatio())
     this.galaxyRT = new THREE.WebGLRenderTarget(
       w * this.renderer.getPixelRatio() * this.rtScaleFactor,
       h * this.renderer.getPixelRatio() * this.rtScaleFactor,
       { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, type: THREE.HalfFloatType },
     )
+    this.bodyRT = this.galaxyRT.clone()
+    this.bodyRT.depthBuffer = false
+    this.bodyRT.setSize(Math.max(1, Math.floor(this.galaxyRT.width * CINEMATIC.bodyResolutionScale)), Math.max(1, Math.floor(this.galaxyRT.height * CINEMATIC.bodyResolutionScale)))
 
     this.lensingMaterial = new THREE.ShaderMaterial({
       vertexShader: lensingVert,
       fragmentShader: lensingFrag,
       uniforms: {
         uSceneTexture: { value: this.galaxyRT.texture },
+        uBodyTexture: { value: this.bodyRT.texture },
         uBHScreenPos: { value: new THREE.Vector2(0.5, 0.5) },
         uLensStrength: { value: 0.0 },
         uLensZoom: { value: 0.0 },
@@ -311,8 +316,10 @@ export class GalaxyScene implements IGalaxyScene {
       this.camera.aspect = rw / rh
       this.camera.updateProjectionMatrix()
       const dpr = this.renderer.getPixelRatio()
+      this.rtScaleFactor = rtScale(quality, rw * dpr)
       this.galaxyRT.setSize(rw * dpr * this.rtScaleFactor, rh * dpr * this.rtScaleFactor)
       this.compositeRT.setSize(rw * dpr * this.rtScaleFactor, rh * dpr * this.rtScaleFactor)
+      this.bodyRT.setSize(Math.max(1, Math.floor(this.galaxyRT.width * CINEMATIC.bodyResolutionScale)), Math.max(1, Math.floor(this.galaxyRT.height * CINEMATIC.bodyResolutionScale)))
       this.lensingMaterial.uniforms.uAspectRatio.value = rw / rh
     })
     this.resizeObserver.observe(canvas)
@@ -357,6 +364,11 @@ export class GalaxyScene implements IGalaxyScene {
     lensStrength: number,
     lensZoom: number,
   ): void {
+    this.camera.layers.set(3)
+    this.renderer.setRenderTarget(this.bodyRT)
+    this.renderer.clear()
+    this.renderer.render(this.scene, this.camera)
+
     this.camera.layers.set(1)
     this.renderer.setRenderTarget(this.galaxyRT)
     this.renderer.clear()
@@ -374,6 +386,7 @@ export class GalaxyScene implements IGalaxyScene {
   // ─── Animation loop ─────────────────────────────────────────────────────────
 
   start(): void {
+    this.backdrop.prepare(this.renderer)
     this.clock.start()
 
     const animate = () => {
@@ -487,6 +500,7 @@ export class GalaxyScene implements IGalaxyScene {
     this.neighbors?.dispose()
     this.neighborAtlas?.dispose()
     this.galaxyRT.dispose()
+    this.bodyRT.dispose()
     this.compositeRT.dispose()
     this.outputMaterial.dispose()
     ;(this.outputScene.children[0] as THREE.Mesh).geometry.dispose()

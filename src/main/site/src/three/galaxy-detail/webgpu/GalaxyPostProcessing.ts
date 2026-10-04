@@ -32,10 +32,12 @@ import {
 } from 'three/tsl'
 import { pass } from 'three/tsl'
 import { bloom } from 'three/addons/tsl/display/BloomNode.js'
+import { CINEMATIC } from '../cinematicAppearance'
 
 export class GalaxyPostProcessing {
   readonly postProcessing: THREE.PostProcessing
   private bloomPassNode: any
+  private bhPass: ReturnType<typeof pass>
   private scenePasses: ReturnType<typeof pass>[]
 
   // Lensing uniforms
@@ -48,6 +50,7 @@ export class GalaxyPostProcessing {
     galaxyScene: THREE.Scene,
     bhScene: THREE.Scene,
     foregroundScene: THREE.Scene,
+    bodyScene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
     postFxScale = 1.0,
   ) {
@@ -55,16 +58,26 @@ export class GalaxyPostProcessing {
 
     // ─── Pass 1: Galaxy scene (particles, clouds — no BH) ──────────
     const galaxyPass = pass(galaxyScene, camera)
-    const galaxyColor = galaxyPass.getTextureNode()
+    const sharpColor = galaxyPass.getTextureNode()
+    // Soft light needs coverage, not native pixel detail. Its morphology and
+    // samples stay unchanged; this cuts diffuse fragment work by 16x.
+    const bodyPass = pass(bodyScene, camera, { samples: 0 })
+    bodyPass.setResolutionScale(CINEMATIC.bodyResolutionScale)
+    const bodyColor = bodyPass.getTextureNode()
+    const galaxyColor = sharpColor.add(bodyColor)
 
     // ─── Pass 2: BH scene (rendered separately) ────────────────────
     const bhPass = pass(bhScene, camera)
+    this.bhPass = bhPass
+    // Ray marching is the expensive close-up effect. Keep the fine stars at
+    // native resolution, and honor the quality tier for the BH pass only.
+    bhPass.setResolutionScale(postFxScale)
     const bhColor = bhPass.getTextureNode()
 
     // ─── Pass 3: Foreground stars (additive glow on top) ───────────
     const fgPass = pass(foregroundScene, camera)
     const fgColor = fgPass.getTextureNode()
-    this.scenePasses = [galaxyPass, bhPass, fgPass]
+    this.scenePasses = [galaxyPass, bodyPass, bhPass, fgPass]
 
     // ─── Lensing — distort galaxy UVs near the black hole ──────────
     const uBHScreenPos = this.uBHScreenPos
@@ -102,7 +115,7 @@ export class GalaxyPostProcessing {
 
       const distortedUV = clamp(currentUV.add(offset), float(0.0), float(1.0))
 
-      const col = galaxyColor.sample(distortedUV).toVar()
+      const col = sharpColor.sample(distortedUV).add(bodyColor.sample(distortedUV)).toVar()
 
       // Keep the lensing glow subtle so the BH shader remains the main ring source.
       const ringRadius = mix(float(0.024), float(0.09), lensZoom)
@@ -154,6 +167,10 @@ export class GalaxyPostProcessing {
 
   render(): void {
     this.postProcessing.render()
+  }
+
+  setEffectScale(scale: number): void {
+    this.bhPass.setResolutionScale(scale)
   }
 
   updateBloom(strength: number, radius: number, threshold: number): void {

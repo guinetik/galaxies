@@ -58,6 +58,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
   private scene: THREE.Scene
   private bhScene: THREE.Scene
   private fgScene: THREE.Scene
+  private bodyScene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private canvas: HTMLCanvasElement
   private galaxy: Galaxy
@@ -146,6 +147,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     this.scene = new THREE.Scene()
     this.bhScene = new THREE.Scene()
     this.fgScene = new THREE.Scene()
+    this.bodyScene = new THREE.Scene()
 
     // ─── Galaxy data pipeline ──────────────────────────────────────────
     this.params = mapGalaxyToRenderParams(galaxy)
@@ -173,12 +175,12 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
     // ─── Particle renderer ─────────────────────────────────────────────
     this.particles = new GalaxyParticlesWebGPU(count, this.buffers, this.baseDistance, this.params, this.uniforms)
     this.scene.add(this.particles.sprite)
-    this.scene.add(this.particles.bodySprite)
+    this.bodyScene.add(this.particles.bodySprite)
     this.haze = new GalaxyHaze(this.params)
     this.scene.add(this.haze.mesh)
 
     // ─── Black hole (separate scene — composited on top after lensing+bloom)
-    this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08, rtScale(this.quality))
+    this.blackHole = new GalaxyBlackHoleWebGPU(R * 0.08, rtScale(this.quality, canvas.clientWidth * Math.min(window.devicePixelRatio, dprCap(this.quality))))
     this.bhScene.add(this.blackHole.depthMesh)
     this.bhScene.add(this.blackHole.mesh)
 
@@ -326,6 +328,7 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
       if (rw === 0 || rh === 0 || !this.renderer) return
       this.renderer.setSize(rw, rh, false)
       this.renderer.getSize(this.rendererSize)
+      this.postProcessing?.setEffectScale(rtScale(this.quality, rw * this.dpr))
       const framingScale = getOverviewZoom(rw / rh) / getOverviewZoom(this.camera.aspect)
       this.zoom *= framingScale
       this.targetZoom *= framingScale
@@ -379,11 +382,12 @@ export class GalaxySceneWebGPU implements IGalaxyScene {
 
     await this.renderer.init()
     if (this.disposed) return
+    this.backdrop.prepare(this.renderer)
 
     // ─── Post-processing (bloom + lensing + BH composite + fg stars) ─
-    const postFxScale = rtScale(this.quality)
+    const postFxScale = rtScale(this.quality, this.rendererSize.x * this.dpr)
     this.postProcessing = new GalaxyPostProcessing(
-      this.renderer, this.scene, this.bhScene, this.fgScene, this.camera, postFxScale,
+      this.renderer, this.scene, this.bhScene, this.fgScene, this.bodyScene, this.camera, postFxScale,
     )
 
     // ─── Run init compute (once) ────────────────────────────────────
