@@ -21,6 +21,7 @@ const emit = defineEmits<{
 }>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let scene: IGalaxyScene | null = null
+let disposed = false
 
 const { ready: dbReady, getNearbyGalaxies } = useGalaxyData()
 
@@ -29,6 +30,7 @@ onMounted(async () => {
 
   // Fetch neighbor galaxies from the DB (non-blocking — DB may still be loading)
   await dbReady
+  if (disposed || !canvasRef.value) return
   const neighbors: Galaxy[] = getNearbyGalaxies(props.galaxy)
 
   if (props.renderer === 'webgpu' && navigator.gpu) {
@@ -36,18 +38,23 @@ onMounted(async () => {
       const { GalaxySceneWebGPU } = await import(
         '@/three/galaxy-detail/webgpu/GalaxySceneWebGPU'
       )
+      if (disposed || !canvasRef.value) return
       scene = new GalaxySceneWebGPU(canvasRef.value, props.galaxy, neighbors)
       await scene.start()
+      if (disposed) return
       emit('activeRenderer', 'webgpu')
       emit('ready')
       return
     } catch (e) {
+      scene?.dispose()
+      scene = null
       console.warn('WebGPU galaxy renderer failed, falling back to WebGL:', e)
     }
   }
 
   // WebGL fallback
   const { GalaxyScene } = await import('@/three/galaxy-detail/GalaxyScene')
+  if (disposed || !canvasRef.value) return
   scene = new GalaxyScene(canvasRef.value, props.galaxy, neighbors)
   scene.start()
   emit('activeRenderer', 'webgl')
@@ -55,6 +62,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  disposed = true
   scene?.dispose()
   scene = null
 })
